@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Hydravion</string>
+    <string name="browse_title">Hydravion</string>
+    <string name="play">Play</string>
+    <string name="settings">Settings</string>
+    <string name="personal_settings">Personal Settings</string>
+    <string name="select_server">Select CDN Server</string>
+    <string name="resolutions">Resolutions</string>
+    <string name="logout">Logout</string>
+    <string name="movie">Video</string>
+    <string name="login_button">Login</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+</resources>

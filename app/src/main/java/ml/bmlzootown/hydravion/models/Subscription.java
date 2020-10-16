@@ -26,6 +26,9 @@ public class Subscription {
     @SerializedName("creator")
     @Expose
     private String creator;
+    @SerializedName("streamUrl")
+    @Expose
+    private String streamUrl;
 
     public String getStartDate() {
         return startDate;
@@ -81,6 +84,14 @@ public class Subscription {
 
     public void setCreator(String creator) {
         this.creator = creator;
+    }
+
+    public String getStreamUrl() {
+        return streamUrl;
+    }
+
+    public void setStreamUrl(String url) {
+        this.streamUrl = url;
     }
 
 }

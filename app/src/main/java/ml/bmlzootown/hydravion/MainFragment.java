@@ -51,10 +51,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import ml.bmlzootown.hydravion.models.Edge;
 import ml.bmlzootown.hydravion.models.Edges;
 import ml.bmlzootown.hydravion.models.Level;
+import ml.bmlzootown.hydravion.models.Live;
 import ml.bmlzootown.hydravion.models.Subscription;
 import ml.bmlzootown.hydravion.models.Video;
 import ml.bmlzootown.hydravion.models.VideoInfo;
@@ -97,11 +100,6 @@ public class MainFragment extends BrowseFragment {
         //setupUIElements();
 
         //setupEventListeners();
-    }
-
-    private void test() {
-        Log.d("CREDS", sailssid);
-        Log.d("CREDS", cfduid);
     }
 
     @Override
@@ -221,9 +219,46 @@ public class MainFragment extends BrowseFragment {
         }
         subscriptions = trimmed;
         for (Subscription sub : subscriptions) {
+            getLiveInfo(sub);
             getVideos(sub.getCreator(), 1);
         }
         Log.d("ROWS", trimmed.size() + "");
+    }
+
+    private void getLiveInfo(Subscription sub) {
+        String uri = "https://www.floatplane.com/api/cdn/delivery?type=live&creator=" + sub.getCreator();
+        String cookies = "__cfduid=" + cfduid + "; sails.sid=" + sailssid;
+        RequestTask rt = new RequestTask(getActivity().getApplicationContext());
+        rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
+            @Override
+            public void onSuccess(String string) {
+                gotLiveInfo(string, sub);
+            }
+            @Override
+            public void onSuccessCreator(String string, String creatorGUID) {
+            }
+        });
+    }
+
+    private void gotLiveInfo(String response, Subscription sub) {
+        Gson gson = new Gson();
+        Live live = gson.fromJson(response, Live.class);
+        String l = live.getCdn() + live.getResource().getUri();
+        String pattern = "\\{(.*?)\\}";
+        Pattern p = Pattern.compile(pattern);
+        Matcher m = p.matcher(live.getResource().getUri());
+        if (m.find()) {
+            for (int i = 0; i < m.groupCount(); i++) {
+                //Log.d("LIVE", m.group(i));
+                String var = m.group(i).substring(1, m.group(i).length()-1);
+                if (var.equalsIgnoreCase("token")) {
+                    l = l.replaceAll("\\{token\\}", live.getResource().getData().getToken());
+                    sub.setStreamUrl(l);
+                    Log.d("LIVE", l);
+                }
+                //Log.d("LIVE", l);
+            }
+        }
     }
 
     private void getVideos(String creatorGUID, int page) {
@@ -274,6 +309,7 @@ public class MainFragment extends BrowseFragment {
 
         GridItemPresenter mGridPresenter = new GridItemPresenter();
         ArrayObjectAdapter gridRowAdapter = new ArrayObjectAdapter(mGridPresenter);
+        gridRowAdapter.add(getResources().getString(R.string.live_stream));
         gridRowAdapter.add(getResources().getString(R.string.select_server));
         gridRowAdapter.add(getResources().getString(R.string.logout));
         rowsAdapter.add(new ListRow(gridHeader, gridRowAdapter));
@@ -293,8 +329,7 @@ public class MainFragment extends BrowseFragment {
 
     @SuppressLint("UseCompatLoadingForDrawables")
     private void setupUIElements() {
-        // setBadgeDrawable(getActivity().getResources().getDrawable(
-        // R.drawable.videos_by_google_banner));
+        // setBadgeDrawable(getActivity().getResources().getDrawable(R.drawable.videos_by_google_banner));
         setBadgeDrawable(getActivity().getResources().getDrawable(R.drawable.white_plane));
         //setTitle(getString(R.string.browse_title)); // Badge, when set, takes precedent
         // over title
@@ -371,7 +406,6 @@ public class MainFragment extends BrowseFragment {
                     rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
                         @Override
                         public void onSuccess(String string) {
-                            //gotSubscriptions(string);
                             Gson gson = new Gson();
                             Edges es = gson.fromJson(string, Edges.class);
                             List<String> servers = new ArrayList<>();
@@ -402,6 +436,28 @@ public class MainFragment extends BrowseFragment {
                         public void onSuccessCreator(String string, String creatorGUID) {
                         }
                     });
+                } else if (item.toString().equalsIgnoreCase(getString(R.string.live_stream))) {
+                    List<String> subs = new ArrayList<>();
+                    for (Subscription s : subscriptions) {
+                        subs.add(s.getPlan().getTitle());
+                    }
+                    CharSequence[] s = subs.toArray(new CharSequence[subs.size()]);
+                    AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                    builder.setTitle("Play livestream?");
+                    builder.setItems(s,
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    String stream = subscriptions.get(which).getStreamUrl();
+                                    Log.d("LIVE", stream);
+                                    Video live = new Video();
+                                    live.setVidUrl(stream);
+                                    Intent intent = new Intent(getActivity(), PlaybackActivity.class);
+                                    intent.putExtra(DetailsActivity.Video, (Serializable) live);
+                                    startActivity(intent);
+                                }
+                            });
+                    builder.create().show();
                 }
             }
         }

@@ -5,9 +5,11 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Toast;
 
 import androidx.fragment.app.FragmentActivity;
 
+import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
@@ -28,6 +30,7 @@ public class PlaybackActivity extends FragmentActivity {
     private long playbackPosition = 0;
 
     private String url = "";
+    private Video video;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -42,6 +45,7 @@ public class PlaybackActivity extends FragmentActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         final Video video = (Video) getIntent().getSerializableExtra(DetailsActivity.Video);
+        this.video = video;
         //url = video.getVidUrl().replaceAll("Edge01-na.floatplane.com", "edge03-na.floatplane.com");
         Log.d("SERVER", MainFragment.cdn);
         Log.d("SERVER", "test");
@@ -96,6 +100,26 @@ public class PlaybackActivity extends FragmentActivity {
         //player.setMediaItem(mediaItem);
 
         player.prepare();
+
+        player.addListener(new Player.EventListener() {
+            @Override
+            public void onPlayerError(ExoPlaybackException error) {
+                if (video != null) {
+                    if (video.getTitle() == null) {
+                        releasePlayer();
+                        Toast.makeText(PlaybackActivity.this, "Livestream not found!", Toast.LENGTH_LONG).show();
+                    }
+                }
+            }
+
+            @Override
+            public void onPlaybackStateChanged(int state) {
+                Log.d("STATE", state + "");
+                if (state == Player.STATE_ENDED) {
+                    releasePlayer();
+                }
+            }
+        });
     }
 
     private void releasePlayer() {
@@ -107,6 +131,7 @@ public class PlaybackActivity extends FragmentActivity {
             player.stop();
             player.release();
             player = null;
+            this.finish();
         }
     }
 

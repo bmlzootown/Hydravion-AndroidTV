@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 
 import androidx.fragment.app.FragmentActivity;
 
@@ -38,6 +39,7 @@ public class PlaybackActivity extends FragmentActivity {
                     .replace(android.R.id.content, new PlaybackVideoFragment())
                     .commit();
         }*/
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         final Video video = (Video) getIntent().getSerializableExtra(DetailsActivity.Video);
         //url = video.getVidUrl().replaceAll("Edge01-na.floatplane.com", "edge03-na.floatplane.com");

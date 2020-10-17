@@ -3,7 +3,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000"
-    android:id="@+id/framelayout_exoplayer">
+    android:id="@+id/framelayout_exoplayer"
+    android:keepScreenOn="true">
 
     <com.google.android.exoplayer2.ui.PlayerView
         android:layout_width="match_parent"

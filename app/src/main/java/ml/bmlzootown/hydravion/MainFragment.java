@@ -47,6 +47,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
@@ -86,6 +87,11 @@ public class MainFragment extends BrowseFragment {
 
     public static List<Subscription> subscriptions = new ArrayList<>();
     public static HashMap<String, Video[]> videos = new HashMap<>();
+    private int subCount;
+    private int page = 1;
+
+    private int rowSelected;
+    private int colSelected;
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
@@ -175,56 +181,6 @@ public class MainFragment extends BrowseFragment {
         prefs.edit().putString("cdn", cdn).apply();
     }
 
-    private void getSubscriptions() {
-        String uri = "https://www.floatplane.com/api/user/subscriptions";
-        String cookies = "__cfduid=" + cfduid + "; sails.sid=" + sailssid;
-        RequestTask rt = new RequestTask(getActivity().getApplicationContext());
-        rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
-            @Override
-            public void onSuccess(String string) {
-                gotSubscriptions(string);
-            }
-            @Override
-            public void onSuccessCreator(String string, String creatorGUID) {
-            }
-        });
-
-        /*CookieManager cm = new CookieManager();
-        try {
-            URI domain = new URI("floatplane.com");
-            HttpCookie c1 = new HttpCookie("__cfduid", MainFragment.cfduid);
-            HttpCookie c2 = new HttpCookie("sails.sid", MainFragment.sailssid);
-            cm.getCookieStore().add(domain, c1);
-            cm.getCookieStore().add(domain, c2);
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }*/
-    }
-
-    private void gotSubscriptions(String response) {
-        Gson gson = new Gson();
-        Subscription[] subs = gson.fromJson(response, Subscription[].class);
-        NUM_ROWS = subs.length;
-        List<Subscription> trimmed = new ArrayList<>();
-        for (Subscription sub : subs) {
-            if (trimmed.size() > 0) {
-                for (Subscription trm : trimmed) {
-                    if (!trm.getCreator().equals(sub.getCreator())) {
-                        trimmed.add(sub);
-                    }
-                }
-            } else {
-                trimmed.add(sub);
-            }
-        }
-        subscriptions = trimmed;
-        for (Subscription sub : subscriptions) {
-            getLiveInfo(sub);
-            getVideos(sub.getCreator(), 1);
-        }
-        Log.d("ROWS", trimmed.size() + "");
-    }
-
     private void getLiveInfo(Subscription sub) {
         String uri = "https://www.floatplane.com/api/cdn/delivery?type=live&creator=" + sub.getCreator();
         String cookies = "__cfduid=" + cfduid + "; sails.sid=" + sailssid;
@@ -261,6 +217,64 @@ public class MainFragment extends BrowseFragment {
         }
     }
 
+    private void getSubscriptions() {
+        String uri = "https://www.floatplane.com/api/user/subscriptions";
+        String cookies = "__cfduid=" + cfduid + "; sails.sid=" + sailssid;
+        RequestTask rt = new RequestTask(getActivity().getApplicationContext());
+        rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
+            @Override
+            public void onSuccess(String string) {
+                gotSubscriptions(string);
+            }
+            @Override
+            public void onSuccessCreator(String string, String creatorGUID) {
+            }
+        });
+
+        /*CookieManager cm = new CookieManager();
+        try {
+            URI domain = new URI("floatplane.com");
+            HttpCookie c1 = new HttpCookie("__cfduid", MainFragment.cfduid);
+            HttpCookie c2 = new HttpCookie("sails.sid", MainFragment.sailssid);
+            cm.getCookieStore().add(domain, c1);
+            cm.getCookieStore().add(domain, c2);
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }*/
+    }
+
+    private void gotSubscriptions(String response) {
+        Gson gson = new Gson();
+        Subscription[] subs = gson.fromJson(response, Subscription[].class);
+        NUM_ROWS = subs.length;
+        List<Subscription> trimmed = new ArrayList<>();
+        for (Subscription sub : subs) {
+            if (trimmed.size() > 0) {
+                if (!containsSub(trimmed, sub)) {
+                    trimmed.add(sub);
+                }
+            } else {
+                trimmed.add(sub);
+            }
+        }
+        subscriptions = trimmed;
+        for (Subscription sub : subscriptions) {
+            getLiveInfo(sub);
+            getVideos(sub.getCreator(), 1);
+        }
+        subCount = trimmed.size();
+        Log.d("ROWS", trimmed.size() + "");
+    }
+
+    private boolean containsSub(List<Subscription> trimmed, Subscription sub) {
+        for (Subscription s : trimmed) {
+            if (s.getCreator().equals(sub.getCreator())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void getVideos(String creatorGUID, int page) {
         String uri = "https://www.floatplane.com/api/creator/videos?creatorGUID=" + creatorGUID + "&fetchAfter=" + ((page-1)*20);
         String cookies = "__cfduid=" + cfduid + "; sails.sid=" + sailssid;
@@ -279,11 +293,33 @@ public class MainFragment extends BrowseFragment {
     private void gotVideos(String response, String creatorGUID) {
         Gson gson = new Gson();
         Video[] vids = gson.fromJson(response, Video[].class);
-        NUM_COLS = vids.length;
-        videos.put(creatorGUID, vids);
-        if (videos.size() == subscriptions.size()) {
-            refreshRows();
+        if (videos.get(creatorGUID) != null && videos.get(creatorGUID).length > 0) {
+            Video[] temp = videos.get(creatorGUID);
+            vids = appendVideos(temp, vids);
+            videos.put(creatorGUID, vids);
+        } else {
+            videos.put(creatorGUID, vids);
         }
+        /*if (videos.size() == subscriptions.size()) {
+            refreshRows();
+        }*/
+        if (subCount > 1) {
+            subCount--;
+        } else {
+            refreshRows();
+            subCount = subscriptions.size();
+            setSelectedPosition(rowSelected, false, new ListRowPresenter.SelectItemViewHolderTask(colSelected));
+        }
+        NUM_COLS = videos.get(creatorGUID).length;
+    }
+
+    private Video[] appendVideos(Video[] oldVids, Video[] newVids) {
+        int ol = oldVids.length;
+        int nl = newVids.length;
+        Video[] updated = new Video[ol+nl];
+        System.arraycopy(oldVids, 0, updated, 0, ol);
+        System.arraycopy(newVids, 0, updated, ol, nl);
+        return updated;
     }
 
     private void refreshRows() {
@@ -502,6 +538,21 @@ public class MainFragment extends BrowseFragment {
             if (item instanceof Video) {
                 mBackgroundUri = ((Video) item).getThumbnail().getPath();
                 startBackgroundTimer();
+                final ListRow listRow = (ListRow) row;
+                final ArrayObjectAdapter current = (ArrayObjectAdapter) listRow.getAdapter();
+                int selected = current.indexOf(item);
+                colSelected = selected;
+                for (Subscription s : subscriptions) {
+                    if (((Video) item).getCreator().equals(s.getCreator())) {
+                        rowSelected = subscriptions.indexOf(s);
+                    }
+                }
+                if (selected != -1 && (current.size() - 1) == selected) {
+                    for (Subscription sub : subscriptions) {
+                        getVideos(sub.getCreator(), page+1);
+                    }
+                    page++;
+                }
             }
         }
     }

@@ -12,4 +12,5 @@
     <string name="username">Username</string>
     <string name="password">Password</string>
     <string name="live_stream">Livestream</string>
+    <string name="refresh">Refresh</string>
 </resources>

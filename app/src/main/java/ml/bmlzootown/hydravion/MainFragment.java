@@ -345,6 +345,7 @@ public class MainFragment extends BrowseFragment {
 
         GridItemPresenter mGridPresenter = new GridItemPresenter();
         ArrayObjectAdapter gridRowAdapter = new ArrayObjectAdapter(mGridPresenter);
+        gridRowAdapter.add(getResources().getString(R.string.refresh));
         gridRowAdapter.add(getResources().getString(R.string.live_stream));
         gridRowAdapter.add(getResources().getString(R.string.select_server));
         gridRowAdapter.add(getResources().getString(R.string.logout));
@@ -430,7 +431,9 @@ public class MainFragment extends BrowseFragment {
             if (item instanceof Video) {
                 getSelectVid(itemViewHolder, item);
             } else if (item instanceof String) {
-                if (item.toString().equalsIgnoreCase(getString(R.string.logout))) {
+                if (item.toString().equalsIgnoreCase(getString(R.string.refresh))) {
+                    refreshRows();
+                } else if (item.toString().equalsIgnoreCase(getString(R.string.logout))) {
                     sailssid = "default";
                     cfduid = "default";
                     saveCredentials();

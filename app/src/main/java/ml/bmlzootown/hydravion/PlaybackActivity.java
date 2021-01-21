@@ -3,6 +3,7 @@ package ml.bmlzootown.hydravion;
 import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Toast;
@@ -51,7 +52,7 @@ public class PlaybackActivity extends FragmentActivity {
         Log.d("SERVER", "test");
         url = video.getVidUrl().replaceAll("Edge01-na.floatplane.com", MainFragment.cdn);
 
-        playerView = findViewById(R.id.exoplayer);;
+        playerView = findViewById(R.id.exoplayer);
     }
 
     @Override
@@ -84,6 +85,13 @@ public class PlaybackActivity extends FragmentActivity {
         if (Util.SDK_INT > 23) {
             releasePlayer();
         }
+    }
+
+    @SuppressLint("RestrictedApi")
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        // See whether the player view wants to handle media or DPAD keys events.
+        return playerView.dispatchKeyEvent(event) || super.dispatchKeyEvent(event);
     }
 
     private void initializePlayer() {

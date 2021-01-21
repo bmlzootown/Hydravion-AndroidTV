@@ -40,6 +40,9 @@ import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
 import com.google.gson.Gson;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.Serializable;
 import java.net.CookieManager;
 import java.net.HttpCookie;
@@ -128,6 +131,7 @@ public class MainFragment extends BrowseFragment {
             initialize();
         }
     }
+
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -244,8 +248,24 @@ public class MainFragment extends BrowseFragment {
     }
 
     private void gotSubscriptions(String response) {
+        JSONObject obj = new JSONObject();
+        try {
+            obj = new JSONObject(response);
+        } catch(IllegalStateException | JSONException e) {
+            Log.d("TESTING", "Exception caught!");
+        }
+
+        if (obj.has("errors")) {
+            Intent intent = new Intent(getActivity(), LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+            startActivityForResult(intent, 42);
+            cdn = "edge03-na.floatplane.com";
+            return;
+        }
+
         Gson gson = new Gson();
         Subscription[] subs = gson.fromJson(response, Subscription[].class);
+
         NUM_ROWS = subs.length;
         List<Subscription> trimmed = new ArrayList<>();
         for (Subscription sub : subs) {

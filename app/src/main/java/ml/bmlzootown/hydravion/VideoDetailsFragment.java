@@ -32,6 +32,7 @@ import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.android.volley.VolleyError;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.bumptech.glide.request.target.CustomTarget;
@@ -210,6 +211,9 @@ public class VideoDetailsFragment extends DetailsFragment {
                         }
                         @Override
                         public void onSuccessCreator(String string, String creatorGUID) {
+                        }
+                        @Override
+                        public void onError(VolleyError error) {
                         }
                     });
                 } else {

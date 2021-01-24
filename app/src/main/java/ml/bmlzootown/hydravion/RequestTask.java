@@ -37,6 +37,7 @@ public class RequestTask {
             @Override
             public void onErrorResponse(VolleyError error) {
                 error.printStackTrace();
+                callback.onError(error);
             }
         }) {
             @Override
@@ -64,6 +65,7 @@ public class RequestTask {
             @Override
             public void onErrorResponse(VolleyError error) {
                 error.printStackTrace();
+                callback.onError(error);
             }
         }) {
             @Override
@@ -81,6 +83,7 @@ public class RequestTask {
     public interface VolleyCallback {
         void onSuccess(String string);
         void onSuccessCreator(String string, String creatorGUID);
+        void onError(VolleyError error);
     }
 
 }

@@ -34,6 +34,9 @@ import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.android.volley.NetworkResponse;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.Volley;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.bumptech.glide.request.target.CustomTarget;
@@ -178,6 +181,13 @@ public class MainFragment extends BrowseFragment {
         }
     }
 
+    private void logout() {
+        sailssid = "default";
+        cfduid = "default";
+        saveCredentials();
+        getActivity().finishAndRemoveTask();
+    }
+
     private void saveCredentials() {
         SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
         prefs.edit().putString("sails.sid", sailssid).apply();
@@ -196,6 +206,9 @@ public class MainFragment extends BrowseFragment {
             }
             @Override
             public void onSuccessCreator(String string, String creatorGUID) {
+            }
+            @Override
+            public void onError(VolleyError error) {
             }
         });
     }
@@ -233,6 +246,21 @@ public class MainFragment extends BrowseFragment {
             @Override
             public void onSuccessCreator(String string, String creatorGUID) {
             }
+            @Override
+            public void onError(VolleyError error) {
+                NetworkResponse nr = error.networkResponse;
+                if (nr != null && nr.statusCode == 403) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                    builder.setTitle("Session Expired");
+                    builder.setMessage("Re-open Hydravion to login again!");
+                    builder.setPositiveButton("OK",
+                            (dialog, which) -> {
+                                dialog.dismiss();
+                                logout();
+                            });
+                    builder.create().show();
+                }
+            }
         });
 
         /*CookieManager cm = new CookieManager();
@@ -256,10 +284,15 @@ public class MainFragment extends BrowseFragment {
         }
 
         if (obj.has("errors")) {
-            Intent intent = new Intent(getActivity(), LoginActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-            startActivityForResult(intent, 42);
-            cdn = "edge03-na.floatplane.com";
+            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+            builder.setTitle("Session Expired");
+            builder.setMessage("Re-open Hydravion to login again!");
+            builder.setPositiveButton("OK",
+                    (dialog, which) -> {
+                        dialog.dismiss();
+                        logout();
+                    });
+            builder.create().show();
             return;
         }
 
@@ -306,6 +339,9 @@ public class MainFragment extends BrowseFragment {
             @Override
             public void onSuccessCreator(String string, String creatorGUID) {
                 gotVideos(string, creatorGUID);
+            }
+            @Override
+            public void onError(VolleyError error) {
             }
         });
     }
@@ -454,10 +490,11 @@ public class MainFragment extends BrowseFragment {
                 if (item.toString().equalsIgnoreCase(getString(R.string.refresh))) {
                     refreshRows();
                 } else if (item.toString().equalsIgnoreCase(getString(R.string.logout))) {
-                    sailssid = "default";
-                    cfduid = "default";
-                    saveCredentials();
-                    getActivity().finishAndRemoveTask();
+                    //sailssid = "default";
+                    //cfduid = "default";
+                    //saveCredentials();
+                    //getActivity().finishAndRemoveTask();
+                    logout();
                 } else if (item.toString().equalsIgnoreCase(getString(R.string.select_server))) {
                     String uri = "https://www.floatplane.com/api/edges";
                     String cookies = "__cfduid=" + MainFragment.cfduid + "; sails.sid=" + MainFragment.sailssid;
@@ -493,6 +530,9 @@ public class MainFragment extends BrowseFragment {
                         }
                         @Override
                         public void onSuccessCreator(String string, String creatorGUID) {
+                        }
+                        @Override
+                        public void onError(VolleyError error) {
                         }
                     });
                 } else if (item.toString().equalsIgnoreCase(getString(R.string.live_stream))) {
@@ -547,6 +587,9 @@ public class MainFragment extends BrowseFragment {
             }
             @Override
             public void onSuccessCreator(String string, String creatorGUID) {
+            }
+            @Override
+            public void onError(VolleyError error) {
             }
         });
     }

@@ -1,9 +1,11 @@
 package ml.bmlzootown.hydravion;
 
 import android.annotation.SuppressLint;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
@@ -22,8 +24,8 @@ public class PopupCreator {
         @SuppressLint("InflateParams") View popupView = LayoutInflater.from(view.getContext()).inflate(R.layout.popup_layout, null);
 
         //Specify the length and width through constants
-        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
-        int height = 300;
+        int width = ViewGroup.LayoutParams.WRAP_CONTENT;
+        int height = ViewGroup.LayoutParams.WRAP_CONTENT;
 
         //Make Inactive Items Outside Of PopupWindow
         boolean focusable = true;
@@ -39,7 +41,8 @@ public class PopupCreator {
         TextView test2 = popupView.findViewById(R.id.titleText);
         test2.setText(R.string.codeTitle);
 
-        ((TextView) popupView.findViewById(R.id.messageText)).setText(view.getContext().getString(R.string.format_code_instructions, token));
+        TextView code = popupView.findViewById(R.id.code);
+        code.setText(token);
     }
 
     public void closePopup() {

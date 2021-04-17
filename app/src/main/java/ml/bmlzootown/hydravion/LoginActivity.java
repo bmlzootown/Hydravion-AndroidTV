@@ -11,19 +11,21 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.android.volley.VolleyError;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.gson.Gson;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import ml.bmlzootown.hydravion.models.LoginResponse;
-import ml.bmlzootown.hydravion.models.Subscription;
 
 public class LoginActivity extends Activity {
 
-    EditText username;
-    EditText password;
+    private TextInputEditText username;
+    private TextInputEditText password;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -33,7 +35,7 @@ public class LoginActivity extends Activity {
         password = findViewById(R.id.password);
     }
 
-    public void login(View view) {
+    public void login(@Nullable View view) {
         if (username != null && password != null) {
             if (username.length() > 0 || password.length() > 0) {
                 String user = username.getText().toString();
@@ -47,7 +49,7 @@ public class LoginActivity extends Activity {
         }
     }
 
-    private void doLogin(String username, String password) {
+    private void doLogin(@NonNull String username, @NonNull String password) {
         LoginRequestTask rt = new LoginRequestTask(this.getApplicationContext());
         rt.sendRequest(username, password, new LoginRequestTask.VolleyCallback() {
             @Override
@@ -117,5 +119,4 @@ public class LoginActivity extends Activity {
             }
         });
     }
-
 }

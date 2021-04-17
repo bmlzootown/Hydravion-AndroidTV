@@ -16,6 +16,7 @@ import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import androidx.annotation.Nullable;
 import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.ContextCompat;
 import androidx.leanback.app.BackgroundManager;
@@ -32,12 +33,8 @@ import androidx.leanback.widget.PresenterSelector;
 import androidx.leanback.widget.Row;
 import androidx.leanback.widget.RowPresenter;
 
-import com.android.volley.NetworkResponse;
 import com.android.volley.VolleyError;
 import com.google.gson.Gson;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -50,6 +47,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import kotlin.Unit;
+import kotlin.jvm.functions.Function1;
 import ml.bmlzootown.hydravion.CardPresenter;
 import ml.bmlzootown.hydravion.Constants;
 import ml.bmlzootown.hydravion.R;
@@ -154,7 +152,24 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void initialize() {
-        getSubscriptions();
+        client.getSubs(subscriptions -> {
+            if (subscriptions == null) {
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Session Expired")
+                        .setMessage("Re-open Hydravion to login again!")
+                        .setPositiveButton("OK",
+                                (dialog, which) -> {
+                                    dialog.dismiss();
+                                    logout();
+                                })
+                        .create()
+                        .show();
+            } else {
+                gotSubscriptions(subscriptions);
+            }
+
+            return Unit.INSTANCE;
+        });
         prepareBackgroundManager();
         setupUIElements();
         setupEventListeners();
@@ -232,74 +247,7 @@ public class MainFragment extends BrowseSupportFragment {
         }
     }
 
-    private void getSubscriptions() {
-        String uri = "https://www.floatplane.com/api/user/subscriptions";
-        String cookies = "__cfduid=" + cfduid + "; sails.sid=" + sailssid;
-        RequestTask rt = new RequestTask(getActivity().getApplicationContext());
-        rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
-            @Override
-            public void onSuccess(String string) {
-                gotSubscriptions(string);
-            }
-
-            @Override
-            public void onSuccessCreator(String string, String creatorGUID) {
-            }
-
-            @Override
-            public void onError(VolleyError error) {
-                NetworkResponse nr = error.networkResponse;
-                if (nr != null && nr.statusCode == 403) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                    builder.setTitle("Session Expired");
-                    builder.setMessage("Re-open Hydravion to login again!");
-                    builder.setPositiveButton("OK",
-                            (dialog, which) -> {
-                                dialog.dismiss();
-                                logout();
-                            });
-                    builder.create().show();
-                }
-            }
-        });
-
-        /*CookieManager cm = new CookieManager();
-        try {
-            URI domain = new URI("floatplane.com");
-            HttpCookie c1 = new HttpCookie("__cfduid", MainFragment.cfduid);
-            HttpCookie c2 = new HttpCookie("sails.sid", MainFragment.sailssid);
-            cm.getCookieStore().add(domain, c1);
-            cm.getCookieStore().add(domain, c2);
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }*/
-    }
-
-    private void gotSubscriptions(String response) {
-        JSONObject obj = new JSONObject();
-        try {
-            obj = new JSONObject(response);
-        } catch (IllegalStateException | JSONException e) {
-            Log.d("TESTING", "Exception caught!");
-        }
-
-        if (obj.has("errors")) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-            builder.setTitle("Session Expired");
-            builder.setMessage("Re-open Hydravion to login again!");
-            builder.setPositiveButton("OK",
-                    (dialog, which) -> {
-                        dialog.dismiss();
-                        logout();
-                    });
-            builder.create().show();
-            return;
-        }
-
-        Log.e("ERROR?", response);
-        Gson gson = new Gson();
-        Subscription[] subs = gson.fromJson(response, Subscription[].class);
-
+    private void gotSubscriptions(Subscription[] subs) {
         NUM_ROWS = subs.length;
         List<Subscription> trimmed = new ArrayList<>();
         for (Subscription sub : subs) {
@@ -367,7 +315,7 @@ public class MainFragment extends BrowseSupportFragment {
                 vids.forEach(listRowAdapter::add);
             }
 
-            HeaderItem header = new HeaderItem(i, sub.getPlan().getTitle());
+            HeaderItem header = new HeaderItem(i, sub.getPlan().getTitle() + ":;:" + sub.getCreator());
             rowsAdapter.add(new ListRow(header, listRowAdapter));
         }
 

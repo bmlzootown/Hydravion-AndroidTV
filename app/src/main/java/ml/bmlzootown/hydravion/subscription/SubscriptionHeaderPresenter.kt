@@ -1,5 +1,7 @@
 package ml.bmlzootown.hydravion.subscription
 
+import android.app.Activity
+import android.content.Context
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -10,11 +12,19 @@ import androidx.leanback.widget.Presenter
 import androidx.leanback.widget.RowHeaderPresenter
 import com.bumptech.glide.Glide
 import ml.bmlzootown.hydravion.R
+import ml.bmlzootown.hydravion.client.HydravionClient
 
 class SubscriptionHeaderPresenter : RowHeaderPresenter() {
 
-    override fun onCreateViewHolder(parent: ViewGroup): ViewHolder =
-        ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.header_subscription, parent, false))
+    private var client: HydravionClient? = null
+
+    override fun onCreateViewHolder(parent: ViewGroup): ViewHolder {
+        if (client == null) {
+            client = HydravionClient.getInstance(parent.context, (parent.context as Activity).getPreferences(Context.MODE_PRIVATE))
+        }
+
+        return ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.header_subscription, parent, false))
+    }
 
     override fun onBindViewHolder(viewHolder: Presenter.ViewHolder, item: Any?) {
         (item as? ListRow)?.headerItem?.name?.let { data ->
@@ -23,10 +33,15 @@ class SubscriptionHeaderPresenter : RowHeaderPresenter() {
                     subView.findViewById<ImageView>(R.id.header_icon).setImageResource(R.drawable.exo_ic_settings)
                     subView.findViewById<TextView>(R.id.header_sub).text = data
                 } else {
-                    Glide.with(subView)
-                        .load(data)
-                        .into(subView.findViewById(R.id.header_icon))
-                    subView.findViewById<TextView>(R.id.header_sub).text = data
+                    data.split(":;:").let { parts ->
+                        subView.findViewById<TextView>(R.id.header_sub).text = parts[0]
+
+                        client?.getCreatorLogo(parts[1]) { logoUrl ->
+                            Glide.with(subView)
+                                .load(logoUrl)
+                                .into(subView.findViewById(R.id.header_icon))
+                        }
+                    }
                 }
             }
         }

@@ -1,9 +1,6 @@
 package ml.bmlzootown.hydravion;
 
 import android.content.Context;
-import android.content.Intent;
-import android.os.Bundle;
-import android.util.Log;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
@@ -17,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class RequestTask {
+
     private static String response;
     private Context context;
 
@@ -27,13 +25,10 @@ public class RequestTask {
     public void sendRequest(String uri, final String cookies, final VolleyCallback callback) {
         RequestQueue queue = Volley.newRequestQueue(this.context);
         StringRequest stringRequest = new StringRequest(Request.Method.GET, uri,
-        new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-                //Log.d("JSON", response);
-                callback.onSuccess(response);
-            }
-        }, new Response.ErrorListener() {
+                response -> {
+                    //Log.d("JSON", response);
+                    callback.onSuccess(response);
+                }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
                 error.printStackTrace();
@@ -81,9 +76,11 @@ public class RequestTask {
     }
 
     public interface VolleyCallback {
+
         void onSuccess(String string);
+
         void onSuccessCreator(String string, String creatorGUID);
+
         void onError(VolleyError error);
     }
-
 }

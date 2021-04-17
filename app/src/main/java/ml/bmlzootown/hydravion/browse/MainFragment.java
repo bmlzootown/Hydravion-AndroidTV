@@ -41,6 +41,7 @@ import org.json.JSONObject;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
@@ -48,17 +49,20 @@ import java.util.TimerTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import kotlin.Unit;
 import ml.bmlzootown.hydravion.CardPresenter;
+import ml.bmlzootown.hydravion.Constants;
 import ml.bmlzootown.hydravion.R;
 import ml.bmlzootown.hydravion.RequestTask;
+import ml.bmlzootown.hydravion.client.HydravionClient;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
 import ml.bmlzootown.hydravion.login.LoginActivity;
 import ml.bmlzootown.hydravion.models.Edge;
 import ml.bmlzootown.hydravion.models.Edges;
 import ml.bmlzootown.hydravion.models.Live;
-import ml.bmlzootown.hydravion.subscription.Subscription;
 import ml.bmlzootown.hydravion.models.Video;
 import ml.bmlzootown.hydravion.playback.PlaybackActivity;
+import ml.bmlzootown.hydravion.subscription.Subscription;
 import ml.bmlzootown.hydravion.subscription.SubscriptionHeaderPresenter;
 
 public class MainFragment extends BrowseSupportFragment {
@@ -71,6 +75,7 @@ public class MainFragment extends BrowseSupportFragment {
     private static int NUM_ROWS = 6;
     private static int NUM_COLS = 15;
 
+    private HydravionClient client;
     private final Handler mHandler = new Handler();
     private Drawable mDefaultBackground;
     private DisplayMetrics mMetrics;
@@ -83,7 +88,7 @@ public class MainFragment extends BrowseSupportFragment {
     public static String cdn;
 
     public static List<Subscription> subscriptions = new ArrayList<>();
-    public static HashMap<String, Video[]> videos = new HashMap<>();
+    public static HashMap<String, ArrayList<Video>> videos = new HashMap<>();
     private int subCount;
     private int page = 1;
 
@@ -94,7 +99,7 @@ public class MainFragment extends BrowseSupportFragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         Log.i(TAG, "onCreate");
         super.onActivityCreated(savedInstanceState);
-
+        client = HydravionClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
         checkLogin();
         //test();
 
@@ -157,9 +162,9 @@ public class MainFragment extends BrowseSupportFragment {
 
     private boolean loadCredentials() {
         SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
-        sailssid = prefs.getString("sails.sid", "default");
-        cfduid = prefs.getString("__cfduid", "default");
-        cdn = prefs.getString("cdn", "default");
+        sailssid = prefs.getString(Constants.PREF_SAIL_SSID, "default");
+        cfduid = prefs.getString(Constants.PREF_CFD_UID, "default");
+        cdn = prefs.getString(Constants.PREF_CDN, "default");
         Log.d("LOGIN", sailssid);
         Log.d("LOGIN", cfduid);
         Log.d("CDN", cdn);
@@ -181,9 +186,9 @@ public class MainFragment extends BrowseSupportFragment {
 
     private void saveCredentials() {
         SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
-        prefs.edit().putString("sails.sid", sailssid).apply();
-        prefs.edit().putString("__cfduid", cfduid).apply();
-        prefs.edit().putString("cdn", cdn).apply();
+        prefs.edit().putString(Constants.PREF_SAIL_SSID, sailssid).apply();
+        prefs.edit().putString(Constants.PREF_CFD_UID, cfduid).apply();
+        prefs.edit().putString(Constants.PREF_CDN, cdn).apply();
     }
 
     private void getLiveInfo(Subscription sub) {
@@ -309,7 +314,10 @@ public class MainFragment extends BrowseSupportFragment {
         subscriptions = trimmed;
         for (Subscription sub : subscriptions) {
             getLiveInfo(sub);
-            getVideos(sub.getCreator(), 1);
+            client.getVideos(sub.getCreator(), 1, videos -> {
+                gotVideos(sub.getCreator(), videos);
+                return Unit.INSTANCE;
+            });
         }
         subCount = trimmed.size();
         Log.d("ROWS", trimmed.size() + "");
@@ -324,39 +332,14 @@ public class MainFragment extends BrowseSupportFragment {
         return false;
     }
 
-    private void getVideos(String creatorGUID, int page) {
-        String uri = "https://www.floatplane.com/api/creator/videos?creatorGUID=" + creatorGUID + "&fetchAfter=" + ((page - 1) * 20);
-        String cookies = "__cfduid=" + cfduid + "; sails.sid=" + sailssid;
-        RequestTask rt = new RequestTask(getActivity().getApplicationContext());
-        rt.sendRequest(uri, cookies, creatorGUID, new RequestTask.VolleyCallback() {
-            @Override
-            public void onSuccess(String string) {
-            }
-
-            @Override
-            public void onSuccessCreator(String string, String creatorGUID) {
-                gotVideos(string, creatorGUID);
-            }
-
-            @Override
-            public void onError(VolleyError error) {
-            }
-        });
-    }
-
-    private void gotVideos(String response, String creatorGUID) {
-        Gson gson = new Gson();
-        Video[] vids = gson.fromJson(response, Video[].class);
-
-        if (videos.get(creatorGUID) != null && videos.get(creatorGUID).length > 0) {
-            Video[] temp = videos.get(creatorGUID);
-            vids = appendVideos(temp, vids);
+    private void gotVideos(String creatorGUID, Video[] vids) {
+        if (videos.get(creatorGUID) != null && videos.get(creatorGUID).size() > 0) {
+            videos.get(creatorGUID).addAll(Arrays.asList(vids));
+        } else {
+            videos.put(creatorGUID, new ArrayList<>(Arrays.asList(vids)));
         }
 
-        videos.put(creatorGUID, vids);
-        /*if (videos.size() == subscriptions.size()) {
-            refreshRows();
-        }*/
+
         if (subCount > 1) {
             subCount--;
         } else {
@@ -364,16 +347,8 @@ public class MainFragment extends BrowseSupportFragment {
             subCount = subscriptions.size();
             setSelectedPosition(rowSelected, false, new ListRowPresenter.SelectItemViewHolderTask(colSelected));
         }
-        NUM_COLS = videos.get(creatorGUID).length;
-    }
 
-    private Video[] appendVideos(Video[] oldVids, Video[] newVids) {
-        int ol = oldVids.length;
-        int nl = newVids.length;
-        Video[] updated = new Video[ol + nl];
-        System.arraycopy(oldVids, 0, updated, 0, ol);
-        System.arraycopy(newVids, 0, updated, ol, nl);
-        return updated;
+        NUM_COLS = videos.get(creatorGUID).size();
     }
 
     private void refreshRows() {
@@ -386,10 +361,10 @@ public class MainFragment extends BrowseSupportFragment {
             ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
 
             Subscription sub = subscriptions.get(i);
-            Video[] vs = videos.get(sub.getCreator());
+            List<Video> vids = videos.get(sub.getCreator());
 
-            for (Video v : vs) {
-                listRowAdapter.add(v);
+            if (vids != null) {
+                vids.forEach(listRowAdapter::add);
             }
 
             HeaderItem header = new HeaderItem(i, sub.getPlan().getTitle());
@@ -624,7 +599,10 @@ public class MainFragment extends BrowseSupportFragment {
                 }
                 if (selected != -1 && (current.size() - 1) == selected) {
                     for (Subscription sub : subscriptions) {
-                        getVideos(sub.getCreator(), page + 1);
+                        client.getVideos(sub.getCreator(), page + 1, videos -> {
+                            gotVideos(sub.getCreator(), videos);
+                            return Unit.INSTANCE;
+                        });
                     }
                     page++;
                 }

@@ -1,4 +1,4 @@
-package ml.bmlzootown.hydravion;
+package ml.bmlzootown.hydravion.browse;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
@@ -10,11 +10,16 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import android.view.Gravity;
+import android.view.ViewGroup;
+import android.widget.TextView;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.core.app.ActivityOptionsCompat;
+import androidx.core.content.ContextCompat;
 import androidx.leanback.app.BackgroundManager;
-import androidx.leanback.app.BrowseFragment;
+import androidx.leanback.app.BrowseSupportFragment;
 import androidx.leanback.widget.ArrayObjectAdapter;
 import androidx.leanback.widget.HeaderItem;
 import androidx.leanback.widget.ImageCardView;
@@ -25,21 +30,9 @@ import androidx.leanback.widget.OnItemViewSelectedListener;
 import androidx.leanback.widget.Presenter;
 import androidx.leanback.widget.Row;
 import androidx.leanback.widget.RowPresenter;
-import androidx.core.app.ActivityOptionsCompat;
-import androidx.core.content.ContextCompat;
-
-import android.util.DisplayMetrics;
-import android.util.Log;
-import android.view.Gravity;
-import android.view.ViewGroup;
-import android.widget.TextView;
 
 import com.android.volley.NetworkResponse;
 import com.android.volley.VolleyError;
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
-import com.bumptech.glide.request.target.CustomTarget;
-import com.bumptech.glide.request.transition.Transition;
 import com.google.gson.Gson;
 
 import org.json.JSONException;
@@ -47,7 +40,6 @@ import org.json.JSONObject;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
@@ -55,6 +47,9 @@ import java.util.TimerTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import ml.bmlzootown.hydravion.CardPresenter;
+import ml.bmlzootown.hydravion.R;
+import ml.bmlzootown.hydravion.RequestTask;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
 import ml.bmlzootown.hydravion.login.LoginActivity;
 import ml.bmlzootown.hydravion.models.Edge;
@@ -64,7 +59,8 @@ import ml.bmlzootown.hydravion.models.Subscription;
 import ml.bmlzootown.hydravion.models.Video;
 import ml.bmlzootown.hydravion.playback.PlaybackActivity;
 
-public class MainFragment extends BrowseFragment {
+public class MainFragment extends BrowseSupportFragment {
+
     private static final String TAG = "MainFragment";
 
     private static final int BACKGROUND_UPDATE_DELAY = 300;
@@ -197,9 +193,11 @@ public class MainFragment extends BrowseFragment {
             public void onSuccess(String string) {
                 gotLiveInfo(string, sub);
             }
+
             @Override
             public void onSuccessCreator(String string, String creatorGUID) {
             }
+
             @Override
             public void onError(VolleyError error) {
             }
@@ -216,7 +214,7 @@ public class MainFragment extends BrowseFragment {
         if (m.find()) {
             for (int i = 0; i < m.groupCount(); i++) {
                 //Log.d("LIVE", m.group(i));
-                String var = m.group(i).substring(1, m.group(i).length()-1);
+                String var = m.group(i).substring(1, m.group(i).length() - 1);
                 if (var.equalsIgnoreCase("token")) {
                     l = l.replaceAll("\\{token\\}", live.getResource().getData().getToken());
                     sub.setStreamUrl(l);
@@ -236,9 +234,11 @@ public class MainFragment extends BrowseFragment {
             public void onSuccess(String string) {
                 gotSubscriptions(string);
             }
+
             @Override
             public void onSuccessCreator(String string, String creatorGUID) {
             }
+
             @Override
             public void onError(VolleyError error) {
                 NetworkResponse nr = error.networkResponse;
@@ -272,7 +272,7 @@ public class MainFragment extends BrowseFragment {
         JSONObject obj = new JSONObject();
         try {
             obj = new JSONObject(response);
-        } catch(IllegalStateException | JSONException e) {
+        } catch (IllegalStateException | JSONException e) {
             Log.d("TESTING", "Exception caught!");
         }
 
@@ -322,17 +322,19 @@ public class MainFragment extends BrowseFragment {
     }
 
     private void getVideos(String creatorGUID, int page) {
-        String uri = "https://www.floatplane.com/api/creator/videos?creatorGUID=" + creatorGUID + "&fetchAfter=" + ((page-1)*20);
+        String uri = "https://www.floatplane.com/api/creator/videos?creatorGUID=" + creatorGUID + "&fetchAfter=" + ((page - 1) * 20);
         String cookies = "__cfduid=" + cfduid + "; sails.sid=" + sailssid;
         RequestTask rt = new RequestTask(getActivity().getApplicationContext());
         rt.sendRequest(uri, cookies, creatorGUID, new RequestTask.VolleyCallback() {
             @Override
             public void onSuccess(String string) {
             }
+
             @Override
             public void onSuccessCreator(String string, String creatorGUID) {
                 gotVideos(string, creatorGUID);
             }
+
             @Override
             public void onError(VolleyError error) {
             }
@@ -365,7 +367,7 @@ public class MainFragment extends BrowseFragment {
     private Video[] appendVideos(Video[] oldVids, Video[] newVids) {
         int ol = oldVids.length;
         int nl = newVids.length;
-        Video[] updated = new Video[ol+nl];
+        Video[] updated = new Video[ol + nl];
         System.arraycopy(oldVids, 0, updated, 0, ol);
         System.arraycopy(newVids, 0, updated, ol, nl);
         return updated;
@@ -405,25 +407,25 @@ public class MainFragment extends BrowseFragment {
 
     private void prepareBackgroundManager() {
 
-        mBackgroundManager = BackgroundManager.getInstance(getActivity());
-        mBackgroundManager.attach(getActivity().getWindow());
+        mBackgroundManager = BackgroundManager.getInstance(requireActivity());
+        mBackgroundManager.attach(requireActivity().getWindow());
 
-        mDefaultBackground = ContextCompat.getDrawable(getContext(), R.drawable.default_background);
+        mDefaultBackground = ContextCompat.getDrawable(requireActivity(), R.drawable.default_background);
         mMetrics = new DisplayMetrics();
-        getActivity().getWindowManager().getDefaultDisplay().getMetrics(mMetrics);
+        requireActivity().getWindowManager().getDefaultDisplay().getMetrics(mMetrics);
     }
 
     @SuppressLint("UseCompatLoadingForDrawables")
     private void setupUIElements() {
         // setBadgeDrawable(getActivity().getResources().getDrawable(R.drawable.videos_by_google_banner));
-        setBadgeDrawable(getActivity().getResources().getDrawable(R.drawable.white_plane));
+        setBadgeDrawable(ContextCompat.getDrawable(requireActivity(), R.drawable.white_plane));
         //setTitle(getString(R.string.browse_title)); // Badge, when set, takes precedent
         // over title
         setHeadersState(HEADERS_ENABLED);
         setHeadersTransitionOnBackEnabled(true);
 
         // set fastLane (or headers) background color
-        setBrandColor(ContextCompat.getColor(getContext(), R.color.fastlane_background));
+        setBrandColor(ContextCompat.getColor(requireContext(), R.color.fastlane_background));
         // set search icon color
         //setSearchAffordanceColor(ContextCompat.getColor(getContext(), R.color.search_opaque));
     }
@@ -445,7 +447,7 @@ public class MainFragment extends BrowseFragment {
     private void updateBackground(String uri) {
         int width = mMetrics.widthPixels;
         int height = mMetrics.heightPixels;
-        Glide.with(getActivity())
+        /*Glide.with(getActivity())
                 .load(uri)
                 .centerCrop()
                 .error(mDefaultBackground)
@@ -461,7 +463,7 @@ public class MainFragment extends BrowseFragment {
                     public void onLoadCleared(@Nullable Drawable placeholder) {
 
                     }
-                });
+                });*/
         mBackgroundTimer.cancel();
     }
 
@@ -521,9 +523,11 @@ public class MainFragment extends BrowseFragment {
                                 builder.create().show();
                             }
                         }
+
                         @Override
                         public void onSuccessCreator(String string, String creatorGUID) {
                         }
+
                         @Override
                         public void onError(VolleyError error) {
                         }
@@ -578,9 +582,11 @@ public class MainFragment extends BrowseFragment {
                         .toBundle();
                 getActivity().startActivity(intent, bundle);
             }
+
             @Override
             public void onSuccessCreator(String string, String creatorGUID) {
             }
+
             @Override
             public void onError(VolleyError error) {
             }
@@ -608,7 +614,7 @@ public class MainFragment extends BrowseFragment {
                 }
                 if (selected != -1 && (current.size() - 1) == selected) {
                     for (Subscription sub : subscriptions) {
-                        getVideos(sub.getCreator(), page+1);
+                        getVideos(sub.getCreator(), page + 1);
                     }
                     page++;
                 }

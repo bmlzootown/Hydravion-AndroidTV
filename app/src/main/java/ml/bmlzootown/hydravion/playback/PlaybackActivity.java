@@ -20,7 +20,7 @@ import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
 
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
-import ml.bmlzootown.hydravion.MainFragment;
+import ml.bmlzootown.hydravion.browse.MainFragment;
 import ml.bmlzootown.hydravion.R;
 import ml.bmlzootown.hydravion.models.Video;
 

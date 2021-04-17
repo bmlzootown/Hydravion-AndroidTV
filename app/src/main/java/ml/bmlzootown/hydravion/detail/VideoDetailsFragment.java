@@ -38,8 +38,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import ml.bmlzootown.hydravion.MainActivity;
-import ml.bmlzootown.hydravion.MainFragment;
+import ml.bmlzootown.hydravion.browse.MainActivity;
+import ml.bmlzootown.hydravion.browse.MainFragment;
 import ml.bmlzootown.hydravion.R;
 import ml.bmlzootown.hydravion.RequestTask;
 import ml.bmlzootown.hydravion.models.Level;

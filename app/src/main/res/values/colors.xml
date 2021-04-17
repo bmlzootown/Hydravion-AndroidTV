@@ -5,4 +5,5 @@
     <color name="search_opaque">#ffaa3f</color>
     <color name="selected_background">#6A6A6A</color>
     <color name="default_background">#3d3d3d</color>
+    <color name="colorAccent">#9C27B0</color>
 </resources>

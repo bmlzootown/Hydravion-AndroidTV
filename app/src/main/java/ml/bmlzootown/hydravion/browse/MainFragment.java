@@ -28,6 +28,7 @@ import androidx.leanback.widget.ListRowPresenter;
 import androidx.leanback.widget.OnItemViewClickedListener;
 import androidx.leanback.widget.OnItemViewSelectedListener;
 import androidx.leanback.widget.Presenter;
+import androidx.leanback.widget.PresenterSelector;
 import androidx.leanback.widget.Row;
 import androidx.leanback.widget.RowPresenter;
 
@@ -55,9 +56,10 @@ import ml.bmlzootown.hydravion.login.LoginActivity;
 import ml.bmlzootown.hydravion.models.Edge;
 import ml.bmlzootown.hydravion.models.Edges;
 import ml.bmlzootown.hydravion.models.Live;
-import ml.bmlzootown.hydravion.models.Subscription;
+import ml.bmlzootown.hydravion.subscription.Subscription;
 import ml.bmlzootown.hydravion.models.Video;
 import ml.bmlzootown.hydravion.playback.PlaybackActivity;
+import ml.bmlzootown.hydravion.subscription.SubscriptionHeaderPresenter;
 
 public class MainFragment extends BrowseSupportFragment {
 
@@ -289,6 +291,7 @@ public class MainFragment extends BrowseSupportFragment {
             return;
         }
 
+        Log.e("ERROR?", response);
         Gson gson = new Gson();
         Subscription[] subs = gson.fromJson(response, Subscription[].class);
 
@@ -344,13 +347,13 @@ public class MainFragment extends BrowseSupportFragment {
     private void gotVideos(String response, String creatorGUID) {
         Gson gson = new Gson();
         Video[] vids = gson.fromJson(response, Video[].class);
+
         if (videos.get(creatorGUID) != null && videos.get(creatorGUID).length > 0) {
             Video[] temp = videos.get(creatorGUID);
             vids = appendVideos(temp, vids);
-            videos.put(creatorGUID, vids);
-        } else {
-            videos.put(creatorGUID, vids);
         }
+
+        videos.put(creatorGUID, vids);
         /*if (videos.size() == subscriptions.size()) {
             refreshRows();
         }*/
@@ -375,7 +378,6 @@ public class MainFragment extends BrowseSupportFragment {
 
     private void refreshRows() {
         List<Subscription> subs = subscriptions;
-
         ArrayObjectAdapter rowsAdapter = new ArrayObjectAdapter(new ListRowPresenter());
         CardPresenter cardPresenter = new CardPresenter();
 
@@ -385,14 +387,16 @@ public class MainFragment extends BrowseSupportFragment {
 
             Subscription sub = subscriptions.get(i);
             Video[] vs = videos.get(sub.getCreator());
+
             for (Video v : vs) {
                 listRowAdapter.add(v);
             }
+
             HeaderItem header = new HeaderItem(i, sub.getPlan().getTitle());
             rowsAdapter.add(new ListRow(header, listRowAdapter));
         }
 
-        HeaderItem gridHeader = new HeaderItem(i, "SETTINGS");
+        HeaderItem gridHeader = new HeaderItem(i, getString(R.string.settings));
 
         GridItemPresenter mGridPresenter = new GridItemPresenter();
         ArrayObjectAdapter gridRowAdapter = new ArrayObjectAdapter(mGridPresenter);
@@ -423,6 +427,12 @@ public class MainFragment extends BrowseSupportFragment {
         // over title
         setHeadersState(HEADERS_ENABLED);
         setHeadersTransitionOnBackEnabled(true);
+        setHeaderPresenterSelector(new PresenterSelector() {
+            @Override
+            public Presenter getPresenter(Object item) {
+                return new SubscriptionHeaderPresenter();
+            }
+        });
 
         // set fastLane (or headers) background color
         setBrandColor(ContextCompat.getColor(requireContext(), R.color.fastlane_background));

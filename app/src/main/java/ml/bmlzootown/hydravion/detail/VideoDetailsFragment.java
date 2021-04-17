@@ -1,7 +1,6 @@
 package ml.bmlzootown.hydravion.detail;
 
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -23,7 +22,6 @@ import androidx.leanback.widget.DetailsOverviewRow;
 import androidx.leanback.widget.FullWidthDetailsOverviewRowPresenter;
 import androidx.leanback.widget.FullWidthDetailsOverviewSharedElementHelper;
 import androidx.leanback.widget.ImageCardView;
-import androidx.leanback.widget.OnActionClickedListener;
 import androidx.leanback.widget.OnItemViewClickedListener;
 import androidx.leanback.widget.Presenter;
 import androidx.leanback.widget.Row;
@@ -44,8 +42,6 @@ import ml.bmlzootown.hydravion.MainActivity;
 import ml.bmlzootown.hydravion.MainFragment;
 import ml.bmlzootown.hydravion.R;
 import ml.bmlzootown.hydravion.RequestTask;
-import ml.bmlzootown.hydravion.detail.DetailsActivity;
-import ml.bmlzootown.hydravion.detail.DetailsDescriptionPresenter;
 import ml.bmlzootown.hydravion.models.Level;
 import ml.bmlzootown.hydravion.models.Video;
 import ml.bmlzootown.hydravion.models.VideoInfo;
@@ -62,7 +58,6 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
     private static final int DETAIL_THUMB_HEIGHT = 274;
 
     private Video mSelectedMovie;
-    private String mSelectedUrl;
 
     private ArrayObjectAdapter mAdapter;
     private ClassPresenterSelector mPresenterSelector;
@@ -78,7 +73,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
         mSelectedMovie = (Video) getActivity().getIntent().getSerializableExtra(DetailsActivity.Video);
 
         if (mSelectedMovie != null) {
-            mSelectedUrl = getActivity().getIntent().getStringExtra("vidURL");
+            String mSelectedUrl = getActivity().getIntent().getStringExtra("vidURL");
             mPresenterSelector = new ClassPresenterSelector();
             mAdapter = new ArrayObjectAdapter(mPresenterSelector);
             setupDetailsOverviewRow();
@@ -93,7 +88,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
         }
     }
 
-    private void initializeBackground(Video data) {
+    private void initializeBackground(@NonNull Video data) {
         mDetailsBackground.enableParallax();
         Glide.with(requireActivity())
                 .asBitmap()
@@ -117,10 +112,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
     private void setupDetailsOverviewRow() {
         Log.d(TAG, "doInBackground: " + mSelectedMovie.toString());
         final DetailsOverviewRow row = new DetailsOverviewRow(mSelectedMovie);
-        row.setImageDrawable(
-                ContextCompat.getDrawable(getContext(), R.drawable.default_background));
-        int width = convertDpToPixel(getActivity().getApplicationContext(), DETAIL_THUMB_WIDTH);
-        int height = convertDpToPixel(getActivity().getApplicationContext(), DETAIL_THUMB_HEIGHT);
+        row.setImageDrawable(ContextCompat.getDrawable(getContext(), R.drawable.default_background));
         Glide.with(getActivity())
                 .load(mSelectedMovie.getThumbnail().getPath())
                 .centerCrop()
@@ -159,7 +151,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
         FullWidthDetailsOverviewRowPresenter detailsPresenter =
                 new FullWidthDetailsOverviewRowPresenter(new DetailsDescriptionPresenter());
         detailsPresenter.setBackgroundColor(
-                ContextCompat.getColor(getContext(), R.color.selected_background));
+                ContextCompat.getColor(getContext(), R.color.default_background));
 
         // Hook up transition element.
         FullWidthDetailsOverviewSharedElementHelper sharedElementHelper =
@@ -169,61 +161,58 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
         detailsPresenter.setListener(sharedElementHelper);
         detailsPresenter.setParticipatingEntranceTransition(true);
 
-        detailsPresenter.setOnActionClickedListener(new OnActionClickedListener() {
-            @Override
-            public void onActionClicked(Action action) {
-                if (action.getId() == ACTION_PLAY) {
-                    //Intent intent = new Intent(getActivity(), PlaybackActivity.class);
-                    Intent intent = new Intent(getActivity(), PlaybackActivity.class);
-                    intent.putExtra(DetailsActivity.Video, (Serializable) mSelectedMovie);
-                    startActivity(intent);
-                } else if (action.getId() == ACTION_RES) {
-                    String uri = "https://www.floatplane.com/api/video/info?videoGUID=" + mSelectedMovie.getGuid();
-                    String cookies = "__cfduid=" + MainFragment.cfduid + "; sails.sid=" + MainFragment.sailssid;
-                    RequestTask rt = new RequestTask(getActivity().getApplicationContext());
-                    rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
-                        @Override
-                        public void onSuccess(String string) {
-                            //gotSubscriptions(string);
-                            Gson gson = new Gson();
-                            VideoInfo info = gson.fromJson(string, VideoInfo.class);
-                            if (info != null) {
-                                List<Level> levels = info.getLevels();
-                                List<String> resolutions = new ArrayList<>();
-                                for (Level l : levels) {
-                                    resolutions.add(l.getName());
-                                }
-                                CharSequence[] res = resolutions.toArray(new CharSequence[resolutions.size()]);
-
-                                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                                builder.setTitle("Resolutions");
-                                builder.setItems(res,
-                                        new DialogInterface.OnClickListener() {
-                                            @Override
-                                            public void onClick(DialogInterface dialog, int which) {
-                                                String res = resolutions.get(which);
-                                                Log.d("RESOLUTION", res);
-                                                mSelectedMovie.setVidUrl(mSelectedMovie.getVidUrl().replace("1080", res));
-                                                Intent intent = new Intent(getActivity(), PlaybackActivity.class);
-                                                intent.putExtra(DetailsActivity.Video, (Serializable) mSelectedMovie);
-                                                startActivity(intent);
-                                            }
-                                        });
-                                builder.create().show();
+        detailsPresenter.setOnActionClickedListener(action -> {
+            if (action.getId() == ACTION_PLAY) {
+                //Intent intent = new Intent(getActivity(), PlaybackActivity.class);
+                Intent intent = new Intent(getActivity(), PlaybackActivity.class);
+                intent.putExtra(DetailsActivity.Video, (Serializable) mSelectedMovie);
+                startActivity(intent);
+            } else if (action.getId() == ACTION_RES) {
+                String uri = "https://www.floatplane.com/api/video/info?videoGUID=" + mSelectedMovie.getGuid();
+                String cookies = "__cfduid=" + MainFragment.cfduid + "; sails.sid=" + MainFragment.sailssid;
+                RequestTask rt = new RequestTask(getActivity().getApplicationContext());
+                rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
+                    @Override
+                    public void onSuccess(String string) {
+                        //gotSubscriptions(string);
+                        Gson gson = new Gson();
+                        VideoInfo info = gson.fromJson(string, VideoInfo.class);
+                        if (info != null) {
+                            List<Level> levels = info.getLevels();
+                            List<String> resolutions = new ArrayList<>();
+                            for (Level l : levels) {
+                                resolutions.add(l.getName());
                             }
-                        }
+                            CharSequence[] res = resolutions.toArray(new CharSequence[resolutions.size()]);
 
-                        @Override
-                        public void onSuccessCreator(String string, String creatorGUID) {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                            builder.setTitle("Resolutions");
+                            builder.setItems(res,
+                                    new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            String res = resolutions.get(which);
+                                            Log.d("RESOLUTION", res);
+                                            mSelectedMovie.setVidUrl(mSelectedMovie.getVidUrl().replace("1080", res));
+                                            Intent intent = new Intent(getActivity(), PlaybackActivity.class);
+                                            intent.putExtra(DetailsActivity.Video, (Serializable) mSelectedMovie);
+                                            startActivity(intent);
+                                        }
+                                    });
+                            builder.create().show();
                         }
+                    }
 
-                        @Override
-                        public void onError(VolleyError error) {
-                        }
-                    });
-                } else {
-                    Toast.makeText(getActivity(), action.toString(), Toast.LENGTH_SHORT).show();
-                }
+                    @Override
+                    public void onSuccessCreator(String string, String creatorGUID) {
+                    }
+
+                    @Override
+                    public void onError(VolleyError error) {
+                    }
+                });
+            } else {
+                Toast.makeText(getActivity(), action.toString(), Toast.LENGTH_SHORT).show();
             }
         });
         mPresenterSelector.addClassPresenter(DetailsOverviewRow.class, detailsPresenter);
@@ -242,11 +231,6 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
         HeaderItem header = new HeaderItem(0, subcategories[0]);
         mAdapter.add(new ListRow(header, listRowAdapter));
         mPresenterSelector.addClassPresenter(ListRow.class, new ListRowPresenter());*/
-    }
-
-    private int convertDpToPixel(Context context, int dp) {
-        float density = context.getResources().getDisplayMetrics().density;
-        return Math.round((float) dp * density);
     }
 
     private final class ItemViewClickedListener implements OnItemViewClickedListener {

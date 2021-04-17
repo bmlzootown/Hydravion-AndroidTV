@@ -32,8 +32,12 @@ class HydravionClient private constructor(private val context: Context, private 
 
                 Gson().fromJson(string, Array<Subscription>::class.java).let { subs ->
                     subs.forEach { sub ->
-                        if (sub.plan?.logo == null) {
-                            cacheLogo(sub.creator, null)
+                        sub.creator?.let { creatorId ->
+                            if (sub.plan?.logo == null) {
+                                cacheLogo(creatorId, null)
+                            } else {
+                                creatorLogos[creatorId] = sub.plan?.logo ?: ""
+                            }
                         }
                     }
                     callback(subs)
@@ -70,9 +74,9 @@ class HydravionClient private constructor(private val context: Context, private 
         }
     }
 
-    private fun cacheLogo(creatorGUID: String?, callback: ((String) -> Unit)?) {
-        if (creatorGUID == null || creatorLogos[creatorGUID] != null) {
-            // If the id is null or if the logo already is cached, no reason to retrieve it again
+    private fun cacheLogo(creatorGUID: String, callback: ((String) -> Unit)?) {
+        if (creatorLogos[creatorGUID] != null) {
+            // If the logo already is cached, no reason to retrieve it again
             return
         }
 

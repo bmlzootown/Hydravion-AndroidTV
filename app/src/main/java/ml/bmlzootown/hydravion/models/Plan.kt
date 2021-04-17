@@ -33,7 +33,7 @@ class Plan {
 
     @SerializedName("logo")
     @Expose
-    var logo: Any? = null
+    var logo: String? = null
 
     @SerializedName("interval")
     @Expose

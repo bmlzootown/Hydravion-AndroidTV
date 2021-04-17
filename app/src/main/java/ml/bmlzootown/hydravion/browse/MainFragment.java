@@ -204,7 +204,7 @@ public class MainFragment extends BrowseSupportFragment {
         prefs.edit().putString(Constants.PREF_CDN, cdn).apply();
     }
 
-    private void gotLiveInfo(Live live) {
+    private void gotLiveInfo(Subscription sub, Live live) {
         String l = live.getCdn() + live.getResource().getUri();
         String pattern = "\\{(.*?)\\}";
         Pattern p = Pattern.compile(pattern);
@@ -238,7 +238,7 @@ public class MainFragment extends BrowseSupportFragment {
         subscriptions = trimmed;
         for (Subscription sub : subscriptions) {
             client.getLive(sub.getCreator(), live -> {
-                gotLiveInfo(live);
+                gotLiveInfo(sub, live);
                 return Unit.INSTANCE;
             });
             client.getVideos(sub.getCreator(), 1, videos -> {

@@ -6,6 +6,7 @@ import com.android.volley.VolleyError
 import com.google.gson.Gson
 import ml.bmlzootown.hydravion.Constants
 import ml.bmlzootown.hydravion.RequestTask
+import ml.bmlzootown.hydravion.models.Live
 import ml.bmlzootown.hydravion.models.Video
 import ml.bmlzootown.hydravion.subscription.Subscription
 import org.json.JSONArray
@@ -70,6 +71,19 @@ class HydravionClient private constructor(private val context: Context, private 
             })
     }
 
+    fun getLive(creatorGUID: String, callback: (Live) -> Unit) {
+        RequestTask(context).sendRequest("$URI_LIVE?type=live&creator=$creatorGUID", getCookiesString(), object : RequestTask.VolleyCallback {
+
+            override fun onSuccess(string: String?) {
+                callback(Gson().fromJson(string, Live::class.java))
+            }
+
+            override fun onSuccessCreator(string: String?, creatorGUID: String?) = Unit
+
+            override fun onError(error: VolleyError?) = Unit
+        })
+    }
+
     fun getCreatorLogo(name: String, callback: (String) -> Unit) {
         // Check for existing logo, otherwise fetch it and then run the callback
         creatorLogos[creatorIds[name]]?.let { callback(it) } ?: run {
@@ -107,6 +121,7 @@ class HydravionClient private constructor(private val context: Context, private 
         private const val URI_SUBSCRIPTIONS = "https://www.floatplane.com/api/user/subscriptions"
         private const val URI_CREATOR_INFO = "https://www.floatplane.com/api/creator/info"
         private const val URI_VIDEOS = "https://www.floatplane.com/api/creator/videos"
+        private const val URI_LIVE = "https://www.floatplane.com/api/cdn/delivery"
         private var INSTANCE: HydravionClient? = null
 
         @Synchronized

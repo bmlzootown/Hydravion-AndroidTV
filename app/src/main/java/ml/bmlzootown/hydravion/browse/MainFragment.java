@@ -204,29 +204,7 @@ public class MainFragment extends BrowseSupportFragment {
         prefs.edit().putString(Constants.PREF_CDN, cdn).apply();
     }
 
-    private void getLiveInfo(Subscription sub) {
-        String uri = "https://www.floatplane.com/api/cdn/delivery?type=live&creator=" + sub.getCreator();
-        String cookies = "__cfduid=" + cfduid + "; sails.sid=" + sailssid;
-        RequestTask rt = new RequestTask(getActivity().getApplicationContext());
-        rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
-            @Override
-            public void onSuccess(String string) {
-                gotLiveInfo(string, sub);
-            }
-
-            @Override
-            public void onSuccessCreator(String string, String creatorGUID) {
-            }
-
-            @Override
-            public void onError(VolleyError error) {
-            }
-        });
-    }
-
-    private void gotLiveInfo(String response, Subscription sub) {
-        Gson gson = new Gson();
-        Live live = gson.fromJson(response, Live.class);
+    private void gotLiveInfo(Live live) {
         String l = live.getCdn() + live.getResource().getUri();
         String pattern = "\\{(.*?)\\}";
         Pattern p = Pattern.compile(pattern);
@@ -259,7 +237,10 @@ public class MainFragment extends BrowseSupportFragment {
         }
         subscriptions = trimmed;
         for (Subscription sub : subscriptions) {
-            getLiveInfo(sub);
+            client.getLive(sub.getCreator(), live -> {
+                gotLiveInfo(live);
+                return Unit.INSTANCE;
+            });
             client.getVideos(sub.getCreator(), 1, videos -> {
                 gotVideos(sub.getCreator(), videos);
                 return Unit.INSTANCE;

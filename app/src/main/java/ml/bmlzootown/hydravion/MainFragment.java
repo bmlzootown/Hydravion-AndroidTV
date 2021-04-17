@@ -36,7 +36,6 @@ import android.widget.TextView;
 
 import com.android.volley.NetworkResponse;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.Volley;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.bumptech.glide.request.target.CustomTarget;
@@ -47,13 +46,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.Serializable;
-import java.net.CookieManager;
-import java.net.HttpCookie;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
@@ -61,15 +55,14 @@ import java.util.TimerTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import ml.bmlzootown.hydravion.detail.DetailsActivity;
+import ml.bmlzootown.hydravion.login.LoginActivity;
 import ml.bmlzootown.hydravion.models.Edge;
 import ml.bmlzootown.hydravion.models.Edges;
-import ml.bmlzootown.hydravion.models.Level;
 import ml.bmlzootown.hydravion.models.Live;
 import ml.bmlzootown.hydravion.models.Subscription;
 import ml.bmlzootown.hydravion.models.Video;
-import ml.bmlzootown.hydravion.models.VideoInfo;
-
-import static android.app.Activity.RESULT_OK;
+import ml.bmlzootown.hydravion.playback.PlaybackActivity;
 
 public class MainFragment extends BrowseFragment {
     private static final String TAG = "MainFragment";

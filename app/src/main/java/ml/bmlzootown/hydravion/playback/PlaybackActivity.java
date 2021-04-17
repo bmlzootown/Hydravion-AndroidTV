@@ -1,4 +1,4 @@
-package ml.bmlzootown.hydravion;
+package ml.bmlzootown.hydravion.playback;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
@@ -19,6 +19,9 @@ import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
 
+import ml.bmlzootown.hydravion.detail.DetailsActivity;
+import ml.bmlzootown.hydravion.MainFragment;
+import ml.bmlzootown.hydravion.R;
 import ml.bmlzootown.hydravion.models.Video;
 
 public class PlaybackActivity extends FragmentActivity {

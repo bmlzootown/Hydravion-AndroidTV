@@ -12,6 +12,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.android.gms.security.ProviderInstaller;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,29 +27,16 @@ public class LoginRequestTask {
         this.context = context;
     }
 
-    public void sendRequest(String user, String pass, final LoginRequestTask.VolleyCallback callback) {
+    public void sendRequest(String user, String pass, String captchaToken, final LoginRequestTask.VolleyCallback callback) {
         String uri = "https://www.floatplane.com/api/auth/login";
         RequestQueue queue = Volley.newRequestQueue(this.context);
         StringRequest stringRequest = new StringRequest(Request.Method.POST, uri,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        //Log.d("JSON", response);
-                        callback.onSuccess(cookies, response);
-                    }
-                }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                error.printStackTrace();
-                callback.onError();
-            }
-        }) {
+                response -> callback.onSuccess(cookies, response), error -> {
+                    error.printStackTrace();
+                    callback.onError();
+                }) {
             @Override
             protected Response<String> parseNetworkResponse(NetworkResponse response) {
-                //Map<String, String> responseHeaders = response.headers;
-                //String rawCookies = responseHeaders.get("Set-Cookie");
-                //setCookies(rawCookies);
-                //Log.d("LOGINREQUESTTASK COOKIES", rawCookies);
                 List<Header> headers = response.allHeaders;
                 ArrayList<String> cs = new ArrayList<>();
                 for (Header header : headers) {
@@ -61,9 +49,17 @@ public class LoginRequestTask {
             }
 
             @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String> params = new HashMap<>();
+                params.put("Accept", "application/json");
+                return params;
+            }
+
+            @Override
             protected Map<String, String> getParams()
             {
                 Map<String, String>  params = new HashMap<>();
+                params.put("captchaToken", captchaToken);
                 params.put("username", user);
                 params.put("password", pass);
 
@@ -78,18 +74,10 @@ public class LoginRequestTask {
         String uri = "https://www.floatplane.com/api/v2/auth/checkFor2faLogin";
         RequestQueue queue = Volley.newRequestQueue(this.context);
         StringRequest stringRequest = new StringRequest(Request.Method.POST, uri,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        callback.onSuccess(cookies);
-                    }
-                }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                error.printStackTrace();
-                callback.onError(error);
-            }
-        }) {
+                response -> callback.onSuccess(cookies), error -> {
+                    error.printStackTrace();
+                    callback.onError(error);
+                }) {
             @Override
             protected Response<String> parseNetworkResponse(NetworkResponse response) {
                 List<Header> headers = response.allHeaders;
@@ -104,7 +92,7 @@ public class LoginRequestTask {
             }
 
             @Override
-            public Map<String, String> getHeaders() throws AuthFailureError {
+            public Map<String, String> getHeaders() {
                 Map<String, String> params = new HashMap<>();
                 StringBuilder cs = new StringBuilder();
                 for (String c : cookiez) {

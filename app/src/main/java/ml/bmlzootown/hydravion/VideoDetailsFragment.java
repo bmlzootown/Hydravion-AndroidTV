@@ -7,11 +7,15 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.leanback.app.DetailsFragment;
-import androidx.leanback.app.DetailsFragmentBackgroundController;
+import androidx.core.app.ActivityOptionsCompat;
+import androidx.core.content.ContextCompat;
+import androidx.leanback.app.DetailsSupportFragment;
+import androidx.leanback.app.DetailsSupportFragmentBackgroundController;
 import androidx.leanback.widget.Action;
 import androidx.leanback.widget.ArrayObjectAdapter;
 import androidx.leanback.widget.ClassPresenterSelector;
@@ -24,13 +28,6 @@ import androidx.leanback.widget.OnItemViewClickedListener;
 import androidx.leanback.widget.Presenter;
 import androidx.leanback.widget.Row;
 import androidx.leanback.widget.RowPresenter;
-import androidx.core.app.ActivityOptionsCompat;
-import androidx.core.content.ContextCompat;
-
-import android.text.InputType;
-import android.util.Log;
-import android.widget.EditText;
-import android.widget.Toast;
 
 import com.android.volley.VolleyError;
 import com.bumptech.glide.Glide;
@@ -40,7 +37,6 @@ import com.bumptech.glide.request.transition.Transition;
 import com.google.gson.Gson;
 
 import java.io.Serializable;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,7 +44,8 @@ import ml.bmlzootown.hydravion.models.Level;
 import ml.bmlzootown.hydravion.models.Video;
 import ml.bmlzootown.hydravion.models.VideoInfo;
 
-public class VideoDetailsFragment extends DetailsFragment {
+public class VideoDetailsFragment extends DetailsSupportFragment {
+
     private static final String TAG = "VideoDetailsFragment";
 
     private static final int ACTION_PLAY = 1;
@@ -63,17 +60,16 @@ public class VideoDetailsFragment extends DetailsFragment {
     private ArrayObjectAdapter mAdapter;
     private ClassPresenterSelector mPresenterSelector;
 
-    private DetailsFragmentBackgroundController mDetailsBackground;
+    private DetailsSupportFragmentBackgroundController mDetailsBackground;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate DetailsFragment");
         super.onCreate(savedInstanceState);
 
-        mDetailsBackground = new DetailsFragmentBackgroundController(this);
+        mDetailsBackground = new DetailsSupportFragmentBackgroundController(this);
+        mSelectedMovie = (Video) getActivity().getIntent().getSerializableExtra(DetailsActivity.Video);
 
-        mSelectedMovie =
-                (Video) getActivity().getIntent().getSerializableExtra(DetailsActivity.Video);
         if (mSelectedMovie != null) {
             mSelectedUrl = getActivity().getIntent().getStringExtra("vidURL");
             mPresenterSelector = new ClassPresenterSelector();
@@ -92,7 +88,7 @@ public class VideoDetailsFragment extends DetailsFragment {
 
     private void initializeBackground(Video data) {
         mDetailsBackground.enableParallax();
-        Glide.with(getActivity())
+        Glide.with(requireActivity())
                 .asBitmap()
                 .load(data.getThumbnail().getPath())
                 .centerCrop()
@@ -209,9 +205,11 @@ public class VideoDetailsFragment extends DetailsFragment {
                                 builder.create().show();
                             }
                         }
+
                         @Override
                         public void onSuccessCreator(String string, String creatorGUID) {
                         }
+
                         @Override
                         public void onError(VolleyError error) {
                         }

@@ -2,12 +2,15 @@ package ml.bmlzootown.hydravion;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.InputType;
 import android.util.Log;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -19,13 +22,18 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.gson.Gson;
 
 import java.util.ArrayList;
+import java.util.UUID;
 
+import ml.bmlzootown.hydravion.models.AuthenticateToken;
+import ml.bmlzootown.hydravion.models.CaptchaToken;
 import ml.bmlzootown.hydravion.models.LoginResponse;
 
 public class LoginActivity extends Activity {
 
     private TextInputEditText username;
     private TextInputEditText password;
+    private final String uuid = UUID.randomUUID().toString();
+    private Handler checkAuth;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -40,7 +48,8 @@ public class LoginActivity extends Activity {
             if (username.length() > 0 || password.length() > 0) {
                 String user = username.getText().toString();
                 String pass = password.getText().toString();
-                doLogin(user, pass);
+                hideSoftKeyboard(view);
+                getToken(user, pass);
             } else {
                 Toast.makeText(this, "Incorrect username/password!", Toast.LENGTH_SHORT).show();
             }
@@ -49,9 +58,56 @@ public class LoginActivity extends Activity {
         }
     }
 
-    private void doLogin(@NonNull String username, @NonNull String password) {
+    private void getToken(@NonNull String username, @NonNull String password) {
+        TokenRequestTask tr = new TokenRequestTask(this.getApplicationContext());
+        tr.doRequest(TokenRequestTask.generate + uuid, new TokenRequestTask.VolleyCallback() {
+            @Override
+            public void onSuccess(String response) {
+                Gson gson = new Gson();
+                CaptchaToken captcha = gson.fromJson(response, CaptchaToken.class);
+
+                PopupCreator popUpClass = new PopupCreator(captcha.getCode());
+                popUpClass.showPopupWindow(findViewById(android.R.id.content).getRootView());
+
+                checkAuth = new Handler();
+                Runnable run = new Runnable() {
+                    @Override
+                    public void run() {
+                        tr.doRequest(TokenRequestTask.authenticate + uuid, new TokenRequestTask.VolleyCallback() {
+                            @Override
+                            public void onSuccess(String response) {
+                                Log.d("AUTHENTICATE", response);
+                                Gson gson = new Gson();
+                                AuthenticateToken auth = gson.fromJson(response, AuthenticateToken.class);
+                                if (auth.getLinked().equalsIgnoreCase("yes")) {
+                                    checkAuth.removeCallbacksAndMessages(null);
+                                    doLogin(username, password, auth.getOauthToken());
+                                    popUpClass.closePopup();
+                                }
+                            }
+
+                            @Override
+                            public void onError(VolleyError error) {
+                                error.printStackTrace();
+                            }
+                        });
+                        checkAuth.postDelayed(this, 6000);
+                    }
+                };
+                checkAuth.postDelayed(run, 6000);
+            }
+
+            @Override
+            public void onError(VolleyError error) {
+                error.printStackTrace();
+            }
+        });
+    }
+
+    private void doLogin(String username, String password, String token) {
+>>>>>>>5e c2eeb1e340543fda98197dab9d4ad5f2050b7e
         LoginRequestTask rt = new LoginRequestTask(this.getApplicationContext());
-        rt.sendRequest(username, password, new LoginRequestTask.VolleyCallback() {
+        rt.sendRequest(username, password, token, new LoginRequestTask.VolleyCallback() {
             @Override
             public void onSuccess(ArrayList<String> cookies, String response) {
                 /*for (String s : cookies) {
@@ -118,5 +174,10 @@ public class LoginActivity extends Activity {
                 Toast.makeText(getApplicationContext(), "Incorrect username/password!", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    public void hideSoftKeyboard(View view) {
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
     }
 }

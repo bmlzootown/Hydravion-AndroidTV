@@ -12,6 +12,7 @@ import org.json.JSONArray
 
 class HydravionClient private constructor(private val context: Context, private val mainPrefs: SharedPreferences) {
 
+    private val creatorIds: MutableMap<String, String> = hashMapOf()
     private val creatorLogos: MutableMap<String, String> = hashMapOf()
 
     /**
@@ -33,6 +34,8 @@ class HydravionClient private constructor(private val context: Context, private 
                 Gson().fromJson(string, Array<Subscription>::class.java).let { subs ->
                     subs.forEach { sub ->
                         sub.creator?.let { creatorId ->
+                            creatorIds[sub.plan?.title.toString()] = creatorId
+
                             if (sub.plan?.logo == null) {
                                 cacheLogo(creatorId, null)
                             } else {
@@ -67,10 +70,10 @@ class HydravionClient private constructor(private val context: Context, private 
             })
     }
 
-    fun getCreatorLogo(creatorGUID: String, callback: (String) -> Unit) {
+    fun getCreatorLogo(name: String, callback: (String) -> Unit) {
         // Check for existing logo, otherwise fetch it and then run the callback
-        creatorLogos[creatorGUID]?.let { callback(it) } ?: run {
-            cacheLogo(creatorGUID, callback)
+        creatorLogos[creatorIds[name]]?.let { callback(it) } ?: run {
+            cacheLogo(creatorIds[name] ?: return@run, callback)
         }
     }
 

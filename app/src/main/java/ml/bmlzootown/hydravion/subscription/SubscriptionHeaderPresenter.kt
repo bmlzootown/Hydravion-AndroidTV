@@ -2,7 +2,6 @@ package ml.bmlzootown.hydravion.subscription
 
 import android.app.Activity
 import android.content.Context
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -11,6 +10,7 @@ import androidx.leanback.widget.ListRow
 import androidx.leanback.widget.Presenter
 import androidx.leanback.widget.RowHeaderPresenter
 import com.bumptech.glide.Glide
+import com.bumptech.glide.request.RequestOptions
 import ml.bmlzootown.hydravion.R
 import ml.bmlzootown.hydravion.client.HydravionClient
 
@@ -27,20 +27,18 @@ class SubscriptionHeaderPresenter : RowHeaderPresenter() {
     }
 
     override fun onBindViewHolder(viewHolder: Presenter.ViewHolder, item: Any?) {
-        (item as? ListRow)?.headerItem?.name?.let { data ->
+        (item as? ListRow)?.headerItem?.name?.let { name ->
             viewHolder.view?.let { subView ->
-                if (data == subView.context.getString(R.string.settings)) {
+                if (name == subView.context.getString(R.string.settings)) {
                     subView.findViewById<ImageView>(R.id.header_icon).setImageResource(R.drawable.exo_ic_settings)
-                    subView.findViewById<TextView>(R.id.header_sub).text = data
+                    subView.findViewById<TextView>(R.id.header_sub).text = name
                 } else {
-                    data.split(":;:").let { parts ->
-                        subView.findViewById<TextView>(R.id.header_sub).text = parts[0]
-
-                        client?.getCreatorLogo(parts[1]) { logoUrl ->
-                            Glide.with(subView)
-                                .load(logoUrl)
-                                .into(subView.findViewById(R.id.header_icon))
-                        }
+                    subView.findViewById<TextView>(R.id.header_sub).text = name
+                    client?.getCreatorLogo(name) { logoUrl ->
+                        Glide.with(subView)
+                            .load(logoUrl)
+                            .apply(RequestOptions.circleCropTransform())
+                            .into(subView.findViewById(R.id.header_icon))
                     }
                 }
             }

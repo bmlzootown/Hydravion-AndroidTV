@@ -16,7 +16,6 @@ import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import androidx.annotation.Nullable;
 import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.ContextCompat;
 import androidx.leanback.app.BackgroundManager;
@@ -47,7 +46,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import kotlin.Unit;
-import kotlin.jvm.functions.Function1;
 import ml.bmlzootown.hydravion.CardPresenter;
 import ml.bmlzootown.hydravion.Constants;
 import ml.bmlzootown.hydravion.R;
@@ -315,7 +313,7 @@ public class MainFragment extends BrowseSupportFragment {
                 vids.forEach(listRowAdapter::add);
             }
 
-            HeaderItem header = new HeaderItem(i, sub.getPlan().getTitle() + ":;:" + sub.getCreator());
+            HeaderItem header = new HeaderItem(i, sub.getPlan().getTitle());
             rowsAdapter.add(new ListRow(header, listRowAdapter));
         }
 
@@ -333,7 +331,6 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void prepareBackgroundManager() {
-
         mBackgroundManager = BackgroundManager.getInstance(requireActivity());
         mBackgroundManager.attach(requireActivity().getWindow());
 
@@ -594,5 +591,4 @@ public class MainFragment extends BrowseSupportFragment {
         public void onUnbindViewHolder(ViewHolder viewHolder) {
         }
     }
-
 }

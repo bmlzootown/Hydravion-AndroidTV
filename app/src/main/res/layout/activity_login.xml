@@ -25,6 +25,8 @@
         android:layout_height="wrap_content"
         android:focusedByDefault="true"
         android:hint="@string/username"
+        app:boxStrokeColor="@android:color/white"
+        app:hintTextColor="@android:color/white"
         app:layout_constraintBottom_toTopOf="@+id/password_layout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -37,6 +39,7 @@
             android:gravity="center_vertical"
             android:inputType="text"
             android:nextFocusDown="@+id/password"
+            android:textCursorDrawable="@null"
             tools:text="@tools:sample/lorem" />
 
     </com.google.android.material.textfield.TextInputLayout>
@@ -48,6 +51,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:hint="@string/password"
+        app:boxStrokeColor="@android:color/white"
+        app:hintTextColor="@android:color/white"
         app:layout_constraintBottom_toTopOf="@+id/login_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -60,6 +65,7 @@
             android:gravity="center_vertical"
             android:inputType="textPassword"
             android:nextFocusDown="@+id/login_button"
+            android:textCursorDrawable="@null"
             tools:text="@tools:sample/lorem" />
 
     </com.google.android.material.textfield.TextInputLayout>

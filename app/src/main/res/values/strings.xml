@@ -14,5 +14,5 @@
     <string name="live_stream">Livestream</string>
     <string name="refresh">Refresh</string>
     <string name="codeTitle">reCATPCHA Token</string>
-    <string name="codeMessage">Navigate to https://bmlzoo.town/hydravion and enter the following code:</string>
+    <string name="format_code_instructions">Navigate to https://bmlzoo.town/hydravion and enter the following code: %s</string>
 </resources>

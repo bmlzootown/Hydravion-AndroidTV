@@ -105,7 +105,6 @@ public class LoginActivity extends Activity {
     }
 
     private void doLogin(String username, String password, String token) {
->>>>>>>5e c2eeb1e340543fda98197dab9d4ad5f2050b7e
         LoginRequestTask rt = new LoginRequestTask(this.getApplicationContext());
         rt.sendRequest(username, password, token, new LoginRequestTask.VolleyCallback() {
             @Override

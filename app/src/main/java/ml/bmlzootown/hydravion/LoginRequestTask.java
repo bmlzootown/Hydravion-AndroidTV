@@ -1,9 +1,7 @@
 package ml.bmlzootown.hydravion;
 
 import android.content.Context;
-import android.util.Log;
 
-import com.android.volley.AuthFailureError;
 import com.android.volley.Header;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
@@ -12,7 +10,6 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
-import com.google.android.gms.security.ProviderInstaller;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,9 +29,9 @@ public class LoginRequestTask {
         RequestQueue queue = Volley.newRequestQueue(this.context);
         StringRequest stringRequest = new StringRequest(Request.Method.POST, uri,
                 response -> callback.onSuccess(cookies, response), error -> {
-                    error.printStackTrace();
-                    callback.onError();
-                }) {
+            error.printStackTrace();
+            callback.onError();
+        }) {
             @Override
             protected Response<String> parseNetworkResponse(NetworkResponse response) {
                 List<Header> headers = response.allHeaders;
@@ -56,9 +53,8 @@ public class LoginRequestTask {
             }
 
             @Override
-            protected Map<String, String> getParams()
-            {
-                Map<String, String>  params = new HashMap<>();
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
                 params.put("captchaToken", captchaToken);
                 params.put("username", user);
                 params.put("password", pass);
@@ -75,9 +71,9 @@ public class LoginRequestTask {
         RequestQueue queue = Volley.newRequestQueue(this.context);
         StringRequest stringRequest = new StringRequest(Request.Method.POST, uri,
                 response -> callback.onSuccess(cookies), error -> {
-                    error.printStackTrace();
-                    callback.onError(error);
-                }) {
+            error.printStackTrace();
+            callback.onError(error);
+        }) {
             @Override
             protected Response<String> parseNetworkResponse(NetworkResponse response) {
                 List<Header> headers = response.allHeaders;
@@ -104,9 +100,8 @@ public class LoginRequestTask {
             }
 
             @Override
-            protected Map<String, String> getParams()
-            {
-                Map<String, String>  params = new HashMap<>();
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
                 params.put("token", token);
 
                 return params;
@@ -118,11 +113,13 @@ public class LoginRequestTask {
 
     public interface TwoFACallback {
         void onSuccess(ArrayList<String> string);
+
         void onError(VolleyError ve);
     }
 
     public interface VolleyCallback {
         void onSuccess(ArrayList<String> string, String response);
+
         void onError();
     }
 

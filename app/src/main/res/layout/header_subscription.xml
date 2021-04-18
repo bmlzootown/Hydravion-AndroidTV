@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
+    android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:focusable="true"
     android:orientation="horizontal">
@@ -10,6 +10,7 @@
         android:id="@+id/header_icon"
         android:layout_width="28dp"
         android:layout_height="28dp"
+        android:layout_gravity="center_vertical"
         tools:src="@drawable/exo_ic_settings" />
 
     <TextView
@@ -18,6 +19,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
         android:layout_marginStart="8dp"
+        android:maxWidth="120dp"
         android:textColor="@android:color/white"
         tools:text="@tools:sample/lorem" />
 

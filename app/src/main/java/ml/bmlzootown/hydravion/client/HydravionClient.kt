@@ -2,10 +2,12 @@ package ml.bmlzootown.hydravion.client
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import com.android.volley.VolleyError
 import com.google.gson.Gson
 import ml.bmlzootown.hydravion.Constants
 import ml.bmlzootown.hydravion.RequestTask
+import ml.bmlzootown.hydravion.creator.Creator
 import ml.bmlzootown.hydravion.models.Live
 import ml.bmlzootown.hydravion.models.Video
 import ml.bmlzootown.hydravion.subscription.Subscription
@@ -14,7 +16,7 @@ import org.json.JSONArray
 class HydravionClient private constructor(private val context: Context, private val mainPrefs: SharedPreferences) {
 
     private val creatorIds: MutableMap<String, String> = hashMapOf()
-    private val creatorLogos: MutableMap<String, String> = hashMapOf()
+    private val creatorCache: MutableMap<String, Creator> = hashMapOf()
 
     /**
      * Convenience fun to get cookies string
@@ -37,10 +39,8 @@ class HydravionClient private constructor(private val context: Context, private 
                         sub.creator?.let { creatorId ->
                             creatorIds[sub.plan?.title.toString()] = creatorId
 
-                            if (sub.plan?.logo == null) {
+                            if (creatorCache[creatorId] == null) {
                                 cacheLogo(creatorId, null)
-                            } else {
-                                creatorLogos[creatorId] = sub.plan?.logo ?: ""
                             }
                         }
                     }
@@ -84,15 +84,15 @@ class HydravionClient private constructor(private val context: Context, private 
         })
     }
 
-    fun getCreatorLogo(name: String, callback: (String) -> Unit) {
+    fun getCreator(name: String, callback: (Creator) -> Unit) {
         // Check for existing logo, otherwise fetch it and then run the callback
-        creatorLogos[creatorIds[name]]?.let { callback(it) } ?: run {
+        creatorCache[creatorIds[name]]?.let { callback(it) } ?: run {
             cacheLogo(creatorIds[name] ?: return@run, callback)
         }
     }
 
-    private fun cacheLogo(creatorGUID: String, callback: ((String) -> Unit)?) {
-        if (creatorLogos[creatorGUID] != null) {
+    private fun cacheLogo(creatorGUID: String, callback: ((Creator) -> Unit)?) {
+        if (creatorCache[creatorGUID] != null) {
             // If the logo already is cached, no reason to retrieve it again
             return
         }
@@ -101,9 +101,12 @@ class HydravionClient private constructor(private val context: Context, private 
 
             override fun onSuccess(response: String?) {
                 try {
-                    JSONArray(response).getJSONObject(0)?.getJSONObject("icon")?.getString("path")?.let { creatorPath ->
-                        creatorLogos[creatorGUID] = creatorPath
-                        callback?.invoke(creatorPath)
+                    Log.e("ERROR?", "Creator response: $response")
+                    JSONArray(response).getString(0)?.let {
+                        Gson().fromJson(it, Creator::class.java).let { creator ->
+                            creatorCache[creatorGUID] = creator
+                            callback?.invoke(creator)
+                        }
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()

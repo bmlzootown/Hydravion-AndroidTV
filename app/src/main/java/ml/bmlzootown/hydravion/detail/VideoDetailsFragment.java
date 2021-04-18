@@ -1,12 +1,14 @@
 package ml.bmlzootown.hydravion.detail;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -38,10 +40,12 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import ml.bmlzootown.hydravion.browse.MainActivity;
-import ml.bmlzootown.hydravion.browse.MainFragment;
+import kotlin.Unit;
 import ml.bmlzootown.hydravion.R;
 import ml.bmlzootown.hydravion.RequestTask;
+import ml.bmlzootown.hydravion.browse.MainActivity;
+import ml.bmlzootown.hydravion.browse.MainFragment;
+import ml.bmlzootown.hydravion.client.HydravionClient;
 import ml.bmlzootown.hydravion.models.Level;
 import ml.bmlzootown.hydravion.models.Video;
 import ml.bmlzootown.hydravion.models.VideoInfo;
@@ -56,6 +60,8 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
 
     private static final int DETAIL_THUMB_WIDTH = 274;
     private static final int DETAIL_THUMB_HEIGHT = 274;
+
+    private HydravionClient client;
 
     private Video mSelectedMovie;
 
@@ -80,7 +86,6 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
             setupDetailsOverviewRowPresenter();
             setupRelatedMovieListRow();
             setAdapter(mAdapter);
-            initializeBackground(mSelectedMovie);
             setOnItemViewClickedListener(new ItemViewClickedListener());
         } else {
             Intent intent = new Intent(getActivity(), MainActivity.class);
@@ -88,32 +93,43 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
         }
     }
 
-    private void initializeBackground(@NonNull Video data) {
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        client = HydravionClient.Companion.getInstance(requireContext(), requireActivity().getPreferences(Context.MODE_PRIVATE));
+        initializeBackground();
+    }
+
+    private void initializeBackground() {
         mDetailsBackground.enableParallax();
-        Glide.with(requireActivity())
-                .asBitmap()
-                .load(data.getThumbnail().getPath())
-                .centerCrop()
-                .error(R.drawable.default_background)
-                .into(new CustomTarget<Bitmap>() {
-                    @Override
-                    public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                        mDetailsBackground.setCoverBitmap(resource);
-                        mAdapter.notifyArrayItemRangeChanged(0, mAdapter.size());
-                    }
+        client.getCreatorById(mSelectedMovie.getCreator(), creator -> {
+            Glide.with(requireActivity())
+                    .asBitmap()
+                    .load(creator.getCoverImage().getPath())
+                    .override(1800, 519)
+                    .centerCrop()
+                    .error(R.drawable.default_background)
+                    .into(new CustomTarget<Bitmap>() {
+                        @Override
+                        public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                            mDetailsBackground.setCoverBitmap(resource);
+                            mAdapter.notifyArrayItemRangeChanged(0, mAdapter.size());
+                        }
 
-                    @Override
-                    public void onLoadCleared(@Nullable Drawable placeholder) {
+                        @Override
+                        public void onLoadCleared(@Nullable Drawable placeholder) {
 
-                    }
-                });
+                        }
+                    });
+            return Unit.INSTANCE;
+        });
     }
 
     private void setupDetailsOverviewRow() {
         Log.d(TAG, "doInBackground: " + mSelectedMovie.toString());
         final DetailsOverviewRow row = new DetailsOverviewRow(mSelectedMovie);
-        row.setImageDrawable(ContextCompat.getDrawable(getContext(), R.drawable.default_background));
-        Glide.with(getActivity())
+        row.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.default_background));
+        Glide.with(requireActivity())
                 .load(mSelectedMovie.getThumbnail().getPath())
                 .centerCrop()
                 .transform(new RoundedCorners(48))

@@ -34,7 +34,7 @@ class SubscriptionHeaderPresenter : RowHeaderPresenter() {
                     subView.findViewById<TextView>(R.id.header_sub).text = name
                 } else {
                     subView.findViewById<TextView>(R.id.header_sub).text = name
-                    client?.getCreator(name) { creator ->
+                    client?.getCreatorByName(name) { creator ->
                         Glide.with(subView)
                             .load(creator.icon?.path)
                             .apply(RequestOptions.circleCropTransform())

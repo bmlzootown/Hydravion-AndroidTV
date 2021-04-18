@@ -84,10 +84,16 @@ class HydravionClient private constructor(private val context: Context, private 
         })
     }
 
-    fun getCreator(name: String, callback: (Creator) -> Unit) {
-        // Check for existing logo, otherwise fetch it and then run the callback
-        creatorCache[creatorIds[name]]?.let { callback(it) } ?: run {
-            cacheLogo(creatorIds[name] ?: return@run, callback)
+    fun getCreatorByName(name: String, callback: (Creator) -> Unit) {
+        getCreatorById(creatorIds[name] ?: "", callback)
+    }
+
+    fun getCreatorById(id: String, callback: (Creator) -> Unit) {
+        if (id.isNotEmpty()) {
+            // Check for existing logo, otherwise fetch it and then run the callback
+            creatorCache[id]?.let { callback(it) } ?: run {
+                cacheLogo(id, callback)
+            }
         }
     }
 

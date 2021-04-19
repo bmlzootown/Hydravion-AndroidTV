@@ -15,6 +15,7 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.ContextCompat;
@@ -456,12 +457,16 @@ public class MainFragment extends BrowseSupportFragment {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
                                     String stream = subscriptions.get(which).getStreamUrl();
-                                    Log.d("LIVE", stream);
-                                    Video live = new Video();
-                                    live.setVidUrl(stream);
-                                    Intent intent = new Intent(getActivity(), PlaybackActivity.class);
-                                    intent.putExtra(DetailsActivity.Video, (Serializable) live);
-                                    startActivity(intent);
+                                    if (stream != null) {
+                                        Log.d("LIVE", stream);
+                                        Video live = new Video();
+                                        live.setVidUrl(stream);
+                                        Intent intent = new Intent(getActivity(), PlaybackActivity.class);
+                                        intent.putExtra(DetailsActivity.Video, (Serializable) live);
+                                        startActivity(intent);
+                                    } else {
+                                        Toast.makeText(getActivity(), "Subscription does not include access to livestream.", Toast.LENGTH_LONG).show();
+                                    }
                                 }
                             });
                     builder.create().show();

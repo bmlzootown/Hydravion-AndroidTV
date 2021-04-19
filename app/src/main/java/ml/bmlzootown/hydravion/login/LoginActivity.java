@@ -1,4 +1,4 @@
-package ml.bmlzootown.hydravion;
+package ml.bmlzootown.hydravion.login;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -14,26 +14,29 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.android.volley.VolleyError;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.gson.Gson;
 
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
 import java.util.UUID;
 
+import ml.bmlzootown.hydravion.PopupCreator;
+import ml.bmlzootown.hydravion.R;
+import ml.bmlzootown.hydravion.TokenRequestTask;
 import ml.bmlzootown.hydravion.models.AuthenticateToken;
 import ml.bmlzootown.hydravion.models.CaptchaToken;
-import ml.bmlzootown.hydravion.models.Live;
 import ml.bmlzootown.hydravion.models.LoginResponse;
-import ml.bmlzootown.hydravion.models.Subscription;
 
 public class LoginActivity extends Activity {
+
+    private TextInputEditText username;
+    private TextInputEditText password;
     private final String uuid = UUID.randomUUID().toString();
     private Handler checkAuth;
-
-    EditText username;
-    EditText password;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -43,12 +46,11 @@ public class LoginActivity extends Activity {
         password = findViewById(R.id.password);
     }
 
-    public void login(View view) {
+    public void login(@Nullable View view) {
         if (username != null && password != null) {
             if (username.length() > 0 || password.length() > 0) {
                 String user = username.getText().toString();
                 String pass = password.getText().toString();
-                //doLogin(user, pass);
                 hideSoftKeyboard(view);
                 getToken(user, pass);
             } else {
@@ -59,7 +61,7 @@ public class LoginActivity extends Activity {
         }
     }
 
-    private void getToken(String username, String password) {
+    private void getToken(@NonNull String username, @NonNull String password) {
         TokenRequestTask tr = new TokenRequestTask(this.getApplicationContext());
         tr.doRequest(TokenRequestTask.generate + uuid, new TokenRequestTask.VolleyCallback() {
             @Override
@@ -176,9 +178,8 @@ public class LoginActivity extends Activity {
         });
     }
 
-    public void hideSoftKeyboard(View view){
-        InputMethodManager imm =(InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+    public void hideSoftKeyboard(View view) {
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
     }
-
 }

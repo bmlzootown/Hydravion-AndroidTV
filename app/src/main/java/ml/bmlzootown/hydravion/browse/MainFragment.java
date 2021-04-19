@@ -1,4 +1,4 @@
-package ml.bmlzootown.hydravion;
+package ml.bmlzootown.hydravion.browse;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
@@ -10,11 +10,16 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import android.view.Gravity;
+import android.view.ViewGroup;
+import android.widget.TextView;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.core.app.ActivityOptionsCompat;
+import androidx.core.content.ContextCompat;
 import androidx.leanback.app.BackgroundManager;
-import androidx.leanback.app.BrowseFragment;
+import androidx.leanback.app.BrowseSupportFragment;
 import androidx.leanback.widget.ArrayObjectAdapter;
 import androidx.leanback.widget.HeaderItem;
 import androidx.leanback.widget.ImageCardView;
@@ -23,36 +28,15 @@ import androidx.leanback.widget.ListRowPresenter;
 import androidx.leanback.widget.OnItemViewClickedListener;
 import androidx.leanback.widget.OnItemViewSelectedListener;
 import androidx.leanback.widget.Presenter;
+import androidx.leanback.widget.PresenterSelector;
 import androidx.leanback.widget.Row;
 import androidx.leanback.widget.RowPresenter;
-import androidx.core.app.ActivityOptionsCompat;
-import androidx.core.content.ContextCompat;
 
-import android.util.DisplayMetrics;
-import android.util.Log;
-import android.view.Gravity;
-import android.view.ViewGroup;
-import android.widget.TextView;
-
-import com.android.volley.NetworkResponse;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.Volley;
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
-import com.bumptech.glide.request.target.CustomTarget;
-import com.bumptech.glide.request.transition.Transition;
 import com.google.gson.Gson;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.Serializable;
-import java.net.CookieManager;
-import java.net.HttpCookie;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -61,17 +45,24 @@ import java.util.TimerTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import kotlin.Unit;
+import ml.bmlzootown.hydravion.CardPresenter;
+import ml.bmlzootown.hydravion.Constants;
+import ml.bmlzootown.hydravion.R;
+import ml.bmlzootown.hydravion.RequestTask;
+import ml.bmlzootown.hydravion.client.HydravionClient;
+import ml.bmlzootown.hydravion.detail.DetailsActivity;
+import ml.bmlzootown.hydravion.login.LoginActivity;
 import ml.bmlzootown.hydravion.models.Edge;
 import ml.bmlzootown.hydravion.models.Edges;
-import ml.bmlzootown.hydravion.models.Level;
 import ml.bmlzootown.hydravion.models.Live;
-import ml.bmlzootown.hydravion.models.Subscription;
 import ml.bmlzootown.hydravion.models.Video;
-import ml.bmlzootown.hydravion.models.VideoInfo;
+import ml.bmlzootown.hydravion.playback.PlaybackActivity;
+import ml.bmlzootown.hydravion.subscription.Subscription;
+import ml.bmlzootown.hydravion.subscription.SubscriptionHeaderPresenter;
 
-import static android.app.Activity.RESULT_OK;
+public class MainFragment extends BrowseSupportFragment {
 
-public class MainFragment extends BrowseFragment {
     private static final String TAG = "MainFragment";
 
     private static final int BACKGROUND_UPDATE_DELAY = 300;
@@ -80,6 +71,7 @@ public class MainFragment extends BrowseFragment {
     private static int NUM_ROWS = 6;
     private static int NUM_COLS = 15;
 
+    private HydravionClient client;
     private final Handler mHandler = new Handler();
     private Drawable mDefaultBackground;
     private DisplayMetrics mMetrics;
@@ -92,7 +84,7 @@ public class MainFragment extends BrowseFragment {
     public static String cdn;
 
     public static List<Subscription> subscriptions = new ArrayList<>();
-    public static HashMap<String, Video[]> videos = new HashMap<>();
+    public static HashMap<String, ArrayList<Video>> videos = new HashMap<>();
     private int subCount;
     private int page = 1;
 
@@ -103,7 +95,7 @@ public class MainFragment extends BrowseFragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         Log.i(TAG, "onCreate");
         super.onActivityCreated(savedInstanceState);
-
+        client = HydravionClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
         checkLogin();
         //test();
 
@@ -158,7 +150,24 @@ public class MainFragment extends BrowseFragment {
     }
 
     private void initialize() {
-        getSubscriptions();
+        client.getSubs(subscriptions -> {
+            if (subscriptions == null) {
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Session Expired")
+                        .setMessage("Re-open Hydravion to login again!")
+                        .setPositiveButton("OK",
+                                (dialog, which) -> {
+                                    dialog.dismiss();
+                                    logout();
+                                })
+                        .create()
+                        .show();
+            } else {
+                gotSubscriptions(subscriptions);
+            }
+
+            return Unit.INSTANCE;
+        });
         prepareBackgroundManager();
         setupUIElements();
         setupEventListeners();
@@ -166,9 +175,9 @@ public class MainFragment extends BrowseFragment {
 
     private boolean loadCredentials() {
         SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
-        sailssid = prefs.getString("sails.sid", "default");
-        cfduid = prefs.getString("__cfduid", "default");
-        cdn = prefs.getString("cdn", "default");
+        sailssid = prefs.getString(Constants.PREF_SAIL_SSID, "default");
+        cfduid = prefs.getString(Constants.PREF_CFD_UID, "default");
+        cdn = prefs.getString(Constants.PREF_CDN, "default");
         Log.d("LOGIN", sailssid);
         Log.d("LOGIN", cfduid);
         Log.d("CDN", cdn);
@@ -190,32 +199,12 @@ public class MainFragment extends BrowseFragment {
 
     private void saveCredentials() {
         SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
-        prefs.edit().putString("sails.sid", sailssid).apply();
-        prefs.edit().putString("__cfduid", cfduid).apply();
-        prefs.edit().putString("cdn", cdn).apply();
+        prefs.edit().putString(Constants.PREF_SAIL_SSID, sailssid).apply();
+        prefs.edit().putString(Constants.PREF_CFD_UID, cfduid).apply();
+        prefs.edit().putString(Constants.PREF_CDN, cdn).apply();
     }
 
-    private void getLiveInfo(Subscription sub) {
-        String uri = "https://www.floatplane.com/api/cdn/delivery?type=live&creator=" + sub.getCreator();
-        String cookies = "__cfduid=" + cfduid + "; sails.sid=" + sailssid;
-        RequestTask rt = new RequestTask(getActivity().getApplicationContext());
-        rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
-            @Override
-            public void onSuccess(String string) {
-                gotLiveInfo(string, sub);
-            }
-            @Override
-            public void onSuccessCreator(String string, String creatorGUID) {
-            }
-            @Override
-            public void onError(VolleyError error) {
-            }
-        });
-    }
-
-    private void gotLiveInfo(String response, Subscription sub) {
-        Gson gson = new Gson();
-        Live live = gson.fromJson(response, Live.class);
+    private void gotLiveInfo(Subscription sub, Live live) {
         String l = live.getCdn() + live.getResource().getUri();
         String pattern = "\\{(.*?)\\}";
         Pattern p = Pattern.compile(pattern);
@@ -223,7 +212,7 @@ public class MainFragment extends BrowseFragment {
         if (m.find()) {
             for (int i = 0; i < m.groupCount(); i++) {
                 //Log.d("LIVE", m.group(i));
-                String var = m.group(i).substring(1, m.group(i).length()-1);
+                String var = m.group(i).substring(1, m.group(i).length() - 1);
                 if (var.equalsIgnoreCase("token")) {
                     l = l.replaceAll("\\{token\\}", live.getResource().getData().getToken());
                     sub.setStreamUrl(l);
@@ -234,71 +223,7 @@ public class MainFragment extends BrowseFragment {
         }
     }
 
-    private void getSubscriptions() {
-        String uri = "https://www.floatplane.com/api/user/subscriptions";
-        String cookies = "__cfduid=" + cfduid + "; sails.sid=" + sailssid;
-        RequestTask rt = new RequestTask(getActivity().getApplicationContext());
-        rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
-            @Override
-            public void onSuccess(String string) {
-                gotSubscriptions(string);
-            }
-            @Override
-            public void onSuccessCreator(String string, String creatorGUID) {
-            }
-            @Override
-            public void onError(VolleyError error) {
-                NetworkResponse nr = error.networkResponse;
-                if (nr != null && nr.statusCode == 403) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                    builder.setTitle("Session Expired");
-                    builder.setMessage("Re-open Hydravion to login again!");
-                    builder.setPositiveButton("OK",
-                            (dialog, which) -> {
-                                dialog.dismiss();
-                                logout();
-                            });
-                    builder.create().show();
-                }
-            }
-        });
-
-        /*CookieManager cm = new CookieManager();
-        try {
-            URI domain = new URI("floatplane.com");
-            HttpCookie c1 = new HttpCookie("__cfduid", MainFragment.cfduid);
-            HttpCookie c2 = new HttpCookie("sails.sid", MainFragment.sailssid);
-            cm.getCookieStore().add(domain, c1);
-            cm.getCookieStore().add(domain, c2);
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }*/
-    }
-
-    private void gotSubscriptions(String response) {
-        JSONObject obj = new JSONObject();
-        try {
-            obj = new JSONObject(response);
-        } catch(IllegalStateException | JSONException e) {
-            Log.d("TESTING", "Exception caught!");
-        }
-
-        if (obj.has("errors")) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-            builder.setTitle("Session Expired");
-            builder.setMessage("Re-open Hydravion to login again!");
-            builder.setPositiveButton("OK",
-                    (dialog, which) -> {
-                        dialog.dismiss();
-                        logout();
-                    });
-            builder.create().show();
-            return;
-        }
-
-        Gson gson = new Gson();
-        Subscription[] subs = gson.fromJson(response, Subscription[].class);
-
+    private void gotSubscriptions(Subscription[] subs) {
         NUM_ROWS = subs.length;
         List<Subscription> trimmed = new ArrayList<>();
         for (Subscription sub : subs) {
@@ -312,8 +237,14 @@ public class MainFragment extends BrowseFragment {
         }
         subscriptions = trimmed;
         for (Subscription sub : subscriptions) {
-            getLiveInfo(sub);
-            getVideos(sub.getCreator(), 1);
+            client.getLive(sub.getCreator(), live -> {
+                gotLiveInfo(sub, live);
+                return Unit.INSTANCE;
+            });
+            client.getVideos(sub.getCreator(), 1, videos -> {
+                gotVideos(sub.getCreator(), videos);
+                return Unit.INSTANCE;
+            });
         }
         subCount = trimmed.size();
         Log.d("ROWS", trimmed.size() + "");
@@ -328,37 +259,14 @@ public class MainFragment extends BrowseFragment {
         return false;
     }
 
-    private void getVideos(String creatorGUID, int page) {
-        String uri = "https://www.floatplane.com/api/creator/videos?creatorGUID=" + creatorGUID + "&fetchAfter=" + ((page-1)*20);
-        String cookies = "__cfduid=" + cfduid + "; sails.sid=" + sailssid;
-        RequestTask rt = new RequestTask(getActivity().getApplicationContext());
-        rt.sendRequest(uri, cookies, creatorGUID, new RequestTask.VolleyCallback() {
-            @Override
-            public void onSuccess(String string) {
-            }
-            @Override
-            public void onSuccessCreator(String string, String creatorGUID) {
-                gotVideos(string, creatorGUID);
-            }
-            @Override
-            public void onError(VolleyError error) {
-            }
-        });
-    }
-
-    private void gotVideos(String response, String creatorGUID) {
-        Gson gson = new Gson();
-        Video[] vids = gson.fromJson(response, Video[].class);
-        if (videos.get(creatorGUID) != null && videos.get(creatorGUID).length > 0) {
-            Video[] temp = videos.get(creatorGUID);
-            vids = appendVideos(temp, vids);
-            videos.put(creatorGUID, vids);
+    private void gotVideos(String creatorGUID, Video[] vids) {
+        if (videos.get(creatorGUID) != null && videos.get(creatorGUID).size() > 0) {
+            videos.get(creatorGUID).addAll(Arrays.asList(vids));
         } else {
-            videos.put(creatorGUID, vids);
+            videos.put(creatorGUID, new ArrayList<>(Arrays.asList(vids)));
         }
-        /*if (videos.size() == subscriptions.size()) {
-            refreshRows();
-        }*/
+
+
         if (subCount > 1) {
             subCount--;
         } else {
@@ -366,21 +274,12 @@ public class MainFragment extends BrowseFragment {
             subCount = subscriptions.size();
             setSelectedPosition(rowSelected, false, new ListRowPresenter.SelectItemViewHolderTask(colSelected));
         }
-        NUM_COLS = videos.get(creatorGUID).length;
-    }
 
-    private Video[] appendVideos(Video[] oldVids, Video[] newVids) {
-        int ol = oldVids.length;
-        int nl = newVids.length;
-        Video[] updated = new Video[ol+nl];
-        System.arraycopy(oldVids, 0, updated, 0, ol);
-        System.arraycopy(newVids, 0, updated, ol, nl);
-        return updated;
+        NUM_COLS = videos.get(creatorGUID).size();
     }
 
     private void refreshRows() {
         List<Subscription> subs = subscriptions;
-
         ArrayObjectAdapter rowsAdapter = new ArrayObjectAdapter(new ListRowPresenter());
         CardPresenter cardPresenter = new CardPresenter();
 
@@ -389,15 +288,17 @@ public class MainFragment extends BrowseFragment {
             ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
 
             Subscription sub = subscriptions.get(i);
-            Video[] vs = videos.get(sub.getCreator());
-            for (Video v : vs) {
-                listRowAdapter.add(v);
+            List<Video> vids = videos.get(sub.getCreator());
+
+            if (vids != null) {
+                vids.forEach(listRowAdapter::add);
             }
+
             HeaderItem header = new HeaderItem(i, sub.getPlan().getTitle());
             rowsAdapter.add(new ListRow(header, listRowAdapter));
         }
 
-        HeaderItem gridHeader = new HeaderItem(i, "SETTINGS");
+        HeaderItem gridHeader = new HeaderItem(i, getString(R.string.settings));
 
         GridItemPresenter mGridPresenter = new GridItemPresenter();
         ArrayObjectAdapter gridRowAdapter = new ArrayObjectAdapter(mGridPresenter);
@@ -411,26 +312,31 @@ public class MainFragment extends BrowseFragment {
     }
 
     private void prepareBackgroundManager() {
+        mBackgroundManager = BackgroundManager.getInstance(requireActivity());
+        mBackgroundManager.attach(requireActivity().getWindow());
 
-        mBackgroundManager = BackgroundManager.getInstance(getActivity());
-        mBackgroundManager.attach(getActivity().getWindow());
-
-        mDefaultBackground = ContextCompat.getDrawable(getContext(), R.drawable.default_background);
+        mDefaultBackground = ContextCompat.getDrawable(requireActivity(), R.drawable.default_background);
         mMetrics = new DisplayMetrics();
-        getActivity().getWindowManager().getDefaultDisplay().getMetrics(mMetrics);
+        requireActivity().getWindowManager().getDefaultDisplay().getMetrics(mMetrics);
     }
 
     @SuppressLint("UseCompatLoadingForDrawables")
     private void setupUIElements() {
         // setBadgeDrawable(getActivity().getResources().getDrawable(R.drawable.videos_by_google_banner));
-        setBadgeDrawable(getActivity().getResources().getDrawable(R.drawable.white_plane));
+        setBadgeDrawable(ContextCompat.getDrawable(requireActivity(), R.drawable.white_plane));
         //setTitle(getString(R.string.browse_title)); // Badge, when set, takes precedent
         // over title
         setHeadersState(HEADERS_ENABLED);
         setHeadersTransitionOnBackEnabled(true);
+        setHeaderPresenterSelector(new PresenterSelector() {
+            @Override
+            public Presenter getPresenter(Object item) {
+                return new SubscriptionHeaderPresenter();
+            }
+        });
 
         // set fastLane (or headers) background color
-        setBrandColor(ContextCompat.getColor(getContext(), R.color.fastlane_background));
+        setBrandColor(ContextCompat.getColor(requireContext(), R.color.fastlane_background));
         // set search icon color
         //setSearchAffordanceColor(ContextCompat.getColor(getContext(), R.color.search_opaque));
     }
@@ -452,7 +358,7 @@ public class MainFragment extends BrowseFragment {
     private void updateBackground(String uri) {
         int width = mMetrics.widthPixels;
         int height = mMetrics.heightPixels;
-        Glide.with(getActivity())
+        /*Glide.with(getActivity())
                 .load(uri)
                 .centerCrop()
                 .error(mDefaultBackground)
@@ -468,7 +374,7 @@ public class MainFragment extends BrowseFragment {
                     public void onLoadCleared(@Nullable Drawable placeholder) {
 
                     }
-                });
+                });*/
         mBackgroundTimer.cancel();
     }
 
@@ -528,9 +434,11 @@ public class MainFragment extends BrowseFragment {
                                 builder.create().show();
                             }
                         }
+
                         @Override
                         public void onSuccessCreator(String string, String creatorGUID) {
                         }
+
                         @Override
                         public void onError(VolleyError error) {
                         }
@@ -585,9 +493,11 @@ public class MainFragment extends BrowseFragment {
                         .toBundle();
                 getActivity().startActivity(intent, bundle);
             }
+
             @Override
             public void onSuccessCreator(String string, String creatorGUID) {
             }
+
             @Override
             public void onError(VolleyError error) {
             }
@@ -615,7 +525,10 @@ public class MainFragment extends BrowseFragment {
                 }
                 if (selected != -1 && (current.size() - 1) == selected) {
                     for (Subscription sub : subscriptions) {
-                        getVideos(sub.getCreator(), page+1);
+                        client.getVideos(sub.getCreator(), page + 1, videos -> {
+                            gotVideos(sub.getCreator(), videos);
+                            return Unit.INSTANCE;
+                        });
                     }
                     page++;
                 }
@@ -659,5 +572,4 @@ public class MainFragment extends BrowseFragment {
         public void onUnbindViewHolder(ViewHolder viewHolder) {
         }
     }
-
 }

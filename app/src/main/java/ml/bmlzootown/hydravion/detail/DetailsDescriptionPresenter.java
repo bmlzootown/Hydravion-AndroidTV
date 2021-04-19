@@ -1,4 +1,4 @@
-package ml.bmlzootown.hydravion;
+package ml.bmlzootown.hydravion.detail;
 
 import android.annotation.SuppressLint;
 

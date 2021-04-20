@@ -6,17 +6,12 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Gravity;
-import android.view.ViewGroup;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.ContextCompat;
 import androidx.leanback.app.BackgroundManager;
@@ -27,7 +22,6 @@ import androidx.leanback.widget.ImageCardView;
 import androidx.leanback.widget.ListRow;
 import androidx.leanback.widget.ListRowPresenter;
 import androidx.leanback.widget.OnItemViewClickedListener;
-import androidx.leanback.widget.OnItemViewSelectedListener;
 import androidx.leanback.widget.Presenter;
 import androidx.leanback.widget.PresenterSelector;
 import androidx.leanback.widget.Row;
@@ -41,8 +35,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -66,18 +58,11 @@ public class MainFragment extends BrowseSupportFragment {
 
     private static final String TAG = "MainFragment";
 
-    private static final int BACKGROUND_UPDATE_DELAY = 300;
-    private static final int GRID_ITEM_WIDTH = 200;
-    private static final int GRID_ITEM_HEIGHT = 200;
     private static int NUM_ROWS = 6;
     private static int NUM_COLS = 15;
 
     private HydravionClient client;
-    private final Handler mHandler = new Handler();
-    private Drawable mDefaultBackground;
     private DisplayMetrics mMetrics;
-    private Timer mBackgroundTimer;
-    private String mBackgroundUri;
     private BackgroundManager mBackgroundManager;
 
     public static String sailssid;
@@ -105,15 +90,6 @@ public class MainFragment extends BrowseSupportFragment {
         //setupUIElements();
 
         //setupEventListeners();
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        if (null != mBackgroundTimer) {
-            Log.d(TAG, "onDestroy: " + mBackgroundTimer.toString());
-            mBackgroundTimer.cancel();
-        }
     }
 
     private void checkLogin() {
@@ -316,7 +292,6 @@ public class MainFragment extends BrowseSupportFragment {
         mBackgroundManager = BackgroundManager.getInstance(requireActivity());
         mBackgroundManager.attach(requireActivity().getWindow());
 
-        mDefaultBackground = ContextCompat.getDrawable(requireActivity(), R.drawable.default_background);
         mMetrics = new DisplayMetrics();
         requireActivity().getWindowManager().getDefaultDisplay().getMetrics(mMetrics);
     }
@@ -353,38 +328,29 @@ public class MainFragment extends BrowseSupportFragment {
         });*/
 
         setOnItemViewClickedListener(new ItemViewClickedListener());
-        setOnItemViewSelectedListener(new ItemViewSelectedListener());
+        setOnItemViewSelectedListener(new ItemViewSelectedListener(this::onCheckIndices, this::onVideoSelected));
     }
 
-    private void updateBackground(String uri) {
-        int width = mMetrics.widthPixels;
-        int height = mMetrics.heightPixels;
-        /*Glide.with(getActivity())
-                .load(uri)
-                .centerCrop()
-                .error(mDefaultBackground)
-                .transition(
-                        new DrawableTransitionOptions().crossFade())
-                .into(new CustomTarget<Drawable>() {
-                    @Override
-                    public void onResourceReady(@NonNull Drawable resource, @Nullable Transition<? super Drawable> transition) {
-                        mBackgroundManager.setDrawable(resource);
-                    }
+    private Unit onCheckIndices(@NonNull String creator, int selected) {
+        colSelected = selected;
 
-                    @Override
-                    public void onLoadCleared(@Nullable Drawable placeholder) {
-
-                    }
-                });*/
-        mBackgroundTimer.cancel();
+        subscriptions.forEach(sub -> {
+            if (creator.equals(sub.getCreator())) {
+                rowSelected = subscriptions.indexOf(sub);
+            }
+        });
+        return Unit.INSTANCE;
     }
 
-    private void startBackgroundTimer() {
-        if (null != mBackgroundTimer) {
-            mBackgroundTimer.cancel();
-        }
-        mBackgroundTimer = new Timer();
-        mBackgroundTimer.schedule(new UpdateBackgroundTask(), BACKGROUND_UPDATE_DELAY);
+    private Unit onVideoSelected(int selected) {
+        subscriptions.forEach(sub -> {
+            client.getVideos(sub.getCreator(), page + 1, videos -> {
+                gotVideos(sub.getCreator(), videos);
+                return Unit.INSTANCE;
+            });
+            page++;
+        });
+        return Unit.INSTANCE;
     }
 
     private final class ItemViewClickedListener implements OnItemViewClickedListener {
@@ -507,74 +473,5 @@ public class MainFragment extends BrowseSupportFragment {
             public void onError(VolleyError error) {
             }
         });
-    }
-
-    private final class ItemViewSelectedListener implements OnItemViewSelectedListener {
-        @Override
-        public void onItemSelected(
-                Presenter.ViewHolder itemViewHolder,
-                Object item,
-                RowPresenter.ViewHolder rowViewHolder,
-                Row row) {
-            if (item instanceof Video) {
-                mBackgroundUri = ((Video) item).getThumbnail().getPath();
-                startBackgroundTimer();
-                final ListRow listRow = (ListRow) row;
-                final ArrayObjectAdapter current = (ArrayObjectAdapter) listRow.getAdapter();
-                int selected = current.indexOf(item);
-                colSelected = selected;
-                for (Subscription s : subscriptions) {
-                    if (((Video) item).getCreator().equals(s.getCreator())) {
-                        rowSelected = subscriptions.indexOf(s);
-                    }
-                }
-                if (selected != -1 && (current.size() - 1) == selected) {
-                    for (Subscription sub : subscriptions) {
-                        client.getVideos(sub.getCreator(), page + 1, videos -> {
-                            gotVideos(sub.getCreator(), videos);
-                            return Unit.INSTANCE;
-                        });
-                    }
-                    page++;
-                }
-            }
-        }
-    }
-
-    private class UpdateBackgroundTask extends TimerTask {
-
-        @Override
-        public void run() {
-            mHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    updateBackground(mBackgroundUri);
-                }
-            });
-        }
-    }
-
-    private class GridItemPresenter extends Presenter {
-        @Override
-        public ViewHolder onCreateViewHolder(ViewGroup parent) {
-            TextView view = new TextView(parent.getContext());
-            view.setLayoutParams(new ViewGroup.LayoutParams(GRID_ITEM_WIDTH, GRID_ITEM_HEIGHT));
-            view.setFocusable(true);
-            view.setFocusableInTouchMode(true);
-            view.setBackgroundColor(
-                    ContextCompat.getColor(getContext(), R.color.default_background));
-            view.setTextColor(Color.WHITE);
-            view.setGravity(Gravity.CENTER);
-            return new ViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(ViewHolder viewHolder, Object item) {
-            ((TextView) viewHolder.view).setText((String) item);
-        }
-
-        @Override
-        public void onUnbindViewHolder(ViewHolder viewHolder) {
-        }
     }
 }

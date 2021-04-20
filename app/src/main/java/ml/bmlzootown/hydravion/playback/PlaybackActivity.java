@@ -97,6 +97,16 @@ public class PlaybackActivity extends FragmentActivity {
         return playerView.dispatchKeyEvent(event) || super.dispatchKeyEvent(event);
     }
 
+    @Override
+    public void onBackPressed() {
+        // Hide the
+        if (playerView.isControllerVisible()) {
+            playerView.hideController();
+        } else {
+            super.onBackPressed();
+        }
+    }
+
     private void initializePlayer() {
         player = new SimpleExoPlayer.Builder(this).build();
         player.setPlayWhenReady(playWhenReady);

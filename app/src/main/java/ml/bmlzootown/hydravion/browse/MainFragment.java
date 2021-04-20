@@ -353,7 +353,18 @@ public class MainFragment extends BrowseSupportFragment {
 
     private Unit onVideoSelected(@Nullable Presenter.ViewHolder itemViewHolder, @NonNull Video video) {
         if (itemViewHolder != null) {
-            getSelectVid(itemViewHolder, video);
+            client.getVideo(video, newVideo -> {
+                Intent intent = new Intent(getActivity(), DetailsActivity.class);
+                intent.putExtra(DetailsActivity.Video, newVideo);
+
+                Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
+                        requireActivity(),
+                        ((ImageCardView) itemViewHolder.view).getMainImageView(),
+                        DetailsActivity.SHARED_ELEMENT_NAME)
+                        .toBundle();
+                getActivity().startActivity(intent, bundle);
+                return Unit.INSTANCE;
+            });
         }
 
         return Unit.INSTANCE;
@@ -436,39 +447,5 @@ public class MainFragment extends BrowseSupportFragment {
                 break;
         }
         return Unit.INSTANCE;
-    }
-
-    private void getSelectVid(final Presenter.ViewHolder itemViewHolder, final Object item) {
-        String cookies = "__cfduid=" + cfduid + "; sails.sid=" + sailssid;
-        final Video video = (Video) item;
-        String uri = "https://www.floatplane.com/api/video/url?guid=" + video.getGuid() + "&quality=1080";
-        RequestTask rt = new RequestTask(getActivity().getApplicationContext());
-        rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
-            @Override
-            public void onSuccess(String string) {
-                Video vid = video;
-                //vid.setGuid(string.replaceAll("\"", ""));
-                vid.setVidUrl(string.replaceAll("\"", ""));
-
-                Log.d(TAG, "Item: " + vid.toString());
-                Intent intent = new Intent(getActivity(), DetailsActivity.class);
-                intent.putExtra(DetailsActivity.Video, vid);
-
-                Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
-                        getActivity(),
-                        ((ImageCardView) itemViewHolder.view).getMainImageView(),
-                        DetailsActivity.SHARED_ELEMENT_NAME)
-                        .toBundle();
-                getActivity().startActivity(intent, bundle);
-            }
-
-            @Override
-            public void onSuccessCreator(String string, String creatorGUID) {
-            }
-
-            @Override
-            public void onError(VolleyError error) {
-            }
-        });
     }
 }

@@ -71,6 +71,23 @@ class HydravionClient private constructor(private val context: Context, private 
             })
     }
 
+    fun getVideo(video: Video, callback: (Video) -> Unit) {
+        RequestTask(context).sendRequest("$URI_SELECT_VIDEO?guid=${video.guid}&quality=1080", getCookiesString(), object : RequestTask.VolleyCallback {
+
+            override fun onSuccess(response: String?) {
+                response?.replace("\"", "")?.let { url ->
+                    video.vidUrl = url
+                    Log.d(TAG, "Item: $video")
+                    callback(video)
+                }
+            }
+
+            override fun onSuccessCreator(string: String?, creatorGUID: String?) = Unit
+
+            override fun onError(error: VolleyError?) = Unit
+        })
+    }
+
     fun getLive(creatorGUID: String, callback: (Live) -> Unit) {
         RequestTask(context).sendRequest("$URI_LIVE?type=live&creator=$creatorGUID", getCookiesString(), object : RequestTask.VolleyCallback {
 
@@ -127,9 +144,11 @@ class HydravionClient private constructor(private val context: Context, private 
 
     companion object {
 
+        private const val TAG = "HydravionClient"
         private const val URI_SUBSCRIPTIONS = "https://www.floatplane.com/api/user/subscriptions"
         private const val URI_CREATOR_INFO = "https://www.floatplane.com/api/creator/info"
         private const val URI_VIDEOS = "https://www.floatplane.com/api/creator/videos"
+        private const val URI_SELECT_VIDEO = "https://www.floatplane.com/api/video/url"
         private const val URI_LIVE = "https://www.floatplane.com/api/cdn/delivery"
         private var INSTANCE: HydravionClient? = null
 

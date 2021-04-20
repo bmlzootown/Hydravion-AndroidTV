@@ -3,7 +3,7 @@ package ml.bmlzootown.hydravion.browse
 import androidx.leanback.widget.*
 import ml.bmlzootown.hydravion.models.Video
 
-class ItemViewSelectedListener(private val onCheckIndices: (String, Int) -> Unit, private val onVideoSelected: (Int) -> Unit) : OnItemViewSelectedListener {
+class ItemViewSelectedListener(private val onCheckIndices: (String, Int) -> Unit, private val onVideoSelected: () -> Unit) : OnItemViewSelectedListener {
 
     override fun onItemSelected(
         itemViewHolder: Presenter.ViewHolder?,
@@ -17,7 +17,7 @@ class ItemViewSelectedListener(private val onCheckIndices: (String, Int) -> Unit
                    onCheckIndices(item.creator, selected)
 
                    if (selected != -1 && current.size() - 1 == selected) {
-                       onVideoSelected(selected)
+                       onVideoSelected()
                    }
                 }
             }

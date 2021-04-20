@@ -12,6 +12,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.ContextCompat;
 import androidx.leanback.app.BackgroundManager;
@@ -21,11 +22,8 @@ import androidx.leanback.widget.HeaderItem;
 import androidx.leanback.widget.ImageCardView;
 import androidx.leanback.widget.ListRow;
 import androidx.leanback.widget.ListRowPresenter;
-import androidx.leanback.widget.OnItemViewClickedListener;
 import androidx.leanback.widget.Presenter;
 import androidx.leanback.widget.PresenterSelector;
-import androidx.leanback.widget.Row;
-import androidx.leanback.widget.RowPresenter;
 
 import com.android.volley.VolleyError;
 import com.google.gson.Gson;
@@ -327,8 +325,8 @@ public class MainFragment extends BrowseSupportFragment {
             }
         });*/
 
-        setOnItemViewClickedListener(new ItemViewClickedListener());
-        setOnItemViewSelectedListener(new ItemViewSelectedListener(this::onCheckIndices, this::onVideoSelected));
+        setOnItemViewClickedListener(new BrowseViewClickListener(requireContext(), this::onVideoSelected, this::onSettingsSelected));
+        setOnItemViewSelectedListener(new ItemViewSelectedListener(this::onCheckIndices, this::onRowSelected));
     }
 
     private Unit onCheckIndices(@NonNull String creator, int selected) {
@@ -342,7 +340,7 @@ public class MainFragment extends BrowseSupportFragment {
         return Unit.INSTANCE;
     }
 
-    private Unit onVideoSelected(int selected) {
+    private Unit onRowSelected() {
         subscriptions.forEach(sub -> {
             client.getVideos(sub.getCreator(), page + 1, videos -> {
                 gotVideos(sub.getCreator(), videos);
@@ -353,92 +351,91 @@ public class MainFragment extends BrowseSupportFragment {
         return Unit.INSTANCE;
     }
 
-    private final class ItemViewClickedListener implements OnItemViewClickedListener {
-        @Override
-        public void onItemClicked(Presenter.ViewHolder itemViewHolder, Object item,
-                                  RowPresenter.ViewHolder rowViewHolder, Row row) {
-            if (item instanceof Video) {
-                getSelectVid(itemViewHolder, item);
-            } else if (item instanceof String) {
-                if (item.toString().equalsIgnoreCase(getString(R.string.refresh))) {
-                    refreshRows();
-                } else if (item.toString().equalsIgnoreCase(getString(R.string.logout))) {
-                    //sailssid = "default";
-                    //cfduid = "default";
-                    //saveCredentials();
-                    //getActivity().finishAndRemoveTask();
-                    logout();
-                } else if (item.toString().equalsIgnoreCase(getString(R.string.select_server))) {
-                    String uri = "https://www.floatplane.com/api/edges";
-                    String cookies = "__cfduid=" + MainFragment.cfduid + "; sails.sid=" + MainFragment.sailssid;
-                    RequestTask rt = new RequestTask(getActivity().getApplicationContext());
-                    rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
-                        @Override
-                        public void onSuccess(String string) {
-                            Gson gson = new Gson();
-                            Edges es = gson.fromJson(string, Edges.class);
-                            List<String> servers = new ArrayList<>();
-                            if (es != null) {
-                                List<Edge> edges = es.getEdges();
-                                for (Edge e : edges) {
-                                    if (e.getAllowStreaming()) {
-                                        servers.add(e.getHostname());
-                                    }
-                                }
-                                CharSequence[] hostnames = servers.toArray(new CharSequence[servers.size()]);
-                                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                                builder.setTitle("Select CDN Server");
-                                builder.setItems(hostnames,
-                                        new DialogInterface.OnClickListener() {
-                                            @Override
-                                            public void onClick(DialogInterface dialog, int which) {
-                                                String server = servers.get(which);
-                                                Log.d("CDN", server);
-                                                SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
-                                                prefs.edit().putString("cdn", server).apply();
-                                            }
-                                        });
-                                builder.create().show();
-                            }
-                        }
-
-                        @Override
-                        public void onSuccessCreator(String string, String creatorGUID) {
-                        }
-
-                        @Override
-                        public void onError(VolleyError error) {
-                        }
-                    });
-                } else if (item.toString().equalsIgnoreCase(getString(R.string.live_stream))) {
-                    List<String> subs = new ArrayList<>();
-                    for (Subscription s : subscriptions) {
-                        subs.add(s.getPlan().getTitle());
-                    }
-                    CharSequence[] s = subs.toArray(new CharSequence[subs.size()]);
-                    AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                    builder.setTitle("Play livestream?");
-                    builder.setItems(s,
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    String stream = subscriptions.get(which).getStreamUrl();
-                                    if (stream != null) {
-                                        Log.d("LIVE", stream);
-                                        Video live = new Video();
-                                        live.setVidUrl(stream);
-                                        Intent intent = new Intent(getActivity(), PlaybackActivity.class);
-                                        intent.putExtra(DetailsActivity.Video, (Serializable) live);
-                                        startActivity(intent);
-                                    } else {
-                                        Toast.makeText(getActivity(), "Subscription does not include access to livestream.", Toast.LENGTH_LONG).show();
-                                    }
-                                }
-                            });
-                    builder.create().show();
-                }
-            }
+    private Unit onVideoSelected(@Nullable Presenter.ViewHolder itemViewHolder, @NonNull Video video) {
+        if (itemViewHolder != null) {
+            getSelectVid(itemViewHolder, video);
         }
+
+        return Unit.INSTANCE;
+    }
+
+    private Unit onSettingsSelected(@NonNull SettingsAction action) {
+        switch (action) {
+            case REFRESH:
+                refreshRows();
+                break;
+            case LOGOUT:
+                logout();
+                break;
+            case SELECT_SERVER:
+                String uri = "https://www.floatplane.com/api/edges";
+                String cookies = "__cfduid=" + MainFragment.cfduid + "; sails.sid=" + MainFragment.sailssid;
+                RequestTask rt = new RequestTask(getActivity().getApplicationContext());
+                rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
+                    @Override
+                    public void onSuccess(String string) {
+                        Gson gson = new Gson();
+                        Edges es = gson.fromJson(string, Edges.class);
+                        List<String> servers = new ArrayList<>();
+                        if (es != null) {
+                            List<Edge> edges = es.getEdges();
+                            for (Edge e : edges) {
+                                if (e.getAllowStreaming()) {
+                                    servers.add(e.getHostname());
+                                }
+                            }
+                            CharSequence[] hostnames = servers.toArray(new CharSequence[servers.size()]);
+                            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                            builder.setTitle("Select CDN Server");
+                            builder.setItems(hostnames,
+                                    new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            String server = servers.get(which);
+                                            Log.d("CDN", server);
+                                            SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
+                                            prefs.edit().putString("cdn", server).apply();
+                                        }
+                                    });
+                            builder.create().show();
+                        }
+                    }
+
+                    @Override
+                    public void onSuccessCreator(String string, String creatorGUID) {
+                    }
+
+                    @Override
+                    public void onError(VolleyError error) {
+                    }
+                });
+                break;
+            case LIVESTREAM:
+                List<String> subs = new ArrayList<>();
+                for (Subscription s : subscriptions) {
+                    subs.add(s.getPlan().getTitle());
+                }
+                CharSequence[] s = subs.toArray(new CharSequence[subs.size()]);
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Play livestream?")
+                        .setItems(s, (DialogInterface.OnClickListener) (dialog, which) -> {
+                            String stream = subscriptions.get(which).getStreamUrl();
+                            if (stream != null) {
+                                Log.d("LIVE", stream);
+                                Video live = new Video();
+                                live.setVidUrl(stream);
+                                Intent intent = new Intent(getActivity(), PlaybackActivity.class);
+                                intent.putExtra(DetailsActivity.Video, (Serializable) live);
+                                startActivity(intent);
+                            } else {
+                                Toast.makeText(getActivity(), "Subscription does not include access to livestream.", Toast.LENGTH_LONG).show();
+                            }
+                        })
+                        .create()
+                        .show();
+                break;
+        }
+        return Unit.INSTANCE;
     }
 
     private void getSelectVid(final Presenter.ViewHolder itemViewHolder, final Object item) {

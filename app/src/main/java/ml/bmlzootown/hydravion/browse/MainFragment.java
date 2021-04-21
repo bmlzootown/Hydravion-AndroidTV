@@ -72,13 +72,6 @@ public class MainFragment extends BrowseSupportFragment {
         super.onActivityCreated(savedInstanceState);
         client = HydravionClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
         checkLogin();
-        //test();
-
-        //prepareBackgroundManager();
-
-        //setupUIElements();
-
-        //setupEventListeners();
     }
 
     private void checkLogin() {

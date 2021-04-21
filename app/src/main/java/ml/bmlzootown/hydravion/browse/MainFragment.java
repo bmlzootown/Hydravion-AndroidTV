@@ -190,7 +190,6 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void gotSubscriptions(Subscription[] subs) {
-        NUM_ROWS = subs.length;
         List<Subscription> trimmed = new ArrayList<>();
         for (Subscription sub : subs) {
             if (trimmed.size() > 0) {
@@ -240,8 +239,6 @@ public class MainFragment extends BrowseSupportFragment {
             subCount = subscriptions.size();
             setSelectedPosition(rowSelected, false, new ListRowPresenter.SelectItemViewHolderTask(colSelected));
         }
-
-        NUM_COLS = videos.get(creatorGUID).size();
     }
 
     private void refreshRows() {

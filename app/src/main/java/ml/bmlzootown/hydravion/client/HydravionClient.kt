@@ -164,6 +164,32 @@ class HydravionClient private constructor(private val context: Context, private 
         })
     }
 
+    fun toggleLikePost(postId: String, callback: (Boolean) -> Unit) {
+        RequestTask(context).sendData(URI_LIKE, getCookiesString(), mapOf("id" to postId, "contentType" to "blogPost"), object : RequestTask.VolleyCallback {
+
+            override fun onSuccess(response: String?) {
+                callback(response.toString().contains("like"))
+            }
+
+            override fun onSuccessCreator(string: String?, creatorGUID: String?) = Unit
+
+            override fun onError(error: VolleyError?) = Unit
+        })
+    }
+
+    fun toggleDislikePost(postId: String, callback: (Boolean) -> Unit) {
+        RequestTask(context).sendData(URI_DISLIKE, getCookiesString(), mapOf("id" to postId, "contentType" to "blogPost"), object : RequestTask.VolleyCallback {
+
+            override fun onSuccess(response: String?) {
+                callback(response.toString().contains("dislike"))
+            }
+
+            override fun onSuccessCreator(string: String?, creatorGUID: String?) = Unit
+
+            override fun onError(error: VolleyError?) = Unit
+        })
+    }
+
     companion object {
 
         private const val TAG = "HydravionClient"
@@ -173,6 +199,8 @@ class HydravionClient private constructor(private val context: Context, private 
         private const val URI_SELECT_VIDEO = "https://www.floatplane.com/api/video/url"
         private const val URI_LIVE = "https://www.floatplane.com/api/cdn/delivery"
         private const val URI_CDNS = "https://www.floatplane.com/api/edges"
+        private const val URI_LIKE = "https://www.floatplane.com/api/v3/content/like"
+        private const val URI_DISLIKE = "https://www.floatplane.com/api/v3/content/dislike"
         private var INSTANCE: HydravionClient? = null
 
         @Synchronized

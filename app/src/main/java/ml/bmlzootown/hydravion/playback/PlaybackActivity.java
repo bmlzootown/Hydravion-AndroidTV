@@ -1,11 +1,13 @@
 package ml.bmlzootown.hydravion.playback;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.fragment.app.FragmentActivity;
@@ -19,6 +21,9 @@ import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
 
+import kotlin.Unit;
+import kotlin.jvm.functions.Function1;
+import ml.bmlzootown.hydravion.client.HydravionClient;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
 import ml.bmlzootown.hydravion.browse.MainFragment;
 import ml.bmlzootown.hydravion.R;
@@ -26,7 +31,11 @@ import ml.bmlzootown.hydravion.models.Video;
 
 public class PlaybackActivity extends FragmentActivity {
 
+    private HydravionClient client;
+
     private PlayerView playerView;
+    private ImageView like;
+    private ImageView dislike;
     private SimpleExoPlayer player;
 
     private boolean playWhenReady = true;
@@ -39,6 +48,7 @@ public class PlaybackActivity extends FragmentActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        client = HydravionClient.Companion.getInstance(this, getPreferences(Context.MODE_PRIVATE));
         setContentView(R.layout.activity_player);
         /*if (savedInstanceState == null) {
             getSupportFragmentManager()
@@ -56,6 +66,9 @@ public class PlaybackActivity extends FragmentActivity {
         url = video.getVidUrl().replaceAll("Edge01-na.floatplane.com", MainFragment.cdn);
 
         playerView = findViewById(R.id.exoplayer);
+        like = findViewById(R.id.exo_like);
+        dislike = findViewById(R.id.exo_dislike);
+        setupListeners();
     }
 
     @Override
@@ -105,6 +118,30 @@ public class PlaybackActivity extends FragmentActivity {
         } else {
             super.onBackPressed();
         }
+    }
+
+    private void setupListeners() {
+        Log.e("ERROR?", "Data: " + video.toString());
+        like.setOnClickListener(v -> client.toggleLikePost(video.getPrimaryBlogPost(), liked -> {
+            if (liked) {
+                like.setImageResource(R.drawable.ic_like);
+            } else {
+                like.setImageResource(R.drawable.ic_like_unselected);
+            }
+
+            dislike.setImageResource(R.drawable.ic_dislike_unselected);
+            return Unit.INSTANCE;
+        }));
+        dislike.setOnClickListener(v -> client.toggleDislikePost(video.getPrimaryBlogPost(), disliked -> {
+            if (disliked) {
+                dislike.setImageResource(R.drawable.ic_dislike);
+            } else {
+                dislike.setImageResource(R.drawable.ic_dislike_unselected);
+            }
+
+            like.setImageResource(R.drawable.ic_like_unselected);
+            return Unit.INSTANCE;
+        }));
     }
 
     private void initializePlayer() {

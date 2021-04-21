@@ -25,9 +25,6 @@ import androidx.leanback.widget.ListRowPresenter;
 import androidx.leanback.widget.Presenter;
 import androidx.leanback.widget.PresenterSelector;
 
-import com.android.volley.VolleyError;
-import com.google.gson.Gson;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,12 +37,9 @@ import kotlin.Unit;
 import ml.bmlzootown.hydravion.CardPresenter;
 import ml.bmlzootown.hydravion.Constants;
 import ml.bmlzootown.hydravion.R;
-import ml.bmlzootown.hydravion.RequestTask;
 import ml.bmlzootown.hydravion.client.HydravionClient;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
 import ml.bmlzootown.hydravion.login.LoginActivity;
-import ml.bmlzootown.hydravion.models.Edge;
-import ml.bmlzootown.hydravion.models.Edges;
 import ml.bmlzootown.hydravion.models.Live;
 import ml.bmlzootown.hydravion.models.Video;
 import ml.bmlzootown.hydravion.playback.PlaybackActivity;
@@ -55,9 +49,6 @@ import ml.bmlzootown.hydravion.subscription.SubscriptionHeaderPresenter;
 public class MainFragment extends BrowseSupportFragment {
 
     private static final String TAG = "MainFragment";
-
-    private static int NUM_ROWS = 6;
-    private static int NUM_COLS = 15;
 
     private HydravionClient client;
     private DisplayMetrics mMetrics;
@@ -379,73 +370,54 @@ public class MainFragment extends BrowseSupportFragment {
                 logout();
                 break;
             case SELECT_SERVER:
-                String uri = "https://www.floatplane.com/api/edges";
-                String cookies = "__cfduid=" + MainFragment.cfduid + "; sails.sid=" + MainFragment.sailssid;
-                RequestTask rt = new RequestTask(getActivity().getApplicationContext());
-                rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
-                    @Override
-                    public void onSuccess(String string) {
-                        Gson gson = new Gson();
-                        Edges es = gson.fromJson(string, Edges.class);
-                        List<String> servers = new ArrayList<>();
-                        if (es != null) {
-                            List<Edge> edges = es.getEdges();
-                            for (Edge e : edges) {
-                                if (e.getAllowStreaming()) {
-                                    servers.add(e.getHostname());
-                                }
-                            }
-                            CharSequence[] hostnames = servers.toArray(new CharSequence[servers.size()]);
-                            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                            builder.setTitle("Select CDN Server");
-                            builder.setItems(hostnames,
-                                    new DialogInterface.OnClickListener() {
-                                        @Override
-                                        public void onClick(DialogInterface dialog, int which) {
-                                            String server = servers.get(which);
-                                            Log.d("CDN", server);
-                                            SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
-                                            prefs.edit().putString("cdn", server).apply();
-                                        }
-                                    });
-                            builder.create().show();
-                        }
-                    }
-
-                    @Override
-                    public void onSuccessCreator(String string, String creatorGUID) {
-                    }
-
-                    @Override
-                    public void onError(VolleyError error) {
-                    }
-                });
+                selectServer();
                 break;
             case LIVESTREAM:
-                List<String> subs = new ArrayList<>();
-                for (Subscription s : subscriptions) {
-                    subs.add(s.getPlan().getTitle());
-                }
-                CharSequence[] s = subs.toArray(new CharSequence[subs.size()]);
-                new AlertDialog.Builder(getContext())
-                        .setTitle("Play livestream?")
-                        .setItems(s, (DialogInterface.OnClickListener) (dialog, which) -> {
-                            String stream = subscriptions.get(which).getStreamUrl();
-                            if (stream != null) {
-                                Log.d("LIVE", stream);
-                                Video live = new Video();
-                                live.setVidUrl(stream);
-                                Intent intent = new Intent(getActivity(), PlaybackActivity.class);
-                                intent.putExtra(DetailsActivity.Video, (Serializable) live);
-                                startActivity(intent);
-                            } else {
-                                Toast.makeText(getActivity(), "Subscription does not include access to livestream.", Toast.LENGTH_LONG).show();
-                            }
-                        })
-                        .create()
-                        .show();
+                selectLivestream();
                 break;
         }
         return Unit.INSTANCE;
+    }
+
+    private void selectServer() {
+        client.getCdnServers(hostnames -> {
+            new AlertDialog.Builder(getContext())
+                    .setTitle("Select CDN Server")
+                    .setItems(hostnames,
+                            (dialog, which) -> {
+                                String server = hostnames[which];
+                                Log.d("CDN", server);
+                                SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
+                                prefs.edit().putString("cdn", server).apply();
+                            })
+                    .create()
+                    .show();
+            return Unit.INSTANCE;
+        });
+    }
+
+    private void selectLivestream() {
+        List<String> subs = new ArrayList<>();
+        for (Subscription s : subscriptions) {
+            subs.add(s.getPlan().getTitle());
+        }
+        CharSequence[] s = subs.toArray(new CharSequence[subs.size()]);
+        new AlertDialog.Builder(getContext())
+                .setTitle("Play livestream?")
+                .setItems(s, (DialogInterface.OnClickListener) (dialog, which) -> {
+                    String stream = subscriptions.get(which).getStreamUrl();
+                    if (stream != null) {
+                        Log.d("LIVE", stream);
+                        Video live = new Video();
+                        live.setVidUrl(stream);
+                        Intent intent = new Intent(getActivity(), PlaybackActivity.class);
+                        intent.putExtra(DetailsActivity.Video, (Serializable) live);
+                        startActivity(intent);
+                    } else {
+                        Toast.makeText(getActivity(), "Subscription does not include access to livestream.", Toast.LENGTH_LONG).show();
+                    }
+                })
+                .create()
+                .show();
     }
 }

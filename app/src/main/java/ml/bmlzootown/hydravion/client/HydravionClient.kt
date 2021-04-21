@@ -8,6 +8,7 @@ import com.google.gson.Gson
 import ml.bmlzootown.hydravion.Constants
 import ml.bmlzootown.hydravion.RequestTask
 import ml.bmlzootown.hydravion.creator.Creator
+import ml.bmlzootown.hydravion.models.Edges
 import ml.bmlzootown.hydravion.models.Live
 import ml.bmlzootown.hydravion.models.Video
 import ml.bmlzootown.hydravion.subscription.Subscription
@@ -101,6 +102,28 @@ class HydravionClient private constructor(private val context: Context, private 
         })
     }
 
+    fun getCdnServers(callback: (Array<String>) -> Unit) {
+        RequestTask(context).sendRequest(URI_CDNS, getCookiesString(), object : RequestTask.VolleyCallback {
+
+            override fun onSuccess(response: String?) {
+                response ?: return
+                Gson().fromJson(response, Edges::class.java)?.let { edges ->
+                    callback(
+                        edges.edges.filter { edge ->
+                            edge.allowStreaming // filter only those that allow streaming
+                        }.map { liveEdge ->
+                            liveEdge.hostname // map list of streaming edge to hostname
+                        }.toTypedArray() // convert to array and send to callback
+                    )
+                }
+            }
+
+            override fun onSuccessCreator(string: String?, creatorGUID: String?) = Unit
+
+            override fun onError(error: VolleyError?) = Unit
+        })
+    }
+
     fun getCreatorByName(name: String, callback: (Creator) -> Unit) {
         getCreatorById(creatorIds[name] ?: "", callback)
     }
@@ -150,6 +173,7 @@ class HydravionClient private constructor(private val context: Context, private 
         private const val URI_VIDEOS = "https://www.floatplane.com/api/creator/videos"
         private const val URI_SELECT_VIDEO = "https://www.floatplane.com/api/video/url"
         private const val URI_LIVE = "https://www.floatplane.com/api/cdn/delivery"
+        private const val URI_CDNS = "https://www.floatplane.com/api/edges"
         private var INSTANCE: HydravionClient? = null
 
         @Synchronized

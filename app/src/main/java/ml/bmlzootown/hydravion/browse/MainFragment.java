@@ -148,7 +148,7 @@ public class MainFragment extends BrowseSupportFragment {
 
     private void gotLiveInfo(Subscription sub, Live live) {
         String l = live.getCdn() + live.getResource().getUri();
-        String pattern = "\\{(.*?)}";
+        String pattern = "\\{(.*?)\\}";
         Pattern p = Pattern.compile(pattern);
         Matcher m = p.matcher(live.getResource().getUri());
         if (m.find()) {

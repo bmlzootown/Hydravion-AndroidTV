@@ -116,24 +116,7 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void initialize() {
-        client.getSubs(subscriptions -> {
-            if (subscriptions == null) {
-                new AlertDialog.Builder(getContext())
-                        .setTitle("Session Expired")
-                        .setMessage("Re-open Hydravion to login again!")
-                        .setPositiveButton("OK",
-                                (dialog, which) -> {
-                                    dialog.dismiss();
-                                    logout();
-                                })
-                        .create()
-                        .show();
-            } else {
-                gotSubscriptions(subscriptions);
-            }
-
-            return Unit.INSTANCE;
-        });
+        refreshSubscriptions();
         prepareBackgroundManager();
         setupUIElements();
         setupEventListeners();
@@ -187,6 +170,27 @@ public class MainFragment extends BrowseSupportFragment {
                 //Log.d("LIVE", l);
             }
         }
+    }
+
+    private void refreshSubscriptions() {
+        client.getSubs(subscriptions -> {
+            if (subscriptions == null) {
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Session Expired")
+                        .setMessage("Re-open Hydravion to login again!")
+                        .setPositiveButton("OK",
+                                (dialog, which) -> {
+                                    dialog.dismiss();
+                                    logout();
+                                })
+                        .create()
+                        .show();
+            } else {
+                gotSubscriptions(subscriptions);
+            }
+
+            return Unit.INSTANCE;
+        });
     }
 
     private void gotSubscriptions(Subscription[] subs) {
@@ -361,7 +365,7 @@ public class MainFragment extends BrowseSupportFragment {
     private Unit onSettingsSelected(@NonNull SettingsAction action) {
         switch (action) {
             case REFRESH:
-                refreshRows();
+                refreshSubscriptions(); // Refresh will get subs and videos again, then refresh row UI
                 break;
             case LOGOUT:
                 logout();

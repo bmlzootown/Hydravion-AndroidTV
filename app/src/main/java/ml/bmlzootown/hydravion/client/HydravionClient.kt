@@ -78,7 +78,7 @@ class HydravionClient private constructor(private val context: Context, private 
             override fun onSuccess(response: String?) {
                 response?.replace("\"", "")?.let { url ->
                     video.vidUrl = url
-                    Log.d(TAG, "Item: $video")
+                    Log.d(TAG, "Video: $video")
                     callback(video)
                 }
             }
@@ -147,7 +147,6 @@ class HydravionClient private constructor(private val context: Context, private 
 
             override fun onSuccess(response: String?) {
                 try {
-                    Log.e("ERROR?", "Creator response: $response")
                     JSONArray(response).getString(0)?.let {
                         Gson().fromJson(it, Creator::class.java).let { creator ->
                             creatorCache[creatorGUID] = creator

@@ -51,8 +51,6 @@ public class MainFragment extends BrowseSupportFragment {
     private static final String TAG = "MainFragment";
 
     private HydravionClient client;
-    private DisplayMetrics mMetrics;
-    private BackgroundManager mBackgroundManager;
 
     public static String sailssid;
     public static String cfduid;
@@ -116,13 +114,14 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private boolean loadCredentials() {
-        SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
+        SharedPreferences prefs = requireActivity().getPreferences(Context.MODE_PRIVATE);
         sailssid = prefs.getString(Constants.PREF_SAIL_SSID, "default");
         cfduid = prefs.getString(Constants.PREF_CFD_UID, "default");
         cdn = prefs.getString(Constants.PREF_CDN, "default");
         Log.d("LOGIN", sailssid);
         Log.d("LOGIN", cfduid);
         Log.d("CDN", cdn);
+
         if (sailssid.equals("default") || cfduid.equals("default") || cdn.equals("default")) {
             Log.d("LOGIN", "Credentials not found!");
             return false;
@@ -136,25 +135,27 @@ public class MainFragment extends BrowseSupportFragment {
         sailssid = "default";
         cfduid = "default";
         saveCredentials();
-        getActivity().finishAndRemoveTask();
+        requireActivity().finishAndRemoveTask();
     }
 
     private void saveCredentials() {
-        SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
-        prefs.edit().putString(Constants.PREF_SAIL_SSID, sailssid).apply();
-        prefs.edit().putString(Constants.PREF_CFD_UID, cfduid).apply();
-        prefs.edit().putString(Constants.PREF_CDN, cdn).apply();
+        requireActivity().getPreferences(Context.MODE_PRIVATE).edit()
+                .putString(Constants.PREF_SAIL_SSID, sailssid)
+                .putString(Constants.PREF_CFD_UID, cfduid)
+                .putString(Constants.PREF_CDN, cdn)
+                .apply();
     }
 
     private void gotLiveInfo(Subscription sub, Live live) {
         String l = live.getCdn() + live.getResource().getUri();
-        String pattern = "\\{(.*?)\\}";
+        String pattern = "\\{(.*?)}";
         Pattern p = Pattern.compile(pattern);
         Matcher m = p.matcher(live.getResource().getUri());
         if (m.find()) {
             for (int i = 0; i < m.groupCount(); i++) {
                 //Log.d("LIVE", m.group(i));
                 String var = m.group(i).substring(1, m.group(i).length() - 1);
+
                 if (var.equalsIgnoreCase("token")) {
                     l = l.replaceAll("\\{token\\}", live.getResource().getData().getToken());
                     sub.setStreamUrl(l);
@@ -199,14 +200,16 @@ public class MainFragment extends BrowseSupportFragment {
         }
         subscriptions = trimmed;
         for (Subscription sub : subscriptions) {
-            client.getLive(sub.getCreator(), live -> {
-                gotLiveInfo(sub, live);
-                return Unit.INSTANCE;
-            });
-            client.getVideos(sub.getCreator(), 1, videos -> {
-                gotVideos(sub.getCreator(), videos);
-                return Unit.INSTANCE;
-            });
+            if (sub.getCreator() != null) {
+                client.getLive(sub.getCreator(), live -> {
+                    gotLiveInfo(sub, live);
+                    return Unit.INSTANCE;
+                });
+                client.getVideos(sub.getCreator(), 1, videos -> {
+                    gotVideos(sub.getCreator(), videos);
+                    return Unit.INSTANCE;
+                });
+            }
         }
         subCount = trimmed.size();
         Log.d("ROWS", trimmed.size() + "");
@@ -214,10 +217,11 @@ public class MainFragment extends BrowseSupportFragment {
 
     private boolean containsSub(List<Subscription> trimmed, Subscription sub) {
         for (Subscription s : trimmed) {
-            if (s.getCreator().equals(sub.getCreator())) {
+            if (s.getCreator() != null && s.getCreator().equals(sub.getCreator())) {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -272,10 +276,10 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void prepareBackgroundManager() {
-        mBackgroundManager = BackgroundManager.getInstance(requireActivity());
+        BackgroundManager mBackgroundManager = BackgroundManager.getInstance(requireActivity());
         mBackgroundManager.attach(requireActivity().getWindow());
 
-        mMetrics = new DisplayMetrics();
+        DisplayMetrics mMetrics = new DisplayMetrics();
         requireActivity().getWindowManager().getDefaultDisplay().getMetrics(mMetrics);
     }
 
@@ -347,7 +351,7 @@ public class MainFragment extends BrowseSupportFragment {
                         ((ImageCardView) itemViewHolder.view).getMainImageView(),
                         DetailsActivity.SHARED_ELEMENT_NAME)
                         .toBundle();
-                getActivity().startActivity(intent, bundle);
+                requireActivity().startActivity(intent, bundle);
                 return Unit.INSTANCE;
             });
         }
@@ -393,9 +397,11 @@ public class MainFragment extends BrowseSupportFragment {
     private void selectLivestream() {
         List<String> subs = new ArrayList<>();
         for (Subscription s : subscriptions) {
-            subs.add(s.getPlan().getTitle());
+            if (s.getPlan() != null) {
+                subs.add(s.getPlan().getTitle());
+            }
         }
-        CharSequence[] s = subs.toArray(new CharSequence[subs.size()]);
+        CharSequence[] s = subs.toArray(new CharSequence[0]);
         new AlertDialog.Builder(getContext())
                 .setTitle("Play livestream?")
                 .setItems(s, (DialogInterface.OnClickListener) (dialog, which) -> {

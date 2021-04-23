@@ -6,17 +6,13 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Gravity;
-import android.view.ViewGroup;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.ContextCompat;
 import androidx.leanback.app.BackgroundManager;
@@ -26,23 +22,14 @@ import androidx.leanback.widget.HeaderItem;
 import androidx.leanback.widget.ImageCardView;
 import androidx.leanback.widget.ListRow;
 import androidx.leanback.widget.ListRowPresenter;
-import androidx.leanback.widget.OnItemViewClickedListener;
-import androidx.leanback.widget.OnItemViewSelectedListener;
 import androidx.leanback.widget.Presenter;
 import androidx.leanback.widget.PresenterSelector;
-import androidx.leanback.widget.Row;
-import androidx.leanback.widget.RowPresenter;
-
-import com.android.volley.VolleyError;
-import com.google.gson.Gson;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -50,12 +37,9 @@ import kotlin.Unit;
 import ml.bmlzootown.hydravion.CardPresenter;
 import ml.bmlzootown.hydravion.Constants;
 import ml.bmlzootown.hydravion.R;
-import ml.bmlzootown.hydravion.RequestTask;
 import ml.bmlzootown.hydravion.client.HydravionClient;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
 import ml.bmlzootown.hydravion.login.LoginActivity;
-import ml.bmlzootown.hydravion.models.Edge;
-import ml.bmlzootown.hydravion.models.Edges;
 import ml.bmlzootown.hydravion.models.Live;
 import ml.bmlzootown.hydravion.models.Video;
 import ml.bmlzootown.hydravion.playback.PlaybackActivity;
@@ -66,19 +50,7 @@ public class MainFragment extends BrowseSupportFragment {
 
     private static final String TAG = "MainFragment";
 
-    private static final int BACKGROUND_UPDATE_DELAY = 300;
-    private static final int GRID_ITEM_WIDTH = 200;
-    private static final int GRID_ITEM_HEIGHT = 200;
-    private static int NUM_ROWS = 6;
-    private static int NUM_COLS = 15;
-
     private HydravionClient client;
-    private final Handler mHandler = new Handler();
-    private Drawable mDefaultBackground;
-    private DisplayMetrics mMetrics;
-    private Timer mBackgroundTimer;
-    private String mBackgroundUri;
-    private BackgroundManager mBackgroundManager;
 
     public static String sailssid;
     public static String cfduid;
@@ -98,22 +70,6 @@ public class MainFragment extends BrowseSupportFragment {
         super.onActivityCreated(savedInstanceState);
         client = HydravionClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
         checkLogin();
-        //test();
-
-        //prepareBackgroundManager();
-
-        //setupUIElements();
-
-        //setupEventListeners();
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        if (null != mBackgroundTimer) {
-            Log.d(TAG, "onDestroy: " + mBackgroundTimer.toString());
-            mBackgroundTimer.cancel();
-        }
     }
 
     private void checkLogin() {
@@ -151,6 +107,66 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void initialize() {
+        refreshSubscriptions();
+        prepareBackgroundManager();
+        setupUIElements();
+        setupEventListeners();
+    }
+
+    private boolean loadCredentials() {
+        SharedPreferences prefs = requireActivity().getPreferences(Context.MODE_PRIVATE);
+        sailssid = prefs.getString(Constants.PREF_SAIL_SSID, "default");
+        cfduid = prefs.getString(Constants.PREF_CFD_UID, "default");
+        cdn = prefs.getString(Constants.PREF_CDN, "default");
+        Log.d("LOGIN", sailssid);
+        Log.d("LOGIN", cfduid);
+        Log.d("CDN", cdn);
+
+        if (sailssid.equals("default") || cfduid.equals("default") || cdn.equals("default")) {
+            Log.d("LOGIN", "Credentials not found!");
+            return false;
+        } else {
+            Log.d("LOGIN", "Credentials found!");
+            return true;
+        }
+    }
+
+    private void logout() {
+        sailssid = "default";
+        cfduid = "default";
+        saveCredentials();
+        requireActivity().finishAndRemoveTask();
+    }
+
+    private void saveCredentials() {
+        requireActivity().getPreferences(Context.MODE_PRIVATE).edit()
+                .putString(Constants.PREF_SAIL_SSID, sailssid)
+                .putString(Constants.PREF_CFD_UID, cfduid)
+                .putString(Constants.PREF_CDN, cdn)
+                .apply();
+    }
+
+    private void gotLiveInfo(Subscription sub, Live live) {
+        String l = live.getCdn() + live.getResource().getUri();
+        String pattern = "\\{(.*?)\\}";
+        Pattern p = Pattern.compile(pattern);
+        Matcher m = p.matcher(live.getResource().getUri());
+        if (m.find()) {
+            for (int i = 0; i < m.groupCount(); i++) {
+                //Log.d("LIVE", m.group(i));
+                String var = m.group(i).substring(1, m.group(i).length() - 1);
+
+                if (var.equalsIgnoreCase("token")) {
+                    l = l.replaceAll("\\{token\\}", live.getResource().getData().getToken());
+                    sub.setStreamUrl(l);
+                    Log.d("LIVE", l);
+                }
+                //Log.d("LIVE", l);
+            }
+        }
+    }
+
+    private void refreshSubscriptions() {
         client.getSubs(subscriptions -> {
             if (subscriptions == null) {
                 new AlertDialog.Builder(getContext())
@@ -169,63 +185,9 @@ public class MainFragment extends BrowseSupportFragment {
 
             return Unit.INSTANCE;
         });
-        prepareBackgroundManager();
-        setupUIElements();
-        setupEventListeners();
-    }
-
-    private boolean loadCredentials() {
-        SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
-        sailssid = prefs.getString(Constants.PREF_SAIL_SSID, "default");
-        cfduid = prefs.getString(Constants.PREF_CFD_UID, "default");
-        cdn = prefs.getString(Constants.PREF_CDN, "default");
-        Log.d("LOGIN", sailssid);
-        Log.d("LOGIN", cfduid);
-        Log.d("CDN", cdn);
-        if (sailssid.equals("default") || cfduid.equals("default") || cdn.equals("default")) {
-            Log.d("LOGIN", "Credentials not found!");
-            return false;
-        } else {
-            Log.d("LOGIN", "Credentials found!");
-            return true;
-        }
-    }
-
-    private void logout() {
-        sailssid = "default";
-        cfduid = "default";
-        saveCredentials();
-        getActivity().finishAndRemoveTask();
-    }
-
-    private void saveCredentials() {
-        SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
-        prefs.edit().putString(Constants.PREF_SAIL_SSID, sailssid).apply();
-        prefs.edit().putString(Constants.PREF_CFD_UID, cfduid).apply();
-        prefs.edit().putString(Constants.PREF_CDN, cdn).apply();
-    }
-
-    private void gotLiveInfo(Subscription sub, Live live) {
-        String l = live.getCdn() + live.getResource().getUri();
-        String pattern = "\\{(.*?)\\}";
-        Pattern p = Pattern.compile(pattern);
-        Matcher m = p.matcher(live.getResource().getUri());
-        if (m.find()) {
-            for (int i = 0; i < m.groupCount(); i++) {
-                //Log.d("LIVE", m.group(i));
-                String var = m.group(i).substring(1, m.group(i).length() - 1);
-                if (var.equalsIgnoreCase("token")) {
-                    l = l.replaceAll("\\{token\\}", live.getResource().getData().getToken());
-                    sub.setStreamUrl(l);
-                    Log.d("LIVE", l);
-                }
-                //Log.d("LIVE", l);
-            }
-        }
     }
 
     private void gotSubscriptions(Subscription[] subs) {
-        NUM_ROWS = subs.length;
         List<Subscription> trimmed = new ArrayList<>();
         for (Subscription sub : subs) {
             if (trimmed.size() > 0) {
@@ -238,14 +200,16 @@ public class MainFragment extends BrowseSupportFragment {
         }
         subscriptions = trimmed;
         for (Subscription sub : subscriptions) {
-            client.getLive(sub.getCreator(), live -> {
-                gotLiveInfo(sub, live);
-                return Unit.INSTANCE;
-            });
-            client.getVideos(sub.getCreator(), 1, videos -> {
-                gotVideos(sub.getCreator(), videos);
-                return Unit.INSTANCE;
-            });
+            if (sub.getCreator() != null) {
+                client.getLive(sub.getCreator(), live -> {
+                    gotLiveInfo(sub, live);
+                    return Unit.INSTANCE;
+                });
+                client.getVideos(sub.getCreator(), 1, videos -> {
+                    gotVideos(sub.getCreator(), videos);
+                    return Unit.INSTANCE;
+                });
+            }
         }
         subCount = trimmed.size();
         Log.d("ROWS", trimmed.size() + "");
@@ -253,10 +217,11 @@ public class MainFragment extends BrowseSupportFragment {
 
     private boolean containsSub(List<Subscription> trimmed, Subscription sub) {
         for (Subscription s : trimmed) {
-            if (s.getCreator().equals(sub.getCreator())) {
+            if (s.getCreator() != null && s.getCreator().equals(sub.getCreator())) {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -275,8 +240,6 @@ public class MainFragment extends BrowseSupportFragment {
             subCount = subscriptions.size();
             setSelectedPosition(rowSelected, false, new ListRowPresenter.SelectItemViewHolderTask(colSelected));
         }
-
-        NUM_COLS = videos.get(creatorGUID).size();
     }
 
     private void refreshRows() {
@@ -313,11 +276,10 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void prepareBackgroundManager() {
-        mBackgroundManager = BackgroundManager.getInstance(requireActivity());
+        BackgroundManager mBackgroundManager = BackgroundManager.getInstance(requireActivity());
         mBackgroundManager.attach(requireActivity().getWindow());
 
-        mDefaultBackground = ContextCompat.getDrawable(requireActivity(), R.drawable.default_background);
-        mMetrics = new DisplayMetrics();
+        DisplayMetrics mMetrics = new DisplayMetrics();
         requireActivity().getWindowManager().getDefaultDisplay().getMetrics(mMetrics);
     }
 
@@ -352,229 +314,110 @@ public class MainFragment extends BrowseSupportFragment {
             }
         });*/
 
-        setOnItemViewClickedListener(new ItemViewClickedListener());
-        setOnItemViewSelectedListener(new ItemViewSelectedListener());
+        setOnItemViewClickedListener(new BrowseViewClickListener(requireContext(), this::onVideoSelected, this::onSettingsSelected));
+        setOnItemViewSelectedListener(new ItemViewSelectedListener(this::onCheckIndices, this::onRowSelected));
     }
 
-    private void updateBackground(String uri) {
-        int width = mMetrics.widthPixels;
-        int height = mMetrics.heightPixels;
-        /*Glide.with(getActivity())
-                .load(uri)
-                .centerCrop()
-                .error(mDefaultBackground)
-                .transition(
-                        new DrawableTransitionOptions().crossFade())
-                .into(new CustomTarget<Drawable>() {
-                    @Override
-                    public void onResourceReady(@NonNull Drawable resource, @Nullable Transition<? super Drawable> transition) {
-                        mBackgroundManager.setDrawable(resource);
-                    }
+    private Unit onCheckIndices(@NonNull String creator, int selected) {
+        colSelected = selected;
 
-                    @Override
-                    public void onLoadCleared(@Nullable Drawable placeholder) {
-
-                    }
-                });*/
-        mBackgroundTimer.cancel();
-    }
-
-    private void startBackgroundTimer() {
-        if (null != mBackgroundTimer) {
-            mBackgroundTimer.cancel();
-        }
-        mBackgroundTimer = new Timer();
-        mBackgroundTimer.schedule(new UpdateBackgroundTask(), BACKGROUND_UPDATE_DELAY);
-    }
-
-    private final class ItemViewClickedListener implements OnItemViewClickedListener {
-        @Override
-        public void onItemClicked(Presenter.ViewHolder itemViewHolder, Object item,
-                                  RowPresenter.ViewHolder rowViewHolder, Row row) {
-            if (item instanceof Video) {
-                getSelectVid(itemViewHolder, item);
-            } else if (item instanceof String) {
-                if (item.toString().equalsIgnoreCase(getString(R.string.refresh))) {
-                    refreshRows();
-                } else if (item.toString().equalsIgnoreCase(getString(R.string.logout))) {
-                    //sailssid = "default";
-                    //cfduid = "default";
-                    //saveCredentials();
-                    //getActivity().finishAndRemoveTask();
-                    logout();
-                } else if (item.toString().equalsIgnoreCase(getString(R.string.select_server))) {
-                    String uri = "https://www.floatplane.com/api/edges";
-                    String cookies = "__cfduid=" + MainFragment.cfduid + "; sails.sid=" + MainFragment.sailssid;
-                    RequestTask rt = new RequestTask(getActivity().getApplicationContext());
-                    rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
-                        @Override
-                        public void onSuccess(String string) {
-                            Gson gson = new Gson();
-                            Edges es = gson.fromJson(string, Edges.class);
-                            List<String> servers = new ArrayList<>();
-                            if (es != null) {
-                                List<Edge> edges = es.getEdges();
-                                for (Edge e : edges) {
-                                    if (e.getAllowStreaming()) {
-                                        servers.add(e.getHostname());
-                                    }
-                                }
-                                CharSequence[] hostnames = servers.toArray(new CharSequence[servers.size()]);
-                                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                                builder.setTitle("Select CDN Server");
-                                builder.setItems(hostnames,
-                                        new DialogInterface.OnClickListener() {
-                                            @Override
-                                            public void onClick(DialogInterface dialog, int which) {
-                                                String server = servers.get(which);
-                                                Log.d("CDN", server);
-                                                SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
-                                                prefs.edit().putString("cdn", server).apply();
-                                            }
-                                        });
-                                builder.create().show();
-                            }
-                        }
-
-                        @Override
-                        public void onSuccessCreator(String string, String creatorGUID) {
-                        }
-
-                        @Override
-                        public void onError(VolleyError error) {
-                        }
-                    });
-                } else if (item.toString().equalsIgnoreCase(getString(R.string.live_stream))) {
-                    List<String> subs = new ArrayList<>();
-                    for (Subscription s : subscriptions) {
-                        subs.add(s.getPlan().getTitle());
-                    }
-                    CharSequence[] s = subs.toArray(new CharSequence[subs.size()]);
-                    AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                    builder.setTitle("Play livestream?");
-                    builder.setItems(s,
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    String stream = subscriptions.get(which).getStreamUrl();
-                                    if (stream != null) {
-                                        Log.d("LIVE", stream);
-                                        Video live = new Video();
-                                        live.setVidUrl(stream);
-                                        Intent intent = new Intent(getActivity(), PlaybackActivity.class);
-                                        intent.putExtra(DetailsActivity.Video, (Serializable) live);
-                                        startActivity(intent);
-                                    } else {
-                                        Toast.makeText(getActivity(), "Subscription does not include access to livestream.", Toast.LENGTH_LONG).show();
-                                    }
-                                }
-                            });
-                    builder.create().show();
-                }
+        subscriptions.forEach(sub -> {
+            if (creator.equals(sub.getCreator())) {
+                rowSelected = subscriptions.indexOf(sub);
             }
-        }
+        });
+        return Unit.INSTANCE;
     }
 
-    private void getSelectVid(final Presenter.ViewHolder itemViewHolder, final Object item) {
-        String cookies = "__cfduid=" + cfduid + "; sails.sid=" + sailssid;
-        final Video video = (Video) item;
-        String uri = "https://www.floatplane.com/api/video/url?guid=" + video.getGuid() + "&quality=1080";
-        RequestTask rt = new RequestTask(getActivity().getApplicationContext());
-        rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
-            @Override
-            public void onSuccess(String string) {
-                Video vid = video;
-                //vid.setGuid(string.replaceAll("\"", ""));
-                vid.setVidUrl(string.replaceAll("\"", ""));
+    private Unit onRowSelected() {
+        subscriptions.forEach(sub -> {
+            client.getVideos(sub.getCreator(), page + 1, videos -> {
+                gotVideos(sub.getCreator(), videos);
+                return Unit.INSTANCE;
+            });
+            page++;
+        });
+        return Unit.INSTANCE;
+    }
 
-                Log.d(TAG, "Item: " + vid.toString());
+    private Unit onVideoSelected(@Nullable Presenter.ViewHolder itemViewHolder, @NonNull Video video) {
+        if (itemViewHolder != null) {
+            client.getVideo(video, newVideo -> {
                 Intent intent = new Intent(getActivity(), DetailsActivity.class);
-                intent.putExtra(DetailsActivity.Video, vid);
+                intent.putExtra(DetailsActivity.Video, newVideo);
 
                 Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
-                        getActivity(),
+                        requireActivity(),
                         ((ImageCardView) itemViewHolder.view).getMainImageView(),
                         DetailsActivity.SHARED_ELEMENT_NAME)
                         .toBundle();
-                getActivity().startActivity(intent, bundle);
-            }
+                requireActivity().startActivity(intent, bundle);
+                return Unit.INSTANCE;
+            });
+        }
 
-            @Override
-            public void onSuccessCreator(String string, String creatorGUID) {
-            }
+        return Unit.INSTANCE;
+    }
 
-            @Override
-            public void onError(VolleyError error) {
-            }
+    private Unit onSettingsSelected(@NonNull SettingsAction action) {
+        switch (action) {
+            case REFRESH:
+                refreshSubscriptions(); // Refresh will get subs and videos again, then refresh row UI
+                break;
+            case LOGOUT:
+                logout();
+                break;
+            case SELECT_SERVER:
+                selectServer();
+                break;
+            case LIVESTREAM:
+                selectLivestream();
+                break;
+        }
+        return Unit.INSTANCE;
+    }
+
+    private void selectServer() {
+        client.getCdnServers(hostnames -> {
+            new AlertDialog.Builder(getContext())
+                    .setTitle("Select CDN Server")
+                    .setItems(hostnames,
+                            (dialog, which) -> {
+                                String server = hostnames[which];
+                                Log.d("CDN", server);
+                                SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
+                                prefs.edit().putString("cdn", server).apply();
+                            })
+                    .create()
+                    .show();
+            return Unit.INSTANCE;
         });
     }
 
-    private final class ItemViewSelectedListener implements OnItemViewSelectedListener {
-        @Override
-        public void onItemSelected(
-                Presenter.ViewHolder itemViewHolder,
-                Object item,
-                RowPresenter.ViewHolder rowViewHolder,
-                Row row) {
-            if (item instanceof Video) {
-                mBackgroundUri = ((Video) item).getThumbnail().getPath();
-                startBackgroundTimer();
-                final ListRow listRow = (ListRow) row;
-                final ArrayObjectAdapter current = (ArrayObjectAdapter) listRow.getAdapter();
-                int selected = current.indexOf(item);
-                colSelected = selected;
-                for (Subscription s : subscriptions) {
-                    if (((Video) item).getCreator().equals(s.getCreator())) {
-                        rowSelected = subscriptions.indexOf(s);
-                    }
-                }
-                if (selected != -1 && (current.size() - 1) == selected) {
-                    for (Subscription sub : subscriptions) {
-                        client.getVideos(sub.getCreator(), page + 1, videos -> {
-                            gotVideos(sub.getCreator(), videos);
-                            return Unit.INSTANCE;
-                        });
-                    }
-                    page++;
-                }
+    private void selectLivestream() {
+        List<String> subs = new ArrayList<>();
+        for (Subscription s : subscriptions) {
+            if (s.getPlan() != null) {
+                subs.add(s.getPlan().getTitle());
             }
         }
-    }
-
-    private class UpdateBackgroundTask extends TimerTask {
-
-        @Override
-        public void run() {
-            mHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    updateBackground(mBackgroundUri);
-                }
-            });
-        }
-    }
-
-    private class GridItemPresenter extends Presenter {
-        @Override
-        public ViewHolder onCreateViewHolder(ViewGroup parent) {
-            TextView view = new TextView(parent.getContext());
-            view.setLayoutParams(new ViewGroup.LayoutParams(GRID_ITEM_WIDTH, GRID_ITEM_HEIGHT));
-            view.setFocusable(true);
-            view.setFocusableInTouchMode(true);
-            view.setBackgroundColor(
-                    ContextCompat.getColor(getContext(), R.color.default_background));
-            view.setTextColor(Color.WHITE);
-            view.setGravity(Gravity.CENTER);
-            return new ViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(ViewHolder viewHolder, Object item) {
-            ((TextView) viewHolder.view).setText((String) item);
-        }
-
-        @Override
-        public void onUnbindViewHolder(ViewHolder viewHolder) {
-        }
+        CharSequence[] s = subs.toArray(new CharSequence[0]);
+        new AlertDialog.Builder(getContext())
+                .setTitle("Play livestream?")
+                .setItems(s, (DialogInterface.OnClickListener) (dialog, which) -> {
+                    String stream = subscriptions.get(which).getStreamUrl();
+                    if (stream != null) {
+                        Log.d("LIVE", stream);
+                        Video live = new Video();
+                        live.setVidUrl(stream);
+                        Intent intent = new Intent(getActivity(), PlaybackActivity.class);
+                        intent.putExtra(DetailsActivity.Video, (Serializable) live);
+                        startActivity(intent);
+                    } else {
+                        Toast.makeText(getActivity(), "Subscription does not include access to livestream.", Toast.LENGTH_LONG).show();
+                    }
+                })
+                .create()
+                .show();
     }
 }

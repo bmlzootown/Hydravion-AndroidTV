@@ -2,6 +2,8 @@ package ml.bmlzootown.hydravion;
 
 import android.content.Context;
 
+import androidx.annotation.Nullable;
+
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -35,6 +37,38 @@ public class RequestTask {
                 callback.onError(error);
             }
         }) {
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+                params.put("Cookie", cookies);
+                params.put("Accept", "application/json");
+                return params;
+            }
+        };
+
+        queue.add(stringRequest);
+    }
+
+    public void sendData(String uri, final String cookies, final Map<String, String> params, final VolleyCallback callback) {
+        RequestQueue queue = Volley.newRequestQueue(this.context);
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, uri,
+                response -> {
+                    //Log.d("JSON", response);
+                    callback.onSuccess(response);
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                error.printStackTrace();
+                callback.onError(error);
+            }
+        }) {
+
+            @Nullable
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                return params;
+            }
+
             @Override
             public Map<String, String> getHeaders() throws AuthFailureError {
                 Map<String, String> params = new HashMap<>();

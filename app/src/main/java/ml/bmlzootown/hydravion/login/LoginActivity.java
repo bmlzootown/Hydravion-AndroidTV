@@ -3,7 +3,6 @@ package ml.bmlzootown.hydravion.login;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -65,7 +64,7 @@ public class LoginActivity extends Activity {
         TokenRequestTask tr = new TokenRequestTask(this.getApplicationContext());
         tr.doRequest(TokenRequestTask.URI_GENERATE + uuid, new TokenRequestTask.VolleyCallback() {
             @Override
-            public void onSuccess(String response) {
+            public void onSuccess(@NonNull String response) {
                 Gson gson = new Gson();
                 CaptchaToken captcha = gson.fromJson(response, CaptchaToken.class);
 
@@ -78,7 +77,7 @@ public class LoginActivity extends Activity {
                     public void run() {
                         tr.doRequest(TokenRequestTask.URI_AUTHENTICATE + uuid, new TokenRequestTask.VolleyCallback() {
                             @Override
-                            public void onSuccess(String response) {
+                            public void onSuccess(@NonNull String response) {
                                 Log.d("AUTHENTICATE", response);
                                 Gson gson = new Gson();
                                 AuthenticateToken auth = gson.fromJson(response, AuthenticateToken.class);
@@ -90,7 +89,7 @@ public class LoginActivity extends Activity {
                             }
 
                             @Override
-                            public void onError(VolleyError error) {
+                            public void onError(@NonNull VolleyError error) {
                                 error.printStackTrace();
                             }
                         });
@@ -101,7 +100,7 @@ public class LoginActivity extends Activity {
             }
 
             @Override
-            public void onError(VolleyError error) {
+            public void onError(@NonNull VolleyError error) {
                 error.printStackTrace();
             }
         });
@@ -131,34 +130,31 @@ public class LoginActivity extends Activity {
                         input.setInputType(InputType.TYPE_CLASS_TEXT);
                         builder.setView(input);
 
-                        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                String token = input.getText().toString();
-                                LoginRequestTask twoFA = new LoginRequestTask(LoginActivity.this);
-                                twoFA.sendRequest(token, cookies, new LoginRequestTask.TwoFACallback() {
-                                    @Override
-                                    public void onSuccess(ArrayList<String> string) {
-                                        String sailssid = string.get(0);
-                                        ArrayList<String> newCookies = new ArrayList<>();
-                                        for (String c : cookies) {
-                                            if (!c.contains("sails.sid")) {
-                                                newCookies.add(c);
-                                            }
+                        builder.setPositiveButton("OK", (dialog, which) -> {
+                            String token1 = input.getText().toString();
+                            LoginRequestTask twoFA = new LoginRequestTask(LoginActivity.this);
+                            twoFA.sendRequest(token1, cookies, new LoginRequestTask.TwoFACallback() {
+                                @Override
+                                public void onSuccess(ArrayList<String> string) {
+                                    String sailssid = string.get(0);
+                                    ArrayList<String> newCookies = new ArrayList<>();
+                                    for (String c : cookies) {
+                                        if (!c.contains("sails.sid")) {
+                                            newCookies.add(c);
                                         }
-                                        newCookies.add(sailssid);
-                                        Intent intent = new Intent();
-                                        intent.putStringArrayListExtra("cookies", newCookies);
-                                        setResult(1, intent);
-                                        finish();
                                     }
+                                    newCookies.add(sailssid);
+                                    Intent intent = new Intent();
+                                    intent.putStringArrayListExtra("cookies", newCookies);
+                                    setResult(1, intent);
+                                    finish();
+                                }
 
-                                    @Override
-                                    public void onError(VolleyError ve) {
-                                        Toast.makeText(LoginActivity.this, "Incorrect 2FA token!", Toast.LENGTH_SHORT).show();
-                                    }
-                                });
-                            }
+                                @Override
+                                public void onError(VolleyError ve) {
+                                    Toast.makeText(LoginActivity.this, "Incorrect 2FA token!", Toast.LENGTH_SHORT).show();
+                                }
+                            });
                         });
                         builder.show();
                     }

@@ -25,11 +25,13 @@ import com.google.android.exoplayer2.util.Util;
 import java.util.HashMap;
 
 import kotlin.Unit;
+import kotlin.jvm.functions.Function1;
 import ml.bmlzootown.hydravion.R;
 import ml.bmlzootown.hydravion.browse.MainFragment;
 import ml.bmlzootown.hydravion.client.HydravionClient;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
 import ml.bmlzootown.hydravion.models.Video;
+import ml.bmlzootown.hydravion.post.Post;
 
 public class PlaybackActivity extends FragmentActivity {
 
@@ -71,7 +73,7 @@ public class PlaybackActivity extends FragmentActivity {
         ((TextView) findViewById(R.id.exo_title)).setText(video.getTitle());
         like = findViewById(R.id.exo_like);
         dislike = findViewById(R.id.exo_dislike);
-        setupListeners();
+        setupLikeAndDislike();
     }
 
     @Override
@@ -123,7 +125,19 @@ public class PlaybackActivity extends FragmentActivity {
         }
     }
 
-    private void setupListeners() {
+    private void setupLikeAndDislike() {
+        client.getPost(video.getPrimaryBlogPost(), post -> {
+            if (!post.getUserInteractions().isEmpty()) {
+                if (post.isLiked()) {
+                    like.setImageResource(R.drawable.ic_like);
+                } else if (post.isDisliked()) {
+                    dislike.setImageResource(R.drawable.ic_dislike);
+                }
+            }
+
+            return Unit.INSTANCE;
+        });
+
         like.setOnClickListener(v -> client.toggleLikePost(video.getPrimaryBlogPost(), liked -> {
             if (liked) {
                 like.setImageResource(R.drawable.ic_like);

@@ -6,9 +6,12 @@ import androidx.leanback.widget.ImageCardView;
 import androidx.leanback.widget.Presenter;
 import androidx.core.content.ContextCompat;
 
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 
@@ -35,6 +38,21 @@ public class CardPresenter extends Presenter {
         view.findViewById(R.id.info_field).setBackgroundColor(color);
     }
 
+    private static void makeTextScroll(ImageCardView view, boolean selected) {
+        TextView titleView = view.findViewById(R.id.title_text);
+
+        if (selected) {
+            titleView.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+            titleView.setMarqueeRepeatLimit(-1);
+            titleView.setSelected(true);
+            titleView.setHorizontallyScrolling(true);
+            titleView.setFocusable(true);
+        } else {
+            titleView.setEllipsize(TextUtils.TruncateAt.END);
+            titleView.setSelected(false);
+        }
+    }
+
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent) {
         Log.d(TAG, "onCreateViewHolder");
@@ -55,6 +73,7 @@ public class CardPresenter extends Presenter {
                     @Override
                     public void setSelected(boolean selected) {
                         updateCardBackgroundColor(this, selected);
+                        makeTextScroll(this, selected);
                         super.setSelected(selected);
                     }
                 };

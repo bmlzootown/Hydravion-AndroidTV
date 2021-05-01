@@ -42,7 +42,7 @@ import java.util.List;
 
 import kotlin.Unit;
 import ml.bmlzootown.hydravion.R;
-import ml.bmlzootown.hydravion.RequestTask;
+import ml.bmlzootown.hydravion.client.RequestTask;
 import ml.bmlzootown.hydravion.browse.MainActivity;
 import ml.bmlzootown.hydravion.browse.MainFragment;
 import ml.bmlzootown.hydravion.client.HydravionClient;

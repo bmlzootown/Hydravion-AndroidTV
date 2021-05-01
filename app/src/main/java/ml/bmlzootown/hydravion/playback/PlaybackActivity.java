@@ -8,6 +8,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.fragment.app.FragmentActivity;
@@ -18,16 +19,19 @@ import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.ui.PlayerView;
-import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.util.Util;
+
+import java.util.HashMap;
 
 import kotlin.Unit;
 import kotlin.jvm.functions.Function1;
+import ml.bmlzootown.hydravion.R;
+import ml.bmlzootown.hydravion.browse.MainFragment;
 import ml.bmlzootown.hydravion.client.HydravionClient;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
-import ml.bmlzootown.hydravion.browse.MainFragment;
-import ml.bmlzootown.hydravion.R;
 import ml.bmlzootown.hydravion.models.Video;
+import ml.bmlzootown.hydravion.post.Post;
 
 public class PlaybackActivity extends FragmentActivity {
 
@@ -66,9 +70,10 @@ public class PlaybackActivity extends FragmentActivity {
         url = video.getVidUrl().replaceAll("Edge01-na.floatplane.com", MainFragment.cdn);
 
         playerView = findViewById(R.id.exoplayer);
+        ((TextView) findViewById(R.id.exo_title)).setText(video.getTitle());
         like = findViewById(R.id.exo_like);
         dislike = findViewById(R.id.exo_dislike);
-        setupListeners();
+        setupLikeAndDislike();
     }
 
     @Override
@@ -120,8 +125,19 @@ public class PlaybackActivity extends FragmentActivity {
         }
     }
 
-    private void setupListeners() {
-        Log.e("ERROR?", "Data: " + video.toString());
+    private void setupLikeAndDislike() {
+        client.getPost(video.getPrimaryBlogPost(), post -> {
+            if (!post.getUserInteractions().isEmpty()) {
+                if (post.isLiked()) {
+                    like.setImageResource(R.drawable.ic_like);
+                } else if (post.isDisliked()) {
+                    dislike.setImageResource(R.drawable.ic_dislike);
+                }
+            }
+
+            return Unit.INSTANCE;
+        });
+
         like.setOnClickListener(v -> client.toggleLikePost(video.getPrimaryBlogPost(), liked -> {
             if (liked) {
                 like.setImageResource(R.drawable.ic_like);
@@ -149,9 +165,10 @@ public class PlaybackActivity extends FragmentActivity {
         player.setPlayWhenReady(playWhenReady);
         player.seekTo(currentWindow, playbackPosition);
         playerView.setPlayer(player);
-        DefaultHttpDataSourceFactory dataSourceFactory = new DefaultHttpDataSourceFactory();
-        String cookies = "__cfduid=" + MainFragment.cfduid + ";sails.sid=" + MainFragment.sailssid + ";";
-        dataSourceFactory.getDefaultRequestProperties().set("Cookie", cookies);
+        DefaultHttpDataSource.Factory dataSourceFactory = new DefaultHttpDataSource.Factory();
+        HashMap<String, String> cookieMap = new HashMap<>();
+        cookieMap.put("Cookie", "__cfduid=" + MainFragment.cfduid + ";sails.sid=" + MainFragment.sailssid + ";");
+        dataSourceFactory.setDefaultRequestProperties(cookieMap);
         HlsMediaSource hlsMediaSource = new HlsMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(url));
         player.setMediaSource(hlsMediaSource);
         //MediaItem mediaItem = MediaItem.fromUri("https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4");

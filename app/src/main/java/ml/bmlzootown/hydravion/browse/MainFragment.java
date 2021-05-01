@@ -362,6 +362,7 @@ public class MainFragment extends BrowseSupportFragment {
     private Unit onSettingsSelected(@NonNull SettingsAction action) {
         switch (action) {
             case REFRESH:
+                videos.clear();
                 refreshSubscriptions(); // Refresh will get subs and videos again, then refresh row UI
                 break;
             case LOGOUT:

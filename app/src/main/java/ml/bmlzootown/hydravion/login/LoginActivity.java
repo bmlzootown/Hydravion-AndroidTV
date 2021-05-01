@@ -63,7 +63,7 @@ public class LoginActivity extends Activity {
 
     private void getToken(@NonNull String username, @NonNull String password) {
         TokenRequestTask tr = new TokenRequestTask(this.getApplicationContext());
-        tr.doRequest(TokenRequestTask.generate + uuid, new TokenRequestTask.VolleyCallback() {
+        tr.doRequest(TokenRequestTask.URI_GENERATE + uuid, new TokenRequestTask.VolleyCallback() {
             @Override
             public void onSuccess(String response) {
                 Gson gson = new Gson();
@@ -76,7 +76,7 @@ public class LoginActivity extends Activity {
                 Runnable run = new Runnable() {
                     @Override
                     public void run() {
-                        tr.doRequest(TokenRequestTask.authenticate + uuid, new TokenRequestTask.VolleyCallback() {
+                        tr.doRequest(TokenRequestTask.URI_AUTHENTICATE + uuid, new TokenRequestTask.VolleyCallback() {
                             @Override
                             public void onSuccess(String response) {
                                 Log.d("AUTHENTICATE", response);

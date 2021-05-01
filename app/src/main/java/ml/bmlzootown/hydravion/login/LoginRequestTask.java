@@ -2,6 +2,7 @@ package ml.bmlzootown.hydravion.login;
 
 import android.content.Context;
 
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Header;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
@@ -62,6 +63,7 @@ public class LoginRequestTask {
                 return params;
             }
         };
+        stringRequest.setRetryPolicy(new DefaultRetryPolicy(0, 0, 0));
 
         queue.add(stringRequest);
     }
@@ -107,6 +109,7 @@ public class LoginRequestTask {
                 return params;
             }
         };
+        stringRequest.setRetryPolicy(new DefaultRetryPolicy(0, 0, 0));
 
         queue.add(stringRequest);
     }

@@ -2,7 +2,9 @@ package ml.bmlzootown.hydravion.playback;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -11,6 +13,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentActivity;
 
 import com.google.android.exoplayer2.ExoPlaybackException;
@@ -36,6 +39,7 @@ import ml.bmlzootown.hydravion.post.Post;
 public class PlaybackActivity extends FragmentActivity {
 
     private HydravionClient client;
+    private SharedPreferences defaultPrefs;
 
     private PlayerView playerView;
     private ImageView like;
@@ -53,6 +57,7 @@ public class PlaybackActivity extends FragmentActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         client = HydravionClient.Companion.getInstance(this, getPreferences(Context.MODE_PRIVATE));
+        defaultPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         setContentView(R.layout.activity_player);
         /*if (savedInstanceState == null) {
             getSupportFragmentManager()
@@ -79,6 +84,7 @@ public class PlaybackActivity extends FragmentActivity {
     @Override
     public void onStart() {
         super.onStart();
+
         if (Util.SDK_INT > 23) {
             initializePlayer();
         }
@@ -87,6 +93,7 @@ public class PlaybackActivity extends FragmentActivity {
     @Override
     public void onResume() {
         super.onResume();
+
         if (Util.SDK_INT <= 23 || player == null) {
             initializePlayer();
         }
@@ -95,6 +102,7 @@ public class PlaybackActivity extends FragmentActivity {
     @Override
     public void onPause() {
         super.onPause();
+
         if (Util.SDK_INT <= 23) {
             releasePlayer();
         }
@@ -103,7 +111,9 @@ public class PlaybackActivity extends FragmentActivity {
     @Override
     public void onStop() {
         super.onStop();
+
         if (Util.SDK_INT > 23) {
+            saveVideoPosition();
             releasePlayer();
         }
     }
@@ -176,9 +186,14 @@ public class PlaybackActivity extends FragmentActivity {
 
         player.prepare();
 
+        if (getIntent().getBooleanExtra(DetailsActivity.Resume, false)) {
+            player.seekTo();
+        }
+
         player.addListener(new Player.EventListener() {
+
             @Override
-            public void onPlayerError(ExoPlaybackException error) {
+            public void onPlayerError(@NonNull ExoPlaybackException error) {
                 if (video != null) {
                     if (video.getTitle() == null) {
                         releasePlayer();
@@ -195,6 +210,12 @@ public class PlaybackActivity extends FragmentActivity {
                 }
             }
         });
+    }
+
+    private void saveVideoPosition() {
+        if (player != null) {
+           defaultPrefs.edit().putLong(video.getGuid(), player.getCurrentPosition()).apply();;
+        }
     }
 
     private void releasePlayer() {

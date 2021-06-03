@@ -14,6 +14,7 @@ public class DetailsActivity extends AppCompatActivity {
 
     public static final String SHARED_ELEMENT_NAME = "hero";
     public static final String Video = "Video";
+    public static final String Resume = "Resume";
 
     /**
      * Called when the activity is first created.

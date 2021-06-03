@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
@@ -42,10 +43,10 @@ import java.util.List;
 
 import kotlin.Unit;
 import ml.bmlzootown.hydravion.R;
-import ml.bmlzootown.hydravion.client.RequestTask;
 import ml.bmlzootown.hydravion.browse.MainActivity;
 import ml.bmlzootown.hydravion.browse.MainFragment;
 import ml.bmlzootown.hydravion.client.HydravionClient;
+import ml.bmlzootown.hydravion.client.RequestTask;
 import ml.bmlzootown.hydravion.models.Level;
 import ml.bmlzootown.hydravion.models.Video;
 import ml.bmlzootown.hydravion.models.VideoInfo;
@@ -56,6 +57,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
     private static final String TAG = "VideoDetailsFragment";
 
     private static final int ACTION_PLAY = 1;
+    private static final int ACTION_RESUME = 3;
     private static final int ACTION_RES = 2;
 
     private static final int DETAIL_THUMB_WIDTH = 274;
@@ -135,6 +137,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                 .transform(new RoundedCorners(48))
                 .error(R.drawable.default_background)
                 .into(new CustomTarget<Drawable>() {
+
                     @Override
                     public void onResourceReady(@NonNull Drawable resource, @Nullable Transition<? super Drawable> transition) {
                         row.setImageDrawable(resource);
@@ -152,11 +155,17 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
         actionAdapter.add(
                 new Action(
                         ACTION_PLAY,
-                        getResources().getString(R.string.play)));
+                        getString(R.string.play)));
+
+        if (PreferenceManager.getDefaultSharedPreferences(requireContext()).getLong(mSelectedMovie.getGuid(), -1) != -1) {
+            actionAdapter.add(new Action(ACTION_RESUME, getString(R.string.action_resume)));
+        }
+
         actionAdapter.add(
                 new Action(
                         ACTION_RES,
-                        getResources().getString(R.string.resolutions)));
+                        getString(R.string.resolutions)));
+
         row.setActionsAdapter(actionAdapter);
 
         mAdapter.add(row);
@@ -179,9 +188,14 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
 
         detailsPresenter.setOnActionClickedListener(action -> {
             if (action.getId() == ACTION_PLAY) {
-                //Intent intent = new Intent(getActivity(), PlaybackActivity.class);
                 Intent intent = new Intent(getActivity(), PlaybackActivity.class);
                 intent.putExtra(DetailsActivity.Video, (Serializable) mSelectedMovie);
+                intent.putExtra(DetailsActivity.Resume, false);
+                startActivity(intent);
+            } else if (action.getId() == ACTION_RESUME) {
+                Intent intent = new Intent(getActivity(), PlaybackActivity.class);
+                intent.putExtra(DetailsActivity.Video, (Serializable) mSelectedMovie);
+                intent.putExtra(DetailsActivity.Resume, true);
                 startActivity(intent);
             } else if (action.getId() == ACTION_RES) {
                 String uri = "https://www.floatplane.com/api/video/info?videoGUID=" + mSelectedMovie.getGuid();

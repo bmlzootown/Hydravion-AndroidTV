@@ -28,13 +28,11 @@ import com.google.android.exoplayer2.util.Util;
 import java.util.HashMap;
 
 import kotlin.Unit;
-import kotlin.jvm.functions.Function1;
 import ml.bmlzootown.hydravion.R;
 import ml.bmlzootown.hydravion.browse.MainFragment;
 import ml.bmlzootown.hydravion.client.HydravionClient;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
 import ml.bmlzootown.hydravion.models.Video;
-import ml.bmlzootown.hydravion.post.Post;
 
 public class PlaybackActivity extends FragmentActivity {
 
@@ -187,7 +185,7 @@ public class PlaybackActivity extends FragmentActivity {
         player.prepare();
 
         if (getIntent().getBooleanExtra(DetailsActivity.Resume, false)) {
-            player.seekTo();
+            player.seekTo(defaultPrefs.getLong(video.getGuid(), 0));
         }
 
         player.addListener(new Player.EventListener() {
@@ -195,10 +193,8 @@ public class PlaybackActivity extends FragmentActivity {
             @Override
             public void onPlayerError(@NonNull ExoPlaybackException error) {
                 if (video != null) {
-                    if (video.getTitle() == null) {
-                        releasePlayer();
-                        Toast.makeText(PlaybackActivity.this, "Livestream not found!", Toast.LENGTH_LONG).show();
-                    }
+                    releasePlayer();
+                    Toast.makeText(PlaybackActivity.this, "Livestream not found!", Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -214,7 +210,7 @@ public class PlaybackActivity extends FragmentActivity {
 
     private void saveVideoPosition() {
         if (player != null) {
-           defaultPrefs.edit().putLong(video.getGuid(), player.getCurrentPosition()).apply();;
+            defaultPrefs.edit().putLong(video.getGuid(), player.getCurrentPosition()).apply();
         }
     }
 

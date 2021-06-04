@@ -199,7 +199,8 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                 startActivity(intent);
             } else if (action.getId() == ACTION_RES) {
                 String uri = "https://www.floatplane.com/api/video/info?videoGUID=" + mSelectedMovie.getGuid();
-                String cookies = "__cfduid=" + MainFragment.cfduid + "; sails.sid=" + MainFragment.sailssid;
+                //String cookies = "__cfduid=" + MainFragment.cfduid + "; sails.sid=" + MainFragment.sailssid;
+                String cookies = "sails.sid=" + MainFragment.sailssid;
                 RequestTask rt = new RequestTask(getActivity().getApplicationContext());
                 rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
                     @Override

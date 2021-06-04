@@ -20,6 +20,8 @@ import com.android.volley.VolleyError;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.gson.Gson;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -69,6 +71,7 @@ public class LoginActivity extends Activity {
                 CaptchaToken captcha = gson.fromJson(response, CaptchaToken.class);
 
                 PopupCreator popUpClass = new PopupCreator(captcha.getCode());
+                Log.d("CODE", captcha.getCode());
                 popUpClass.showPopupWindow(findViewById(android.R.id.content).getRootView());
 
                 checkAuth = new Handler();
@@ -79,10 +82,22 @@ public class LoginActivity extends Activity {
                             @Override
                             public void onSuccess(@NonNull String response) {
                                 Log.d("AUTHENTICATE", response);
+                                Log.d("AUTHETICATE_CODE", captcha.getCode());
                                 Gson gson = new Gson();
                                 AuthenticateToken auth = gson.fromJson(response, AuthenticateToken.class);
                                 if (auth.getLinked().equalsIgnoreCase("yes")) {
                                     checkAuth.removeCallbacksAndMessages(null);
+                                    tr.doRequest(TokenRequestTask.URI_DISCONNECT + uuid, new TokenRequestTask.VolleyCallback() {
+                                        @Override
+                                        public void onSuccess(@NotNull String response) {
+
+                                        }
+
+                                        @Override
+                                        public void onError(@NotNull VolleyError error) {
+
+                                        }
+                                    });
                                     doLogin(username, password, auth.getOauthToken());
                                     popUpClass.closePopup();
                                 }

@@ -175,7 +175,8 @@ public class PlaybackActivity extends FragmentActivity {
         playerView.setPlayer(player);
         DefaultHttpDataSource.Factory dataSourceFactory = new DefaultHttpDataSource.Factory();
         HashMap<String, String> cookieMap = new HashMap<>();
-        cookieMap.put("Cookie", "__cfduid=" + MainFragment.cfduid + ";sails.sid=" + MainFragment.sailssid + ";");
+        //cookieMap.put("Cookie", "__cfduid=" + MainFragment.cfduid + ";sails.sid=" + MainFragment.sailssid + ";");
+        cookieMap.put("Cookie", "sails.sid=" + MainFragment.sailssid + ";");
         dataSourceFactory.setDefaultRequestProperties(cookieMap);
         HlsMediaSource hlsMediaSource = new HlsMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(url));
         player.setMediaSource(hlsMediaSource);

@@ -24,7 +24,8 @@ class HydravionClient private constructor(private val context: Context, private 
      * @return Cookies string
      */
     private fun getCookiesString(): String =
-        "${Constants.PREF_CFD_UID}=${mainPrefs.getString(Constants.PREF_CFD_UID, "")}; ${Constants.PREF_SAIL_SSID}=${mainPrefs.getString(Constants.PREF_SAIL_SSID, "")}"
+        //"${Constants.PREF_CFD_UID}=${mainPrefs.getString(Constants.PREF_CFD_UID, "")}; ${Constants.PREF_SAIL_SSID}=${mainPrefs.getString(Constants.PREF_SAIL_SSID, "")}"
+        "${Constants.PREF_SAIL_SSID}=${mainPrefs.getString(Constants.PREF_SAIL_SSID, "")}"
 
     fun getSubs(callback: (Array<Subscription>?) -> Unit) {
         RequestTask(context).sendRequest(URI_SUBSCRIPTIONS, getCookiesString(), object : RequestTask.VolleyCallback {

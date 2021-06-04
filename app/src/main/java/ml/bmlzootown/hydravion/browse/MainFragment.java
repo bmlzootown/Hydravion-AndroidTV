@@ -53,7 +53,7 @@ public class MainFragment extends BrowseSupportFragment {
     private HydravionClient client;
 
     public static String sailssid;
-    public static String cfduid;
+    //public static String cfduid;
     public static String cdn;
 
     public static List<Subscription> subscriptions = new ArrayList<>();
@@ -95,11 +95,12 @@ public class MainFragment extends BrowseSupportFragment {
                 if (c[0].equalsIgnoreCase("sails.sid")) {
                     sailssid = c[1];
                 }
-                if (c[0].equalsIgnoreCase("__cfduid")) {
-                    cfduid = c[1];
-                }
+                //if (c[0].equalsIgnoreCase("__cfduid")) {
+                //    cfduid = c[1];
+                //}
             }
-            Log.d("MainFragment", cfduid + "; " + sailssid);
+            //Log.d("MainFragment", cfduid + "; " + sailssid);
+            Log.d("MainFragment", sailssid);
 
             saveCredentials();
             initialize();
@@ -116,13 +117,14 @@ public class MainFragment extends BrowseSupportFragment {
     private boolean loadCredentials() {
         SharedPreferences prefs = requireActivity().getPreferences(Context.MODE_PRIVATE);
         sailssid = prefs.getString(Constants.PREF_SAIL_SSID, "default");
-        cfduid = prefs.getString(Constants.PREF_CFD_UID, "default");
+        //cfduid = prefs.getString(Constants.PREF_CFD_UID, "default");
         cdn = prefs.getString(Constants.PREF_CDN, "default");
-        Log.d("LOGIN", sailssid);
-        Log.d("LOGIN", cfduid);
+        Log.d("SAILS.SID", sailssid);
+        //Log.d("CFDUID", cfduid);
         Log.d("CDN", cdn);
 
-        if (sailssid.equals("default") || cfduid.equals("default") || cdn.equals("default")) {
+        //if (sailssid.equals("default") || cfduid.equals("default") || cdn.equals("default")) {
+        if (sailssid.equals("default") || cdn.equals("default")) {
             Log.d("LOGIN", "Credentials not found!");
             return false;
         } else {
@@ -133,7 +135,7 @@ public class MainFragment extends BrowseSupportFragment {
 
     private void logout() {
         sailssid = "default";
-        cfduid = "default";
+        //cfduid = "default";
         saveCredentials();
         requireActivity().finishAndRemoveTask();
     }
@@ -141,7 +143,7 @@ public class MainFragment extends BrowseSupportFragment {
     private void saveCredentials() {
         requireActivity().getPreferences(Context.MODE_PRIVATE).edit()
                 .putString(Constants.PREF_SAIL_SSID, sailssid)
-                .putString(Constants.PREF_CFD_UID, cfduid)
+                //.putString(Constants.PREF_CFD_UID, cfduid)
                 .putString(Constants.PREF_CDN, cdn)
                 .apply();
     }

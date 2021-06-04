@@ -15,4 +15,5 @@
     <string name="refresh">Refresh</string>
     <string name="codeTitle">reCATPCHA Token</string>
     <string name="codeMessage">Navigate to https://bmlzoo.town/hydravion and enter the following code:</string>
+    <string name="action_resume">Resume</string>
 </resources>

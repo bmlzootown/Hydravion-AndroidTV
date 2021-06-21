@@ -7,6 +7,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.widget.Toast;
@@ -30,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,9 +41,12 @@ import ml.bmlzootown.hydravion.CardPresenter;
 import ml.bmlzootown.hydravion.Constants;
 import ml.bmlzootown.hydravion.R;
 import ml.bmlzootown.hydravion.client.HydravionClient;
+import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
 import ml.bmlzootown.hydravion.login.LoginActivity;
+import ml.bmlzootown.hydravion.models.ChildImage;
 import ml.bmlzootown.hydravion.models.Live;
+import ml.bmlzootown.hydravion.models.Thumbnail;
 import ml.bmlzootown.hydravion.models.Video;
 import ml.bmlzootown.hydravion.playback.PlaybackActivity;
 import ml.bmlzootown.hydravion.subscription.Subscription;
@@ -63,6 +69,8 @@ public class MainFragment extends BrowseSupportFragment {
 
     private int rowSelected;
     private int colSelected;
+
+    private final Handler liveHandler = new Handler(Looper.getMainLooper());
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
@@ -161,6 +169,11 @@ public class MainFragment extends BrowseSupportFragment {
                 if (var.equalsIgnoreCase("token")) {
                     l = l.replaceAll("\\{token\\}", live.getResource().getData().getToken());
                     sub.setStreamUrl(l);
+                    client.checkLive(l, (status) -> {
+                        sub.setStreaming(status == 200);
+                        Log.d("LIVE STATUS", String.valueOf(status));
+                        return Unit.INSTANCE;
+                    });
                     Log.d("LIVE", l);
                 }
                 //Log.d("LIVE", l);
@@ -256,6 +269,39 @@ public class MainFragment extends BrowseSupportFragment {
             Subscription sub = subscriptions.get(i);
             List<Video> vids = videos.get(sub.getCreator());
 
+            boolean isStreaming = sub.getStreaming() != null ? sub.getStreaming() : false;
+
+            // Stream node
+            Video stream = new Video();
+            stream.setType("live");
+            FloatplaneLiveStream live = sub.getStreamInfo();
+            stream.setCreator(Objects.requireNonNull(sub.getCreator()));
+            stream.setDescription(Objects.requireNonNull(live).getDescription());
+            stream.setTitle("LIVE: " + live.getTitle());
+            stream.setVidUrl(Objects.requireNonNull(sub.getStreamUrl()));
+            Thumbnail thumbnail = new Thumbnail();
+            ChildImage ci = new ChildImage();
+            ci.setPath(live.getThumbnail().getPath());
+            ci.setWidth(live.getThumbnail().getWidth());
+            ci.setHeight(live.getThumbnail().getHeight());
+            List<ChildImage> cis = new ArrayList<>();
+            thumbnail.setChildImages(cis);
+            thumbnail.setPath(live.getThumbnail().getPath());
+            thumbnail.setHeight(live.getThumbnail().getHeight());
+            thumbnail.setWidth(live.getThumbnail().getWidth());
+            stream.setThumbnail(thumbnail);
+
+            // If streaming, append stream node to beginning of video list, else setup live check
+            if (isStreaming) {
+                //Log.d("STREAMING", "true");
+
+                if (vids != null) {
+                    vids.add(0, stream);
+                }
+            } else {
+                setupLiveCheck(i, stream);
+            }
+
             if (vids != null) {
                 vids.forEach(listRowAdapter::add);
             }
@@ -275,6 +321,38 @@ public class MainFragment extends BrowseSupportFragment {
         rowsAdapter.add(new ListRow(gridHeader, gridRowAdapter));
 
         setAdapter(rowsAdapter);
+    }
+
+    private void addLiveToRow(Integer row, Video stream, List<Subscription> subs) {
+        for (int i = 0; i < subs.size(); i++) {
+            if (i == row) {
+                ArrayObjectAdapter rows = (ArrayObjectAdapter) getAdapter();
+                ListRow lr = (ListRow) rows.get(i);
+                ArrayObjectAdapter vids = (ArrayObjectAdapter) lr.getAdapter();
+                vids.add(0, stream);
+                vids.notifyArrayItemRangeChanged(0, vids.size());
+            }
+        }
+    }
+
+    private void setupLiveCheck(Integer row, Video stream) {
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                client.checkLive(stream.getVidUrl(), status -> {
+                    if (status == 200) {
+                        //Log.d("LIVE CHECK", "true");
+                        addLiveToRow(row, stream, subscriptions);
+                        liveHandler.removeCallbacks(this);
+                    } else {
+                        //Log.d("LIVE CHECK", "false");
+                        liveHandler.postDelayed(this, 10000);
+                    }
+                    return Unit.INSTANCE;
+                });
+            }
+        };
+        liveHandler.post(runnable);
     }
 
     private void prepareBackgroundManager() {
@@ -344,9 +422,9 @@ public class MainFragment extends BrowseSupportFragment {
 
     private Unit onVideoSelected(@Nullable Presenter.ViewHolder itemViewHolder, @NonNull Video video) {
         if (itemViewHolder != null) {
-            client.getVideo(video, newVideo -> {
+            if (video.getType().equalsIgnoreCase("live")) {
                 Intent intent = new Intent(getActivity(), DetailsActivity.class);
-                intent.putExtra(DetailsActivity.Video, newVideo);
+                intent.putExtra(DetailsActivity.Video, video);
 
                 Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
                         requireActivity(),
@@ -354,8 +432,20 @@ public class MainFragment extends BrowseSupportFragment {
                         DetailsActivity.SHARED_ELEMENT_NAME)
                         .toBundle();
                 requireActivity().startActivity(intent, bundle);
-                return Unit.INSTANCE;
-            });
+            } else {
+                client.getVideo(video, newVideo -> {
+                    Intent intent = new Intent(getActivity(), DetailsActivity.class);
+                    intent.putExtra(DetailsActivity.Video, newVideo);
+
+                    Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
+                            requireActivity(),
+                            ((ImageCardView) itemViewHolder.view).getMainImageView(),
+                            DetailsActivity.SHARED_ELEMENT_NAME)
+                            .toBundle();
+                    requireActivity().startActivity(intent, bundle);
+                    return Unit.INSTANCE;
+                });
+            }
         }
 
         return Unit.INSTANCE;

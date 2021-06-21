@@ -157,14 +157,16 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                         ACTION_PLAY,
                         getString(R.string.play)));
 
-        if (PreferenceManager.getDefaultSharedPreferences(requireContext()).getLong(mSelectedMovie.getGuid(), -1) != -1) {
-            actionAdapter.add(new Action(ACTION_RESUME, getString(R.string.action_resume)));
-        }
+        if (!mSelectedMovie.getType().equalsIgnoreCase("live")) {
+            if (PreferenceManager.getDefaultSharedPreferences(requireContext()).getLong(mSelectedMovie.getGuid(), -1) != -1) {
+                actionAdapter.add(new Action(ACTION_RESUME, getString(R.string.action_resume)));
+            }
 
-        actionAdapter.add(
-                new Action(
-                        ACTION_RES,
-                        getString(R.string.resolutions)));
+            actionAdapter.add(
+                    new Action(
+                            ACTION_RES,
+                            getString(R.string.resolutions)));
+        }
 
         row.setActionsAdapter(actionAdapter);
 
@@ -203,6 +205,11 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                 String cookies = "sails.sid=" + MainFragment.sailssid;
                 RequestTask rt = new RequestTask(getActivity().getApplicationContext());
                 rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
+                    @Override
+                    public void onResponseCode(int response) {
+
+                    }
+
                     @Override
                     public void onSuccess(String string) {
                         //gotSubscriptions(string);

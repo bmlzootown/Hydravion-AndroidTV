@@ -23,7 +23,7 @@ class Creator {
     var icon: FloatplaneIcon? = null
 
     @SerializedName("liveStream")
-    var lastLiveStream: Live? = null
+    var lastLiveStream: FloatplaneLiveStream? = null
 }
 
 @Keep

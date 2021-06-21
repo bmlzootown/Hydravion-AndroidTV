@@ -3,6 +3,7 @@ package ml.bmlzootown.hydravion.subscription
 import androidx.annotation.Keep
 import com.google.gson.annotations.Expose
 import com.google.gson.annotations.SerializedName
+import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream
 import ml.bmlzootown.hydravion.models.Plan
 
 @Keep
@@ -36,7 +37,15 @@ class Subscription {
     @Expose
     var creator: String? = null
 
+    @SerializedName("streamInfo")
+    @Expose
+    var streamInfo: FloatplaneLiveStream? = null
+
     @SerializedName("streamUrl")
     @Expose
     var streamUrl: String? = null
+
+    @SerializedName("streaming")
+    @Expose
+    var streaming: Boolean? = false
 }

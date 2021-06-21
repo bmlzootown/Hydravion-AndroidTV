@@ -7,6 +7,7 @@ import com.android.volley.VolleyError
 import com.google.gson.Gson
 import ml.bmlzootown.hydravion.Constants
 import ml.bmlzootown.hydravion.creator.Creator
+import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream
 import ml.bmlzootown.hydravion.models.Edges
 import ml.bmlzootown.hydravion.models.Live
 import ml.bmlzootown.hydravion.models.Video
@@ -29,6 +30,9 @@ class HydravionClient private constructor(private val context: Context, private 
 
     fun getSubs(callback: (Array<Subscription>?) -> Unit) {
         RequestTask(context).sendRequest(URI_SUBSCRIPTIONS, getCookiesString(), object : RequestTask.VolleyCallback {
+            override fun onResponseCode(response: Int) {
+                //Ignore
+            }
 
             override fun onSuccess(response: String) {
                 if (response.contains("errors")) {
@@ -44,6 +48,10 @@ class HydravionClient private constructor(private val context: Context, private 
                             if (creatorCache[creatorId] == null) {
                                 cacheLogo(creatorId, null)
                             }
+
+                            getCreatorInfo(creatorId) {
+                                sub.streamInfo = it
+                            }
                         }
                     }
                     callback(subs)
@@ -56,13 +64,35 @@ class HydravionClient private constructor(private val context: Context, private 
         })
     }
 
+    fun getCreatorInfo(creatorGUID: String, callback: (FloatplaneLiveStream) -> Unit) {
+        RequestTask(context).sendRequest("$URI_CREATOR_INFO?creatorGUID=$creatorGUID", getCookiesString(), object : RequestTask.VolleyCallback {
+            override fun onSuccess(response: String) {
+                try {
+                    JSONArray(response).getString(0)?.let {
+                        Gson().fromJson(it, Creator::class.java).let { creator ->
+                            creator.lastLiveStream?.let { it1 -> callback.invoke(it1) }
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            override fun onResponseCode(response: Int) = Unit
+
+            override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+
+            override fun onError(error: VolleyError) = Unit
+        })
+    }
+
     fun getVideos(creatorGUID: String, page: Int, callback: (Array<Video>) -> Unit) {
         RequestTask(context).sendRequest(
             "$URI_VIDEOS?creatorGUID=$creatorGUID&fetchAfter=${(page - 1) * 20}",
             getCookiesString(),
             creatorGUID,
             object : RequestTask.VolleyCallback {
-
+                override fun onResponseCode(response: Int) = Unit
                 override fun onSuccess(response: String) = Unit
 
                 override fun onSuccessCreator(response: String, creatorGUID: String) {
@@ -84,6 +114,8 @@ class HydravionClient private constructor(private val context: Context, private 
                 }
             }
 
+            override fun onResponseCode(response: Int) = Unit
+
             override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
             override fun onError(error: VolleyError) = Unit
@@ -97,9 +129,26 @@ class HydravionClient private constructor(private val context: Context, private 
                 callback(Gson().fromJson(response, Live::class.java))
             }
 
+            override fun onResponseCode(response: Int) = Unit
+
             override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
             override fun onError(error: VolleyError) = Unit
+        })
+    }
+
+    fun checkLive(streamUri: String, callback: (Int) -> Unit) {
+        RequestTask(context).getReponseStatus(streamUri, object: RequestTask.VolleyCallback {
+            override fun onResponseCode(response: Int) {
+                callback(response)
+            }
+
+            override fun onSuccess(response: String) = Unit
+
+            override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+
+            override fun onError(error: VolleyError) = Unit
+
         })
     }
 
@@ -117,6 +166,8 @@ class HydravionClient private constructor(private val context: Context, private 
                     )
                 }
             }
+
+            override fun onResponseCode(response: Int) = Unit
 
             override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
@@ -158,6 +209,8 @@ class HydravionClient private constructor(private val context: Context, private 
                 }
             }
 
+            override fun onResponseCode(response: Int) = Unit
+
             override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
             override fun onError(error: VolleyError) = Unit
@@ -176,6 +229,8 @@ class HydravionClient private constructor(private val context: Context, private 
                 }
             }
 
+            override fun onResponseCode(response: Int) = Unit
+
             override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
             override fun onError(error: VolleyError) = Unit
@@ -189,6 +244,8 @@ class HydravionClient private constructor(private val context: Context, private 
                 callback(response.contains("like"))
             }
 
+            override fun onResponseCode(response: Int) = Unit
+
             override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
             override fun onError(error: VolleyError) = Unit
@@ -201,6 +258,8 @@ class HydravionClient private constructor(private val context: Context, private 
             override fun onSuccess(response: String) {
                 callback(response.contains("dislike"))
             }
+
+            override fun onResponseCode(response: Int) = Unit
 
             override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 

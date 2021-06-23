@@ -40,6 +40,8 @@ import com.google.gson.Gson;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import kotlin.Unit;
 import ml.bmlzootown.hydravion.R;
@@ -201,6 +203,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                 startActivity(intent);
             } else if (action.getId() == ACTION_RES) {
                 String uri = "https://www.floatplane.com/api/video/info?videoGUID=" + mSelectedMovie.getGuid();
+                Log.d("SELECTED VIDEO --> URL", uri);
                 //String cookies = "__cfduid=" + MainFragment.cfduid + "; sails.sid=" + MainFragment.sailssid;
                 String cookies = "sails.sid=" + MainFragment.sailssid;
                 RequestTask rt = new RequestTask(getActivity().getApplicationContext());
@@ -230,8 +233,11 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                                         @Override
                                         public void onClick(DialogInterface dialog, int which) {
                                             String res = resolutions.get(which);
-                                            Log.d("RESOLUTION", res);
-                                            mSelectedMovie.setVidUrl(mSelectedMovie.getVidUrl().replace("1080", res));
+                                            Pattern p = Pattern.compile("(?<=\\/)[0-9]*(?=[.]mp4\\/)");
+                                            Matcher m = p.matcher(mSelectedMovie.getVidUrl());
+                                            String newUrl = m.replaceAll(res);
+                                            mSelectedMovie.setVidUrl(newUrl);
+                                            //Log.d("RESOLUTION --> VIDEO URL", mSelectedMovie.getVidUrl());
                                             Intent intent = new Intent(getActivity(), PlaybackActivity.class);
                                             intent.putExtra(DetailsActivity.Video, (Serializable) mSelectedMovie);
                                             startActivity(intent);

@@ -2,7 +2,6 @@ package ml.bmlzootown.hydravion.login;
 
 import android.content.Context;
 
-import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Header;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
@@ -25,7 +24,7 @@ public class LoginRequestTask {
         this.context = context;
     }
 
-    public void sendRequest(String user, String pass, String captchaToken, final LoginRequestTask.VolleyCallback callback) {
+    public void sendRequest(String user, String pass, final LoginRequestTask.VolleyCallback callback) {
         String uri = "https://www.floatplane.com/api/auth/login";
         RequestQueue queue = Volley.newRequestQueue(this.context);
         StringRequest stringRequest = new StringRequest(Request.Method.POST, uri,
@@ -50,20 +49,19 @@ public class LoginRequestTask {
             public Map<String, String> getHeaders() {
                 Map<String, String> params = new HashMap<>();
                 params.put("Accept", "application/json");
+                params.put("User-Agent", "Hydravion (AndroidTV), CFNetwork");
                 return params;
             }
 
             @Override
             protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<>();
-                params.put("captchaToken", captchaToken);
                 params.put("username", user);
                 params.put("password", pass);
 
                 return params;
             }
         };
-        stringRequest.setRetryPolicy(new DefaultRetryPolicy(0, 0, 0));
 
         queue.add(stringRequest);
     }
@@ -109,7 +107,6 @@ public class LoginRequestTask {
                 return params;
             }
         };
-        stringRequest.setRetryPolicy(new DefaultRetryPolicy(0, 0, 0));
 
         queue.add(stringRequest);
     }

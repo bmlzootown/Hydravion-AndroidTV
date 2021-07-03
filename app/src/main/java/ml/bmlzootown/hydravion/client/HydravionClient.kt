@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.android.volley.VolleyError
+import com.google.android.exoplayer2.util.Util
 import com.google.gson.Gson
 import ml.bmlzootown.hydravion.Constants
 import ml.bmlzootown.hydravion.creator.Creator
@@ -104,7 +105,8 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getVideo(video: Video, callback: (Video) -> Unit) {
-        RequestTask(context).sendRequest("$URI_SELECT_VIDEO?guid=${video.guid}&quality=1080", getCookiesString(), object : RequestTask.VolleyCallback {
+        val y = Util.getCurrentDisplayModeSize(context).y;
+        RequestTask(context).sendRequest("$URI_SELECT_VIDEO?guid=${video.guid}&quality=${y}", getCookiesString(), object : RequestTask.VolleyCallback {
 
             override fun onSuccess(response: String) {
                 response.replace("\"", "").let { url ->

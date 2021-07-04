@@ -29,6 +29,9 @@ import androidx.leanback.widget.PresenterSelector;
 
 import com.google.android.exoplayer2.util.Util;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,11 +42,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.socket.client.Ack;
+import io.socket.client.Socket;
+import io.socket.emitter.Emitter;
 import kotlin.Unit;
 import ml.bmlzootown.hydravion.CardPresenter;
 import ml.bmlzootown.hydravion.Constants;
 import ml.bmlzootown.hydravion.R;
 import ml.bmlzootown.hydravion.client.HydravionClient;
+import ml.bmlzootown.hydravion.client.SocketClient;
 import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
 import ml.bmlzootown.hydravion.login.LoginActivity;
@@ -61,6 +68,8 @@ public class MainFragment extends BrowseSupportFragment {
     private static final String TAG = "MainFragment";
 
     private HydravionClient client;
+    private SocketClient socketClient;
+    private Socket socket;
 
     public static String sailssid;
     public static String cdn;
@@ -80,6 +89,7 @@ public class MainFragment extends BrowseSupportFragment {
         Log.i(TAG, "onCreate");
         super.onActivityCreated(savedInstanceState);
         client = HydravionClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
+        socketClient = SocketClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
         checkLogin();
     }
 
@@ -119,14 +129,31 @@ public class MainFragment extends BrowseSupportFragment {
         prepareBackgroundManager();
         setupUIElements();
         setupEventListeners();
+
+        // Setup Socket
+        socket = socketClient.initialize();
+        socket.on("connect", onSocketConnect);
     }
+
+    private final Emitter.Listener onSocketConnect = args -> {
+        Log.d("SOCKET", "Connected");
+        JSONObject jo = new JSONObject();
+        try {
+            jo.put("url", "/api/sync/connect");
+            Log.d("SOCKET --> EMIT", jo.toString());
+            socket.emit("post", jo, (Ack) args1 -> {
+                Log.d("SOCKET --> EMIT RESPONSE", args1[0].toString());
+            });
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    };
 
     private boolean loadCredentials() {
         SharedPreferences prefs = requireActivity().getPreferences(Context.MODE_PRIVATE);
         sailssid = prefs.getString(Constants.PREF_SAIL_SSID, "default");
         cdn = prefs.getString(Constants.PREF_CDN, "default");
         Log.d("SAILS.SID", sailssid);
-        //Log.d("CFDUID", cfduid);
         Log.d("CDN", cdn);
 
         if (sailssid.equals("default") || cdn.equals("default")) {

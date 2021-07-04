@@ -86,6 +86,10 @@ class Video : Serializable {
     @Expose
     var subscriptionPermissions: List<String>? = null
 
+    @SerializedName("videoinfo")
+    @Expose
+    var videoInfo: VideoInfo? = null
+
     override fun toString(): String =
         """
             id: $id

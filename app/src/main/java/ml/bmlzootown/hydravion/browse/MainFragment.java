@@ -27,12 +27,15 @@ import androidx.leanback.widget.ListRowPresenter;
 import androidx.leanback.widget.Presenter;
 import androidx.leanback.widget.PresenterSelector;
 
+import com.google.android.exoplayer2.util.Util;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,6 +51,7 @@ import ml.bmlzootown.hydravion.models.ChildImage;
 import ml.bmlzootown.hydravion.models.Live;
 import ml.bmlzootown.hydravion.models.Thumbnail;
 import ml.bmlzootown.hydravion.models.Video;
+import ml.bmlzootown.hydravion.models.VideoInfo;
 import ml.bmlzootown.hydravion.playback.PlaybackActivity;
 import ml.bmlzootown.hydravion.subscription.Subscription;
 import ml.bmlzootown.hydravion.subscription.SubscriptionHeaderPresenter;
@@ -59,7 +63,6 @@ public class MainFragment extends BrowseSupportFragment {
     private HydravionClient client;
 
     public static String sailssid;
-    //public static String cfduid;
     public static String cdn;
 
     public static List<Subscription> subscriptions = new ArrayList<>();
@@ -103,11 +106,7 @@ public class MainFragment extends BrowseSupportFragment {
                 if (c[0].equalsIgnoreCase("sails.sid")) {
                     sailssid = c[1];
                 }
-                //if (c[0].equalsIgnoreCase("__cfduid")) {
-                //    cfduid = c[1];
-                //}
             }
-            //Log.d("MainFragment", cfduid + "; " + sailssid);
             Log.d("MainFragment", sailssid);
 
             saveCredentials();
@@ -125,13 +124,11 @@ public class MainFragment extends BrowseSupportFragment {
     private boolean loadCredentials() {
         SharedPreferences prefs = requireActivity().getPreferences(Context.MODE_PRIVATE);
         sailssid = prefs.getString(Constants.PREF_SAIL_SSID, "default");
-        //cfduid = prefs.getString(Constants.PREF_CFD_UID, "default");
         cdn = prefs.getString(Constants.PREF_CDN, "default");
         Log.d("SAILS.SID", sailssid);
         //Log.d("CFDUID", cfduid);
         Log.d("CDN", cdn);
 
-        //if (sailssid.equals("default") || cfduid.equals("default") || cdn.equals("default")) {
         if (sailssid.equals("default") || cdn.equals("default")) {
             Log.d("LOGIN", "Credentials not found!");
             return false;
@@ -143,7 +140,6 @@ public class MainFragment extends BrowseSupportFragment {
 
     private void logout() {
         sailssid = "default";
-        //cfduid = "default";
         saveCredentials();
         requireActivity().finishAndRemoveTask();
     }
@@ -151,7 +147,6 @@ public class MainFragment extends BrowseSupportFragment {
     private void saveCredentials() {
         requireActivity().getPreferences(Context.MODE_PRIVATE).edit()
                 .putString(Constants.PREF_SAIL_SSID, sailssid)
-                //.putString(Constants.PREF_CFD_UID, cfduid)
                 .putString(Constants.PREF_CDN, cdn)
                 .apply();
     }
@@ -433,16 +428,21 @@ public class MainFragment extends BrowseSupportFragment {
                         .toBundle();
                 requireActivity().startActivity(intent, bundle);
             } else {
-                client.getVideo(video, newVideo -> {
-                    Intent intent = new Intent(getActivity(), DetailsActivity.class);
-                    intent.putExtra(DetailsActivity.Video, newVideo);
+                client.getVideoInfo(video.getGuid(), videoInfo -> {
+                    String res = getHighestSupportedRes(videoInfo);
+                    client.getVideo(video, res, newVideo -> {
+                        newVideo.setVideoInfo(videoInfo);
+                        Intent intent = new Intent(getActivity(), DetailsActivity.class);
+                        intent.putExtra(DetailsActivity.Video, newVideo);
 
-                    Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
-                            requireActivity(),
-                            ((ImageCardView) itemViewHolder.view).getMainImageView(),
-                            DetailsActivity.SHARED_ELEMENT_NAME)
-                            .toBundle();
-                    requireActivity().startActivity(intent, bundle);
+                        Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
+                                requireActivity(),
+                                ((ImageCardView) itemViewHolder.view).getMainImageView(),
+                                DetailsActivity.SHARED_ELEMENT_NAME)
+                                .toBundle();
+                        requireActivity().startActivity(intent, bundle);
+                        return Unit.INSTANCE;
+                    });
                     return Unit.INSTANCE;
                 });
             }
@@ -512,5 +512,22 @@ public class MainFragment extends BrowseSupportFragment {
                 })
                 .create()
                 .show();
+    }
+
+    private String getHighestSupportedRes(VideoInfo info) {
+        int y = Util.getCurrentDisplayModeSize(requireContext()).y;
+        AtomicBoolean found = new AtomicBoolean(false);
+        String res = "";
+        info.getLevels().forEach(level -> {
+            if (level.getName().equalsIgnoreCase(Integer.toString(y))) {
+                found.set(true);
+            }
+        });
+        if (found.get()) {
+            res = Integer.toString(y);
+        } else {
+            res = "1080";
+        }
+        return res;
     }
 }

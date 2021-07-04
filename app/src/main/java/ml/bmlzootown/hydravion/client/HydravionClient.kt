@@ -12,6 +12,7 @@ import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream
 import ml.bmlzootown.hydravion.models.Edges
 import ml.bmlzootown.hydravion.models.Live
 import ml.bmlzootown.hydravion.models.Video
+import ml.bmlzootown.hydravion.models.VideoInfo
 import ml.bmlzootown.hydravion.post.Post
 import ml.bmlzootown.hydravion.subscription.Subscription
 import org.json.JSONArray
@@ -104,9 +105,9 @@ class HydravionClient private constructor(private val context: Context, private 
             })
     }
 
-    fun getVideo(video: Video, callback: (Video) -> Unit) {
-        val y = Util.getCurrentDisplayModeSize(context).y;
-        RequestTask(context).sendRequest("$URI_SELECT_VIDEO?guid=${video.guid}&quality=${y}", getCookiesString(), object : RequestTask.VolleyCallback {
+    fun getVideo(video: Video, resolution: String, callback: (Video) -> Unit) {
+        //val y = Util.getCurrentDisplayModeSize(context).y;
+        RequestTask(context).sendRequest("$URI_SELECT_VIDEO?guid=${video.guid}&quality=${resolution}", getCookiesString(), object : RequestTask.VolleyCallback {
 
             override fun onSuccess(response: String) {
                 response.replace("\"", "").let { url ->
@@ -122,6 +123,26 @@ class HydravionClient private constructor(private val context: Context, private 
 
             override fun onError(error: VolleyError) = Unit
         })
+    }
+
+    fun getVideoInfo(postId: String, callback: (VideoInfo) -> Unit) {
+        RequestTask(context).sendRequest("$URI_VIDEO_INFO?id=$postId", getCookiesString(), object : RequestTask.VolleyCallback {
+
+
+            override fun onSuccess(response: String) {
+                try {
+                    callback(Gson().fromJson(response, VideoInfo::class.java))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            override fun onResponseCode(response: Int) = Unit
+
+            override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+
+            override fun onError(error: VolleyError) = Unit
+        });
     }
 
     fun getLive(creatorGUID: String, callback: (Live) -> Unit) {
@@ -276,6 +297,7 @@ class HydravionClient private constructor(private val context: Context, private 
         private const val URI_CREATOR_INFO = "https://www.floatplane.com/api/creator/info"
         private const val URI_VIDEOS = "https://www.floatplane.com/api/creator/videos"
         private const val URI_SELECT_VIDEO = "https://www.floatplane.com/api/video/url"
+        private const val URI_VIDEO_INFO = "https://www.floatplane.com/api/v3/content/video"
         private const val URI_LIVE = "https://www.floatplane.com/api/cdn/delivery"
         private const val URI_CDNS = "https://www.floatplane.com/api/edges"
         private const val URI_POST = "https://www.floatplane.com/api/v3/content/post"

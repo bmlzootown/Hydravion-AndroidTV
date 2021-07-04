@@ -133,8 +133,11 @@ public class MainFragment extends BrowseSupportFragment {
         // Setup Socket
         socket = socketClient.initialize();
         socket.on("connect", onSocketConnect);
+        socket.on("disconnect", onSocketDisconnect);
+        socket.on("syncEvent", onSyncEvent);
     }
 
+    // Socket Event Emitters
     private final Emitter.Listener onSocketConnect = args -> {
         Log.d("SOCKET", "Connected");
         JSONObject jo = new JSONObject();
@@ -147,6 +150,14 @@ public class MainFragment extends BrowseSupportFragment {
         } catch (JSONException e) {
             e.printStackTrace();
         }
+    };
+
+    private final Emitter.Listener onSocketDisconnect = args -> {
+        Log.d("SOCKET", "Disconnected");
+    };
+
+    private final Emitter.Listener onSyncEvent = args -> {
+        Log.d("SOCKET --> SYNCEVENT", args[0].toString());
     };
 
     private boolean loadCredentials() {

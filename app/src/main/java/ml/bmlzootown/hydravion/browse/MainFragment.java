@@ -27,6 +27,7 @@ import androidx.leanback.widget.ListRowPresenter;
 import androidx.leanback.widget.Presenter;
 import androidx.leanback.widget.PresenterSelector;
 
+import com.android.volley.VolleyError;
 import com.google.android.exoplayer2.util.Util;
 
 import org.json.JSONException;
@@ -49,12 +50,13 @@ import kotlin.Unit;
 import ml.bmlzootown.hydravion.CardPresenter;
 import ml.bmlzootown.hydravion.Constants;
 import ml.bmlzootown.hydravion.R;
+import ml.bmlzootown.hydravion.authenticate.LogoutRequestTask;
 import ml.bmlzootown.hydravion.client.HydravionClient;
 import ml.bmlzootown.hydravion.client.SocketClient;
 import ml.bmlzootown.hydravion.client.UserSync;
 import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
-import ml.bmlzootown.hydravion.login.LoginActivity;
+import ml.bmlzootown.hydravion.authenticate.LoginActivity;
 import ml.bmlzootown.hydravion.models.ChildImage;
 import ml.bmlzootown.hydravion.models.Live;
 import ml.bmlzootown.hydravion.models.Thumbnail;
@@ -188,6 +190,25 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void logout() {
+        // Stop livestream check
+        liveHandler.removeCallbacksAndMessages(null);
+
+        // Invalidate cookies via API
+        LogoutRequestTask lrt = new LogoutRequestTask(getContext());
+        String cookies = "sails.sid=" + sailssid + ";";
+        lrt.logout(cookies, new LogoutRequestTask.VolleyCallback() {
+            @Override
+            public void onSuccess(String response) {
+                Log.d("LOGOUT", "Success!");
+            }
+
+            @Override
+            public void onError(VolleyError error) {
+                Log.d("LOGOUT --> ERROR", error.getMessage());
+            }
+        });
+
+        // Removed cookies, save dummy cookies, and close client
         sailssid = "default";
         saveCredentials();
         requireActivity().finishAndRemoveTask();

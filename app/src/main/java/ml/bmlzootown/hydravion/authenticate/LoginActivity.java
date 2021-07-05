@@ -1,4 +1,4 @@
-package ml.bmlzootown.hydravion.login;
+package ml.bmlzootown.hydravion.authenticate;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -30,8 +30,6 @@ public class LoginActivity extends Activity {
 
     private TextInputEditText username;
     private TextInputEditText password;
-    private final String uuid = UUID.randomUUID().toString();
-    private Handler checkAuth;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

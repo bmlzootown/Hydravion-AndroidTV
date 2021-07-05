@@ -38,7 +38,7 @@
         </activity>
         <activity android:name=".detail.DetailsActivity" />
         <activity android:name=".playback.PlaybackActivity" />
-        <activity android:name=".login.LoginActivity"
+        <activity android:name=".authenticate.LoginActivity"
             android:noHistory="true"/>
     </application>
 

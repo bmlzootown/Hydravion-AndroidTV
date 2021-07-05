@@ -56,7 +56,7 @@ class SocketClient private constructor(private val context: Context, private val
                 val headers = it[0] as MutableMap<String, List<String>>
                 // Modify Request Headers
                 headers["Origin"] = listOf("https://www.floatplane.com")
-                headers["Cookie"] = listOf("sails.sid=s%3AcC3HQ8_yhIt_SqTyfDPGFL84O4FPDmFa.0NC1oN0IhW4QckRngBKDLXMprFvnh3ugiGaY9xBk%2Fc0;")
+                headers["Cookie"] = listOf(getCookiesString())
                 Log.d("$TAG --> MODIFYING HEADERS", headers.toString())
             }
             transport.on(Transport.EVENT_RESPONSE_HEADERS){

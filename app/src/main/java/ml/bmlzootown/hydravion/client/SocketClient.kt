@@ -72,7 +72,7 @@ class SocketClient private constructor(private val context: Context, private val
     }
 
     // Methods to parse UserSync and SyncEvents
-    /*fun parseUserSync(obj: String): UserSync? {
+    fun parseUserSync(obj: String): UserSync? {
         Log.d("$TAG --> UserSync", obj)
         Gson().fromJson(obj, UserSync::class.java).let { parsed ->
             return parsed
@@ -80,11 +80,11 @@ class SocketClient private constructor(private val context: Context, private val
     }
 
     fun parseSyncEvent(obj: JSONObject): SyncEvent {
-        Log.d("$TAG --> SyncEvent", obj)
+        Log.d("$TAG --> SyncEvent", obj.toString())
         Gson().fromJson(obj.toString(), SyncEvent::class.java).let { parsed ->
             return parsed
         }
-    }*/
+    }
 
     companion object {
 

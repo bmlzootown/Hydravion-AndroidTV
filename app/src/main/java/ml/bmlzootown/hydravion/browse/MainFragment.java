@@ -51,6 +51,7 @@ import ml.bmlzootown.hydravion.Constants;
 import ml.bmlzootown.hydravion.R;
 import ml.bmlzootown.hydravion.client.HydravionClient;
 import ml.bmlzootown.hydravion.client.SocketClient;
+import ml.bmlzootown.hydravion.client.UserSync;
 import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
 import ml.bmlzootown.hydravion.login.LoginActivity;
@@ -144,8 +145,15 @@ public class MainFragment extends BrowseSupportFragment {
         try {
             jo.put("url", "/api/sync/connect");
             Log.d("SOCKET --> EMIT", jo.toString());
-            socket.emit("post", jo, (Ack) args1 -> {
-                Log.d("SOCKET --> EMIT RESPONSE", args1[0].toString());
+            socket.emit("post", jo, new Ack() {
+                @Override
+                public void call(Object... args) {
+                    UserSync us = socketClient.parseUserSync(args[0].toString());
+                    Log.d("SOCKET --> EMIT RESPONSE", String.valueOf(us));
+                    if (us != null && us.getStatusCode() != null && us.getStatusCode() == 200) {
+                        Log.d("SOCKET", "Synced!");
+                    }
+                }
             });
         } catch (JSONException e) {
             e.printStackTrace();
@@ -157,6 +165,9 @@ public class MainFragment extends BrowseSupportFragment {
     };
 
     private final Emitter.Listener onSyncEvent = args -> {
+        // TODO -- Add logic to handle syncEvents "postRelease" and "creatorNotification"
+        // - postRelease -- New video posted
+        // - creatorNotification w/ event type of CONTENT_LIVESTREAM_START -- Livestream notification
         Log.d("SOCKET --> SYNCEVENT", args[0].toString());
     };
 

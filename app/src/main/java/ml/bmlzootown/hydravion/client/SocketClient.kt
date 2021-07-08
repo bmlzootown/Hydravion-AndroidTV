@@ -11,6 +11,7 @@ import io.socket.client.Socket
 import io.socket.engineio.client.Transport
 import io.socket.engineio.client.transports.WebSocket
 import ml.bmlzootown.hydravion.Constants
+import ml.bmlzootown.hydravion.browse.MainFragment
 import ml.bmlzootown.hydravion.post.Post
 import okhttp3.OkHttpClient
 import org.json.JSONArray
@@ -57,12 +58,12 @@ class SocketClient private constructor(private val context: Context, private val
                 // Modify Request Headers
                 headers["Origin"] = listOf("https://www.floatplane.com")
                 headers["Cookie"] = listOf(getCookiesString())
-                Log.d("$TAG --> MODIFYING HEADERS", headers.toString())
+                MainFragment.dLog("$TAG --> MODIFYING HEADERS", headers.toString())
             }
             transport.on(Transport.EVENT_RESPONSE_HEADERS){
                 // Response Headers
                 val headers = it[0] as Map<String, List<String>>
-                Log.d("$TAG --> RESPONSE HEADERS", headers.toString())
+                MainFragment.dLog("$TAG --> RESPONSE HEADERS", headers.toString())
             }
         }
 
@@ -73,14 +74,14 @@ class SocketClient private constructor(private val context: Context, private val
 
     // Methods to parse UserSync and SyncEvents
     fun parseUserSync(obj: String): UserSync? {
-        Log.d("$TAG --> UserSync", obj)
+        MainFragment.dLog("$TAG --> UserSync", obj)
         Gson().fromJson(obj, UserSync::class.java).let { parsed ->
             return parsed
         }
     }
 
     fun parseSyncEvent(obj: JSONObject): SyncEvent {
-        Log.d("$TAG --> SyncEvent", obj.toString())
+        MainFragment.dLog("$TAG --> SyncEvent", obj.toString())
         Gson().fromJson(obj.toString(), SyncEvent::class.java).let { parsed ->
             return parsed
         }

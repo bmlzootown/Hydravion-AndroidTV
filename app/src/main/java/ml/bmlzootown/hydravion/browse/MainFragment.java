@@ -29,6 +29,7 @@ import androidx.leanback.widget.PresenterSelector;
 
 import com.android.volley.VolleyError;
 import com.google.android.exoplayer2.util.Util;
+import com.google.gson.Gson;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -53,6 +54,7 @@ import ml.bmlzootown.hydravion.R;
 import ml.bmlzootown.hydravion.authenticate.LogoutRequestTask;
 import ml.bmlzootown.hydravion.client.HydravionClient;
 import ml.bmlzootown.hydravion.client.SocketClient;
+import ml.bmlzootown.hydravion.client.SyncEvent;
 import ml.bmlzootown.hydravion.client.UserSync;
 import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
@@ -69,15 +71,19 @@ import ml.bmlzootown.hydravion.subscription.SubscriptionHeaderPresenter;
 public class MainFragment extends BrowseSupportFragment {
 
     private static final String TAG = "MainFragment";
+    public static boolean debug = true;
 
     private HydravionClient client;
+
     private SocketClient socketClient;
     private Socket socket;
+    private final Gson gson = new Gson();
 
     public static String sailssid;
     public static String cdn;
 
     public static List<Subscription> subscriptions = new ArrayList<>();
+    private static List<Video> streams = new ArrayList<>();
     public static HashMap<String, ArrayList<Video>> videos = new HashMap<>();
     private int subCount;
     private int page = 1;
@@ -85,11 +91,9 @@ public class MainFragment extends BrowseSupportFragment {
     private int rowSelected;
     private int colSelected;
 
-    private final Handler liveHandler = new Handler(Looper.getMainLooper());
-
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
-        Log.i(TAG, "onCreate");
+        //Log.i(TAG, "onCreate");
         super.onActivityCreated(savedInstanceState);
         client = HydravionClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
         socketClient = SocketClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
@@ -120,7 +124,7 @@ public class MainFragment extends BrowseSupportFragment {
                     sailssid = c[1];
                 }
             }
-            Log.d("MainFragment", sailssid);
+            dLog("MainFragment", sailssid);
 
             saveCredentials();
             initialize();
@@ -142,18 +146,18 @@ public class MainFragment extends BrowseSupportFragment {
 
     // Socket Event Emitters
     private final Emitter.Listener onSocketConnect = args -> {
-        Log.d("SOCKET", "Connected");
+        dLog("SOCKET", "Connected");
         JSONObject jo = new JSONObject();
         try {
             jo.put("url", "/api/sync/connect");
-            Log.d("SOCKET --> EMIT", jo.toString());
+            dLog("SOCKET --> EMIT", jo.toString());
             socket.emit("post", jo, new Ack() {
                 @Override
                 public void call(Object... args) {
                     UserSync us = socketClient.parseUserSync(args[0].toString());
-                    Log.d("SOCKET --> EMIT RESPONSE", String.valueOf(us));
+                    dLog("SOCKET --> EMIT RESPONSE", String.valueOf(us));
                     if (us != null && us.getStatusCode() != null && us.getStatusCode() == 200) {
-                        Log.d("SOCKET", "Synced!");
+                        dLog("SOCKET", "Synced!");
                     }
                 }
             });
@@ -163,48 +167,69 @@ public class MainFragment extends BrowseSupportFragment {
     };
 
     private final Emitter.Listener onSocketDisconnect = args -> {
-        Log.d("SOCKET", "Disconnected");
+        dLog("SOCKET", "Disconnected");
     };
 
     private final Emitter.Listener onSyncEvent = args -> {
-        // TODO -- Add logic to handle syncEvents "postRelease" and "creatorNotification"
-        // - postRelease -- New video posted
-        // - creatorNotification w/ event type of CONTENT_LIVESTREAM_START -- Livestream notification
-        Log.d("SOCKET --> SYNCEVENT", args[0].toString());
+        JSONObject obj = (JSONObject)args[0];
+        SyncEvent event = socketClient.parseSyncEvent(obj);
+        String e = gson.toJson(event);
+        dLog("SOCKET", e);
+        if (event.getEvent().equalsIgnoreCase("postRelease")) {
+            dLog("SOCKET", "postRelease");
+            client.getVideoObject(event.getData().getVideo().getGuid(), video -> {
+                int row = getRow(video, subscriptions);
+                if (row != -1) {
+                    addToRow(video, subscriptions);
+                }
+                return Unit.INSTANCE;
+            });
+        } else if (event.getEvent().equalsIgnoreCase("creatorNotification")) {
+            dLog("SOCKET", "creatorNotification");
+            if (event.getData().getEventType().equalsIgnoreCase("CONTENT_LIVESTREAM_START")) {
+                dLog("SOCKET", "CONTENT_LIVESTREAM_START");
+                Integer row = getRow(event.getData().getCreator(), subscriptions);
+                Thumbnail th = new Thumbnail();
+                th.setPath(event.getData().getIcon());
+                streams.get(row).setThumbnail(th);
+
+                if (row != -1) {
+                    addToRow(streams.get(row), subscriptions);
+                }
+            }
+        }
+        dLog("SOCKET --> SYNCEVENT", event.toString());
     };
 
     private boolean loadCredentials() {
         SharedPreferences prefs = requireActivity().getPreferences(Context.MODE_PRIVATE);
         sailssid = prefs.getString(Constants.PREF_SAIL_SSID, "default");
         cdn = prefs.getString(Constants.PREF_CDN, "default");
-        Log.d("SAILS.SID", sailssid);
-        Log.d("CDN", cdn);
+        dLog("SAILS.SID", sailssid);
+        dLog("CDN", cdn);
 
         if (sailssid.equals("default") || cdn.equals("default")) {
-            Log.d("LOGIN", "Credentials not found!");
+            dLog("LOGIN", "Credentials not found!");
             return false;
         } else {
-            Log.d("LOGIN", "Credentials found!");
+            dLog("LOGIN", "Credentials found!");
             return true;
         }
     }
 
     private void logout() {
-        // Stop livestream check
-        liveHandler.removeCallbacksAndMessages(null);
-
         // Invalidate cookies via API
         LogoutRequestTask lrt = new LogoutRequestTask(getContext());
         String cookies = "sails.sid=" + sailssid + ";";
         lrt.logout(cookies, new LogoutRequestTask.VolleyCallback() {
             @Override
             public void onSuccess(String response) {
-                Log.d("LOGOUT", "Success!");
+                dLog("LOGOUT", "Success!");
             }
 
             @Override
             public void onError(VolleyError error) {
-                Log.d("LOGOUT --> ERROR", error.getMessage());
+                dLog("LOGOUT --> ERROR", error.getMessage());
             }
         });
 
@@ -228,7 +253,7 @@ public class MainFragment extends BrowseSupportFragment {
         Matcher m = p.matcher(live.getResource().getUri());
         if (m.find()) {
             for (int i = 0; i < m.groupCount(); i++) {
-                //Log.d("LIVE", m.group(i));
+                //dLog("LIVE", m.group(i));
                 String var = m.group(i).substring(1, m.group(i).length() - 1);
 
                 if (var.equalsIgnoreCase("token")) {
@@ -236,12 +261,12 @@ public class MainFragment extends BrowseSupportFragment {
                     sub.setStreamUrl(l);
                     client.checkLive(l, (status) -> {
                         sub.setStreaming(status == 200);
-                        Log.d("LIVE STATUS", String.valueOf(status));
+                        dLog("LIVE STATUS", String.valueOf(status));
                         return Unit.INSTANCE;
                     });
-                    Log.d("LIVE", l);
+                    dLog("LIVE", l);
                 }
-                //Log.d("LIVE", l);
+                //dLog("LIVE", l);
             }
         }
     }
@@ -292,7 +317,7 @@ public class MainFragment extends BrowseSupportFragment {
             }
         }
         subCount = trimmed.size();
-        Log.d("ROWS", trimmed.size() + "");
+        dLog("ROWS", trimmed.size() + "");
     }
 
     private boolean containsSub(List<Subscription> trimmed, Subscription sub) {
@@ -337,6 +362,7 @@ public class MainFragment extends BrowseSupportFragment {
             boolean isStreaming = sub.getStreaming() != null ? sub.getStreaming() : false;
 
             // Stream node
+            int row = getRow(sub.getCreator(), subscriptions);
             Video stream = new Video();
             stream.setType("live");
             FloatplaneLiveStream live = sub.getStreamInfo();
@@ -355,16 +381,14 @@ public class MainFragment extends BrowseSupportFragment {
             thumbnail.setHeight(live.getThumbnail().getHeight());
             thumbnail.setWidth(live.getThumbnail().getWidth());
             stream.setThumbnail(thumbnail);
+            streams.add(row, stream);
 
             // If streaming, append stream node to beginning of video list, else setup live check
             if (isStreaming) {
-                //Log.d("STREAMING", "true");
-
+                dLog("STREAMING", "true");
                 if (vids != null) {
                     vids.add(0, stream);
                 }
-            } else {
-                setupLiveCheck(i, stream);
             }
 
             if (vids != null) {
@@ -388,36 +412,52 @@ public class MainFragment extends BrowseSupportFragment {
         setAdapter(rowsAdapter);
     }
 
-    private void addLiveToRow(Integer row, Video stream, List<Subscription> subs) {
+    private void addToRow(Video video, List<Subscription> subs) {
+        dLog("addToRow", video.getGuid());
         for (int i = 0; i < subs.size(); i++) {
-            if (i == row) {
+            String creator = subs.get(i).getCreator();
+            String vid = video.getCreator();
+            assert creator != null;
+            if (creator.equalsIgnoreCase(vid)) {
+                dLog("addToRow", "Adding video to row " + i + ", creator " + creator);
                 ArrayObjectAdapter rows = (ArrayObjectAdapter) getAdapter();
                 ListRow lr = (ListRow) rows.get(i);
                 ArrayObjectAdapter vids = (ArrayObjectAdapter) lr.getAdapter();
-                vids.add(0, stream);
-                vids.notifyArrayItemRangeChanged(0, vids.size());
+                boolean addVid = true;
+                for (int z = 0; z < vids.size(); z++) {
+                    Video v = (Video) vids.get(z);
+                    if (v.getGuid().equalsIgnoreCase(video.getGuid())) {
+                        dLog("addToRow", "Video already found. Not adding.");
+                        addVid = false;
+                    }
+                }
+                if (addVid) {
+                    dLog("addToRow", "Adding video " + video.getGuid() + " to row " + i);
+                    vids.add(0, video);
+                    vids.notifyArrayItemRangeChanged(0, vids.size());
+                }
             }
         }
     }
 
-    private void setupLiveCheck(Integer row, Video stream) {
-        Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                client.checkLive(stream.getVidUrl(), status -> {
-                    if (status == 200) {
-                        //Log.d("LIVE CHECK", "true");
-                        addLiveToRow(row, stream, subscriptions);
-                        liveHandler.removeCallbacks(this);
-                    } else {
-                        //Log.d("LIVE CHECK", "false");
-                        liveHandler.postDelayed(this, 10000);
-                    }
-                    return Unit.INSTANCE;
-                });
+    private int getRow(Video video, List<Subscription> subs) {
+        int row = -1;
+        for (int i = 0; i < subs.size(); i++) {
+            if (subs.get(i).getCreator().equalsIgnoreCase(video.getCreator())) {
+                row = i;
             }
-        };
-        liveHandler.post(runnable);
+        }
+        return row;
+    }
+
+    private int getRow(String creatorGUID, List<Subscription> subs) {
+        int row = -1;
+        for (int i = 0; i < subs.size(); i++) {
+            if (subs.get(i).getCreator().equalsIgnoreCase(creatorGUID)) {
+                row = i;
+            }
+        }
+        return row;
     }
 
     private void prepareBackgroundManager() {
@@ -430,10 +470,7 @@ public class MainFragment extends BrowseSupportFragment {
 
     @SuppressLint("UseCompatLoadingForDrawables")
     private void setupUIElements() {
-        // setBadgeDrawable(getActivity().getResources().getDrawable(R.drawable.videos_by_google_banner));
         setBadgeDrawable(ContextCompat.getDrawable(requireActivity(), R.drawable.white_plane));
-        //setTitle(getString(R.string.browse_title)); // Badge, when set, takes precedent
-        // over title
         setHeadersState(HEADERS_ENABLED);
         setHeadersTransitionOnBackEnabled(true);
         setHeaderPresenterSelector(new PresenterSelector() {
@@ -443,10 +480,7 @@ public class MainFragment extends BrowseSupportFragment {
             }
         });
 
-        // set fastLane (or headers) background color
         setBrandColor(ContextCompat.getColor(requireContext(), R.color.fastlane_background));
-        // set search icon color
-        //setSearchAffordanceColor(ContextCompat.getColor(getContext(), R.color.search_opaque));
     }
 
     private void setupEventListeners() {
@@ -547,7 +581,7 @@ public class MainFragment extends BrowseSupportFragment {
                     .setItems(hostnames,
                             (dialog, which) -> {
                                 String server = hostnames[which];
-                                Log.d("CDN", server);
+                                dLog("CDN", server);
                                 SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
                                 prefs.edit().putString("cdn", server).apply();
                             })
@@ -567,14 +601,14 @@ public class MainFragment extends BrowseSupportFragment {
         CharSequence[] s = subs.toArray(new CharSequence[0]);
         new AlertDialog.Builder(getContext())
                 .setTitle("Play livestream?")
-                .setItems(s, (DialogInterface.OnClickListener) (dialog, which) -> {
+                .setItems(s, (dialog, which) -> {
                     String stream = subscriptions.get(which).getStreamUrl();
                     if (stream != null) {
-                        Log.d("LIVE", stream);
+                        dLog("LIVE", stream);
                         Video live = new Video();
                         live.setVidUrl(stream);
                         Intent intent = new Intent(getActivity(), PlaybackActivity.class);
-                        intent.putExtra(DetailsActivity.Video, (Serializable) live);
+                        intent.putExtra(DetailsActivity.Video, live);
                         startActivity(intent);
                     } else {
                         Toast.makeText(getActivity(), "Subscription does not include access to livestream.", Toast.LENGTH_LONG).show();
@@ -599,5 +633,11 @@ public class MainFragment extends BrowseSupportFragment {
             res = "1080";
         }
         return res;
+    }
+
+    public static void dLog(String tag, String msg) {
+        if (debug) {
+            Log.d(tag, msg);
+        }
     }
 }

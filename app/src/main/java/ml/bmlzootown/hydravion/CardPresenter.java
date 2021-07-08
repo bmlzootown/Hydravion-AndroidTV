@@ -55,7 +55,7 @@ public class CardPresenter extends Presenter {
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent) {
-        Log.d(TAG, "onCreateViewHolder");
+        //Log.d(TAG, "onCreateViewHolder");
 
         sDefaultBackgroundColor =
                 ContextCompat.getColor(parent.getContext(), R.color.default_background);
@@ -89,7 +89,7 @@ public class CardPresenter extends Presenter {
         Video video = (Video) item;
         ImageCardView cardView = (ImageCardView) viewHolder.view;
 
-        Log.d(TAG, "onBindViewHolder");
+        //Log.d(TAG, "onBindViewHolder");
 
         if (video.getThumbnail() != null && video.getThumbnail().getChildImages() != null) {
             cardView.setTitleText(video.getTitle());
@@ -106,7 +106,7 @@ public class CardPresenter extends Presenter {
                     .centerCrop()
                     .error(mDefaultCardImage)
                     .into(cardView.getMainImageView());
-            Log.d("THUMBNAIL", "Found child image!");
+            //Log.d("THUMBNAIL", "Found child image!");
         }
     }
 

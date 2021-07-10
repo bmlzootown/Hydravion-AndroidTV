@@ -76,14 +76,14 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        Log.d(TAG, "onCreate DetailsFragment");
+        //Log.d(TAG, "onCreate DetailsFragment");
         super.onCreate(savedInstanceState);
 
         mDetailsBackground = new DetailsSupportFragmentBackgroundController(this);
         mSelectedMovie = (Video) getActivity().getIntent().getSerializableExtra(DetailsActivity.Video);
 
         if (mSelectedMovie != null) {
-            String mSelectedUrl = getActivity().getIntent().getStringExtra("vidURL");
+            //String mSelectedUrl = getActivity().getIntent().getStringExtra("vidURL");
             mPresenterSelector = new ClassPresenterSelector();
             mAdapter = new ArrayObjectAdapter(mPresenterSelector);
             setupDetailsOverviewRow();

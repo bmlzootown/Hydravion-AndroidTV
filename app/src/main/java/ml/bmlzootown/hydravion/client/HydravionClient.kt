@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.android.volley.VolleyError
-import com.google.android.exoplayer2.util.Util
 import com.google.gson.Gson
 import ml.bmlzootown.hydravion.Constants
 import ml.bmlzootown.hydravion.creator.Creator
@@ -16,6 +15,7 @@ import ml.bmlzootown.hydravion.models.VideoInfo
 import ml.bmlzootown.hydravion.post.Post
 import ml.bmlzootown.hydravion.subscription.Subscription
 import org.json.JSONArray
+import java.util.regex.Pattern
 
 class HydravionClient private constructor(private val context: Context, private val mainPrefs: SharedPreferences) {
 
@@ -105,13 +105,16 @@ class HydravionClient private constructor(private val context: Context, private 
             })
     }
 
-    fun getVideo(video: Video, resolution: String, callback: (Video) -> Unit) {
+    fun getVideo(video: Video, res: String, callback: (Video) -> Unit) {
         //val y = Util.getCurrentDisplayModeSize(context).y;
-        RequestTask(context).sendRequest("$URI_SELECT_VIDEO?guid=${video.guid}&quality=${resolution}", getCookiesString(), object : RequestTask.VolleyCallback {
+        RequestTask(context).sendRequest("$URI_SELECT_VIDEO?guid=${video.guid}&quality=720", getCookiesString(), object : RequestTask.VolleyCallback {
 
             override fun onSuccess(response: String) {
                 response.replace("\"", "").let { url ->
-                    video.vidUrl = url
+                    val p = Pattern.compile("(?<=\\/)[0-9]*(?=[.]mp4\\/)")
+                    val m = p.matcher(url)
+                    val newUrl = m.replaceAll(res)
+                    video.vidUrl = newUrl
                     Log.d(TAG, "Video: $video")
                     callback(video)
                 }

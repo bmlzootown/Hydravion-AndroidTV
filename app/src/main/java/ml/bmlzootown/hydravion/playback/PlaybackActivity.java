@@ -20,7 +20,10 @@ import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.extractor.ts.DefaultTsPayloadReaderFactory;
+import com.google.android.exoplayer2.source.hls.DefaultHlsExtractorFactory;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
+import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.util.Util;
@@ -68,8 +71,6 @@ public class PlaybackActivity extends FragmentActivity {
         final Video video = (Video) getIntent().getSerializableExtra(DetailsActivity.Video);
         this.video = video;
         //url = video.getVidUrl().replaceAll("Edge01-na.floatplane.com", "edge03-na.floatplane.com");
-        Log.d("SERVER", MainFragment.cdn);
-        Log.d("SERVER", "test");
         url = video.getVidUrl().replaceAll("Edge01-na.floatplane.com", MainFragment.cdn);
 
         playerView = findViewById(R.id.exoplayer);
@@ -178,7 +179,11 @@ public class PlaybackActivity extends FragmentActivity {
         //cookieMap.put("Cookie", "__cfduid=" + MainFragment.cfduid + ";sails.sid=" + MainFragment.sailssid + ";");
         cookieMap.put("Cookie", "sails.sid=" + MainFragment.sailssid + ";");
         dataSourceFactory.setDefaultRequestProperties(cookieMap);
-        HlsMediaSource hlsMediaSource = new HlsMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(url));
+        int flags = DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES | DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS;
+        DefaultHlsExtractorFactory extractorFactory = new DefaultHlsExtractorFactory(flags, true);
+        //url = "https://cdn-vod-drm2.floatplane.com/Videos/CyKnsF4ZuT/2160.mp4/chunk.m3u8?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZXNzb3VyY2VQYXRoIjoiL1ZpZGVvcy9DeUtuc0Y0WnVULzIxNjAubXA0L2NodW5rLm0zdTgiLCJ1c2VySWQiOiI2MGU5MGUxYjgwMGM0NTE2YzQzYzU0ZTQiLCJpYXQiOjE2MjU5MzQ2MDQsImV4cCI6MTYyNTk1NjIwNH0.BUazqG_Pgd9ribOQ2jyQoLg9QiX77bC6ToGurfFo_pQ";
+        MediaItem mi = MediaItem.fromUri(url);
+        HlsMediaSource hlsMediaSource = new HlsMediaSource.Factory(dataSourceFactory).setExtractorFactory(extractorFactory).createMediaSource(mi);
         player.setMediaSource(hlsMediaSource);
         //MediaItem mediaItem = MediaItem.fromUri("https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4");
         //player.setMediaItem(mediaItem);
@@ -195,8 +200,9 @@ public class PlaybackActivity extends FragmentActivity {
             public void onPlayerError(@NonNull ExoPlaybackException error) {
                 if (video != null) {
                     releasePlayer();
-                    Toast.makeText(PlaybackActivity.this, "Livestream not found!", Toast.LENGTH_LONG).show();
+                    Toast.makeText(PlaybackActivity.this, "Video could not be played!", Toast.LENGTH_LONG).show();
                 }
+                Log.e("EXOPLAYER", error.getLocalizedMessage());
             }
 
             @Override

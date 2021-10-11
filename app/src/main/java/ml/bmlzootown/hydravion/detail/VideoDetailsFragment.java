@@ -233,14 +233,15 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                                         @Override
                                         public void onClick(DialogInterface dialog, int which) {
                                             String res = resolutions.get(which);
-                                            Pattern p = Pattern.compile("(?<=\\/)[0-9]*(?=[.]mp4\\/)");
-                                            Matcher m = p.matcher(mSelectedMovie.getVidUrl());
-                                            String newUrl = m.replaceAll(res);
-                                            mSelectedMovie.setVidUrl(newUrl);
-                                            //Log.d("RESOLUTION --> VIDEO URL", mSelectedMovie.getVidUrl());
-                                            Intent intent = new Intent(getActivity(), PlaybackActivity.class);
-                                            intent.putExtra(DetailsActivity.Video, (Serializable) mSelectedMovie);
-                                            startActivity(intent);
+
+                                            HydravionClient client = HydravionClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
+                                            client.getVideo(mSelectedMovie, res, newVideo -> {
+                                                mSelectedMovie.setVidUrl(newVideo.getVidUrl());
+                                                Intent intent = new Intent(getActivity(), PlaybackActivity.class);
+                                                intent.putExtra(DetailsActivity.Video, (Serializable) mSelectedMovie);
+                                                startActivity(intent);
+                                                return Unit.INSTANCE;
+                                            });
                                         }
                                     });
                             builder.create().show();

@@ -8,10 +8,8 @@ import com.google.gson.Gson
 import ml.bmlzootown.hydravion.Constants
 import ml.bmlzootown.hydravion.creator.Creator
 import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream
-import ml.bmlzootown.hydravion.models.Edges
-import ml.bmlzootown.hydravion.models.Live
+import ml.bmlzootown.hydravion.models.*
 import ml.bmlzootown.hydravion.models.Video
-import ml.bmlzootown.hydravion.models.VideoInfo
 import ml.bmlzootown.hydravion.post.Post
 import ml.bmlzootown.hydravion.subscription.Subscription
 import org.json.JSONArray
@@ -107,17 +105,25 @@ class HydravionClient private constructor(private val context: Context, private 
 
     fun getVideo(video: Video, res: String, callback: (Video) -> Unit) {
         //val y = Util.getCurrentDisplayModeSize(context).y;
-        RequestTask(context).sendRequest("$URI_SELECT_VIDEO?guid=${video.guid}&quality=720", getCookiesString(), object : RequestTask.VolleyCallback {
+        RequestTask(context).sendRequest("$URI_LIVE?type=vod&guid=${video.guid}", getCookiesString(), object : RequestTask.VolleyCallback {
 
             override fun onSuccess(response: String) {
-                response.replace("\"", "").let { url ->
-                    val p = Pattern.compile("(?<=\\/)[0-9]*(?=[.]mp4\\/)")
-                    val m = p.matcher(url)
-                    val newUrl = m.replaceAll(res)
-                    video.vidUrl = newUrl
-                    Log.d(TAG, "Video: $video")
-                    callback(video)
-                }
+                val cdnUri = Gson().fromJson(response, CdnUri::class.java)
+                val uri = cdnUri.cdn + cdnUri.resource.uri
+
+                // replace {qualityLevels}
+                val p = Pattern.compile("(?<=\\/)(\\{qualityLevels\\})(?=[.]mp4\\/)")
+                val m = p.matcher(uri)
+                val newUrl = m.replaceAll(res)
+
+                // replace {qualityLevelParams.token}
+                val p2 = Pattern.compile("(\\{qualityLevelParams.token\\})")
+                val m2 = p2.matcher(newUrl)
+                val newUrl2 = m2.replaceAll(cdnUri.resource.data.qualityLevelParams.get(res)?.token.toString())
+
+                video.vidUrl = newUrl2
+                Log.d(TAG, "Video: $video")
+                callback(video)
             }
 
             override fun onResponseCode(response: Int) = Unit

@@ -83,7 +83,8 @@ public class MainFragment extends BrowseSupportFragment {
     public static String cdn;
 
     public static List<Subscription> subscriptions = new ArrayList<>();
-    private static List<Video> streams = new ArrayList<>();
+    //private static List<Video> streams = new ArrayList<>();
+    private static HashMap<Integer, Video> strms = new HashMap<>();
     public static HashMap<String, ArrayList<Video>> videos = new HashMap<>();
     private int subCount;
     private int page = 1;
@@ -191,10 +192,14 @@ public class MainFragment extends BrowseSupportFragment {
                 Integer row = getRow(event.getData().getCreator(), subscriptions);
                 Thumbnail th = new Thumbnail();
                 th.setPath(event.getData().getIcon());
-                streams.get(row).setThumbnail(th);
+                if (strms.containsKey(row))
+                    strms.get(row).setThumbnail(th);
+                //streams.get(row).setThumbnail(th);
 
                 if (row != -1) {
-                    addToRow(streams.get(row), subscriptions);
+                    if (strms.containsKey(row))
+                        addToRow(strms.get(row), subscriptions);
+                    //addToRow(streams.get(row), subscriptions);
                 }
             }
         }
@@ -382,7 +387,8 @@ public class MainFragment extends BrowseSupportFragment {
                 thumbnail.setHeight(live.getThumbnail().getHeight());
                 thumbnail.setWidth(live.getThumbnail().getWidth());
                 stream.setThumbnail(thumbnail);
-                streams.add(row, stream);
+                strms.put(row, stream);
+                //streams.add(row, stream);
 
                 // If streaming, append stream node to beginning of video list, else setup live check
                 if (isStreaming) {

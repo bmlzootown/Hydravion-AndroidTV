@@ -376,17 +376,19 @@ public class MainFragment extends BrowseSupportFragment {
                 stream.setDescription(live.getDescription());
                 stream.setTitle("LIVE: " + live.getTitle());
                 stream.setVidUrl(sub.getStreamUrl());
-                Thumbnail thumbnail = new Thumbnail();
-                ChildImage ci = new ChildImage();
-                ci.setPath(live.getThumbnail().getPath());
-                ci.setWidth(live.getThumbnail().getWidth());
-                ci.setHeight(live.getThumbnail().getHeight());
-                List<ChildImage> cis = new ArrayList<>();
-                thumbnail.setChildImages(cis);
-                thumbnail.setPath(live.getThumbnail().getPath());
-                thumbnail.setHeight(live.getThumbnail().getHeight());
-                thumbnail.setWidth(live.getThumbnail().getWidth());
-                stream.setThumbnail(thumbnail);
+                if (live.getThumbnail() != null) {
+                    Thumbnail thumbnail = new Thumbnail();
+                    ChildImage ci = new ChildImage();
+                    ci.setPath(live.getThumbnail().getPath());
+                    ci.setWidth(live.getThumbnail().getWidth());
+                    ci.setHeight(live.getThumbnail().getHeight());
+                    List<ChildImage> cis = new ArrayList<>();
+                    thumbnail.setChildImages(cis);
+                    thumbnail.setPath(live.getThumbnail().getPath());
+                    thumbnail.setHeight(live.getThumbnail().getHeight());
+                    thumbnail.setWidth(live.getThumbnail().getWidth());
+                    stream.setThumbnail(thumbnail);
+                }
                 strms.put(row, stream);
                 //streams.add(row, stream);
 

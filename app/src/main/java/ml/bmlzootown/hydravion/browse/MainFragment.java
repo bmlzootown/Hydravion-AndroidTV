@@ -3,7 +3,6 @@ package ml.bmlzootown.hydravion.browse;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -34,12 +33,12 @@ import com.google.gson.Gson;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -84,13 +83,16 @@ public class MainFragment extends BrowseSupportFragment {
 
     public static List<Subscription> subscriptions = new ArrayList<>();
     //private static List<Video> streams = new ArrayList<>();
-    private static HashMap<Integer, Video> strms = new HashMap<>();
+    private static NavigableMap<Integer, Video> strms = new TreeMap<>();
     public static HashMap<String, ArrayList<Video>> videos = new HashMap<>();
     private int subCount;
     private int page = 1;
 
     private int rowSelected;
     private int colSelected;
+
+    private final Handler liveHandler = new Handler(Looper.getMainLooper());
+    private int liveIndex = -1;
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
@@ -187,21 +189,22 @@ public class MainFragment extends BrowseSupportFragment {
             });
         } else if (event.getEvent().equalsIgnoreCase("creatorNotification")) {
             dLog("SOCKET", "creatorNotification");
-            if (event.getData().getEventType().equalsIgnoreCase("CONTENT_LIVESTREAM_START")) {
-                dLog("SOCKET", "CONTENT_LIVESTREAM_START");
-                Integer row = getRow(event.getData().getCreator(), subscriptions);
-                Thumbnail th = new Thumbnail();
-                th.setPath(event.getData().getIcon());
-                if (strms.containsKey(row))
-                    strms.get(row).setThumbnail(th);
-                //streams.get(row).setThumbnail(th);
-
-                if (row != -1) {
-                    if (strms.containsKey(row))
-                        addToRow(strms.get(row), subscriptions);
-                    //addToRow(streams.get(row), subscriptions);
-                }
-            }
+            // TODO Re-enable when livestream notifications are working again!
+//            if (event.getData().getEventType().equalsIgnoreCase("CONTENT_LIVESTREAM_START")) {
+//                dLog("SOCKET", "CONTENT_LIVESTREAM_START");
+//                Integer row = getRow(event.getData().getCreator(), subscriptions);
+//                Thumbnail th = new Thumbnail();
+//                th.setPath(event.getData().getIcon());
+//                if (strms.containsKey(row))
+//                    strms.get(row).setThumbnail(th);
+//                //streams.get(row).setThumbnail(th);
+//
+//                if (row != -1) {
+//                    if (strms.containsKey(row))
+//                        addToRow(strms.get(row), subscriptions);
+//                    //addToRow(streams.get(row), subscriptions);
+//                }
+//            }
         }
         dLog("SOCKET --> SYNCEVENT", event.toString());
     };
@@ -342,7 +345,6 @@ public class MainFragment extends BrowseSupportFragment {
             videos.put(creatorGUID, new ArrayList<>(Arrays.asList(vids)));
         }
 
-
         if (subCount > 1) {
             subCount--;
         } else {
@@ -409,6 +411,10 @@ public class MainFragment extends BrowseSupportFragment {
             rowsAdapter.add(new ListRow(header, listRowAdapter));
         }
 
+        if (!strms.isEmpty()) {
+            setupLiveCheck();
+        }
+
         HeaderItem gridHeader = new HeaderItem(i, getString(R.string.settings));
 
         GridItemPresenter mGridPresenter = new GridItemPresenter();
@@ -420,6 +426,52 @@ public class MainFragment extends BrowseSupportFragment {
         rowsAdapter.add(new ListRow(gridHeader, gridRowAdapter));
 
         setAdapter(rowsAdapter);
+    }
+
+    private void addLiveToRow(Integer row, Video stream, List<Subscription> subs) {
+        for (int i = 0; i < subs.size(); i++) {
+            if (i == row) {
+                ArrayObjectAdapter rows = (ArrayObjectAdapter) getAdapter();
+                ListRow lr = (ListRow) rows.get(i);
+                ArrayObjectAdapter vids = (ArrayObjectAdapter) lr.getAdapter();
+                vids.add(0, stream);
+                vids.notifyArrayItemRangeChanged(0, vids.size());
+            }
+        }
+    }
+
+    private void setupLiveCheck() {
+        if (liveIndex == -1) {
+            liveIndex = strms.firstKey();
+        }
+
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                final Video stream = strms.get(liveIndex);
+
+                if (stream != null) {
+                    client.checkLive(stream.getVidUrl(), status -> {
+                        if (status == 200) {
+                            addLiveToRow(liveIndex, stream, subscriptions);
+                            liveHandler.removeCallbacks(this);
+                        } else {
+                            liveHandler.postDelayed(this, 10000);
+                        }
+                        try {
+                            liveIndex = strms.higherKey(liveIndex);
+                        } catch (NullPointerException e) {
+                            if (liveIndex == strms.lastKey()) {
+                                liveIndex = strms.firstKey();
+                            }
+                        }
+
+                        return Unit.INSTANCE;
+                    });
+                }
+            }
+        };
+        liveHandler.post(runnable);
     }
 
     private void addToRow(Video video, List<Subscription> subs) {

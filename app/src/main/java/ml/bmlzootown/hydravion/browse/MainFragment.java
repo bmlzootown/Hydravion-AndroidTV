@@ -374,31 +374,33 @@ public class MainFragment extends BrowseSupportFragment {
                 Video stream = new Video();
                 stream.setType("live");
                 FloatplaneLiveStream live = sub.getStreamInfo();
-                stream.setCreator(sub.getCreator());
-                stream.setDescription(live.getDescription());
-                stream.setTitle("LIVE: " + live.getTitle());
-                stream.setVidUrl(sub.getStreamUrl());
-                if (live.getThumbnail() != null) {
-                    Thumbnail thumbnail = new Thumbnail();
-                    ChildImage ci = new ChildImage();
-                    ci.setPath(live.getThumbnail().getPath());
-                    ci.setWidth(live.getThumbnail().getWidth());
-                    ci.setHeight(live.getThumbnail().getHeight());
-                    List<ChildImage> cis = new ArrayList<>();
-                    thumbnail.setChildImages(cis);
-                    thumbnail.setPath(live.getThumbnail().getPath());
-                    thumbnail.setHeight(live.getThumbnail().getHeight());
-                    thumbnail.setWidth(live.getThumbnail().getWidth());
-                    stream.setThumbnail(thumbnail);
-                }
-                strms.put(row, stream);
-                //streams.add(row, stream);
+                if (live != null) {
+                    stream.setCreator((sub.getCreator() == null) ? "" : sub.getCreator());
+                    stream.setDescription(live.getDescription());
+                    stream.setTitle("LIVE: " + live.getTitle());
+                    stream.setVidUrl(sub.getStreamUrl());
+                    if (live.getThumbnail() != null) {
+                        Thumbnail thumbnail = new Thumbnail();
+                        ChildImage ci = new ChildImage();
+                        ci.setPath(live.getThumbnail().getPath());
+                        ci.setWidth(live.getThumbnail().getWidth());
+                        ci.setHeight(live.getThumbnail().getHeight());
+                        List<ChildImage> cis = new ArrayList<>();
+                        thumbnail.setChildImages(cis);
+                        thumbnail.setPath(live.getThumbnail().getPath());
+                        thumbnail.setHeight(live.getThumbnail().getHeight());
+                        thumbnail.setWidth(live.getThumbnail().getWidth());
+                        stream.setThumbnail(thumbnail);
+                    }
+                    strms.put(row, stream);
+                    //streams.add(row, stream);
 
-                // If streaming, append stream node to beginning of video list, else setup live check
-                if (isStreaming) {
-                    dLog("STREAMING", "true");
-                    if (vids != null) {
-                        vids.add(0, stream);
+                    // If streaming, append stream node to beginning of video list, else setup live check
+                    if (isStreaming) {
+                        dLog("STREAMING", "true");
+                        if (vids != null) {
+                            vids.add(0, stream);
+                        }
                     }
                 }
             }

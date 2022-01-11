@@ -35,11 +35,12 @@
         tools:targetApi="28">
 
         <LinearLayout
+            android:id="@+id/exo_playback_menu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
             android:orientation="horizontal"
-            android:paddingTop="4dp">
+            android:paddingTop="4dp" >
 
             <ImageButton
                 android:id="@id/exo_prev"
@@ -76,6 +77,29 @@
                 android:id="@+id/exo_dislike"
                 style="@style/ExoMediaButton"
                 android:src="@drawable/ic_dislike_unselected"
+                android:tintMode="src_in" />
+
+            <ImageButton
+                android:id="@+id/exo_menu"
+                style="@style/ExoMediaButton"
+                android:src="@drawable/exo_ic_settings"
+                android:tintMode="src_in"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/exo_settings_menu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingTop="4dp"
+            android:visibility="gone">
+
+            <ImageButton
+                android:id="@+id/exo_speed"
+                style="@style/ExoMediaButton"
+                android:src="@drawable/exo_ic_speed"
                 android:tintMode="src_in" />
 
         </LinearLayout>

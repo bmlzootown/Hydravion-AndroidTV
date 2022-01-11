@@ -10,6 +10,8 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -18,12 +20,13 @@ import androidx.fragment.app.FragmentActivity;
 
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.MediaItem;
+import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.extractor.ts.DefaultTsPayloadReaderFactory;
 import com.google.android.exoplayer2.source.hls.DefaultHlsExtractorFactory;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
-import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
+import com.google.android.exoplayer2.ui.PlayerControlView;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.util.Util;
@@ -45,6 +48,10 @@ public class PlaybackActivity extends FragmentActivity {
     private PlayerView playerView;
     private ImageView like;
     private ImageView dislike;
+    private ImageView menu;
+    private ImageView speed;
+    private LinearLayout exo_playback_menu;
+    private LinearLayout exo_settings_menu;
     private SimpleExoPlayer player;
 
     private boolean playWhenReady = true;
@@ -77,7 +84,19 @@ public class PlaybackActivity extends FragmentActivity {
         ((TextView) findViewById(R.id.exo_title)).setText(video.getTitle());
         like = findViewById(R.id.exo_like);
         dislike = findViewById(R.id.exo_dislike);
+        menu = findViewById(R.id.exo_menu);
+        exo_playback_menu = findViewById(R.id.exo_playback_menu);
+        exo_settings_menu = findViewById(R.id.exo_settings_menu);
+        speed = findViewById(R.id.exo_speed);
         setupLikeAndDislike();
+        setupMenu();
+
+        playerView.setControllerVisibilityListener(visibility -> {
+            if (visibility != View.VISIBLE) {
+                exo_playback_menu.setVisibility(View.VISIBLE);
+                exo_settings_menu.setVisibility(View.GONE);
+            }
+        });
     }
 
     @Override
@@ -128,11 +147,19 @@ public class PlaybackActivity extends FragmentActivity {
     public void onBackPressed() {
         // Hide the
         if (playerView.isControllerVisible()) {
-            playerView.hideController();
+            //playerView.hideController();
+            if (exo_playback_menu.getVisibility() == View.VISIBLE) {
+                playerView.hideController();
+            } else {
+                exo_settings_menu.setVisibility(View.GONE);
+                exo_playback_menu.setVisibility(View.VISIBLE);
+            }
         } else {
             super.onBackPressed();
         }
     }
+
+
 
     private void setupLikeAndDislike() {
         client.getPost(video.getPrimaryBlogPost(), post -> {
@@ -169,6 +196,40 @@ public class PlaybackActivity extends FragmentActivity {
         }));
     }
 
+    private void setupMenu() {
+        // Show settings menu
+        menu.setOnClickListener(v -> {
+            exo_playback_menu.setVisibility(View.GONE);
+            exo_settings_menu.setVisibility(View.VISIBLE);
+        });
+
+        speed.setOnClickListener(v -> {
+            showSpeedDialog();
+        });
+    }
+
+    private void showSpeedDialog() {
+        PopupMenu speedMenu = new PopupMenu(this, speed);
+        String[] playerSpeedArrayLabels = {"0.5x", "1.0x", "1.25x", "1.5x", "2.0x"};
+
+        for (int i = 0; i < playerSpeedArrayLabels.length; i++) {
+            speedMenu.getMenu().add(i, i, i, playerSpeedArrayLabels[i]);
+        }
+
+        speedMenu.setOnMenuItemClickListener(item -> {
+            String itemTitle = item.getTitle().toString();
+            float playbackSpeed = Float.parseFloat(itemTitle.substring(0, itemTitle.length() -1));
+
+            String msg = "Playback Speed: " + itemTitle;
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+
+            player.setPlaybackSpeed(playbackSpeed);
+            return false;
+        });
+
+        speedMenu.show();
+    }
+
     private void initializePlayer() {
         player = new SimpleExoPlayer.Builder(this).build();
         player.setPlayWhenReady(playWhenReady);
@@ -176,7 +237,6 @@ public class PlaybackActivity extends FragmentActivity {
         playerView.setPlayer(player);
         DefaultHttpDataSource.Factory dataSourceFactory = new DefaultHttpDataSource.Factory();
         HashMap<String, String> cookieMap = new HashMap<>();
-        //cookieMap.put("Cookie", "__cfduid=" + MainFragment.cfduid + ";sails.sid=" + MainFragment.sailssid + ";");
         cookieMap.put("Cookie", "sails.sid=" + MainFragment.sailssid + ";");
         dataSourceFactory.setDefaultRequestProperties(cookieMap);
         int flags = DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES | DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS;

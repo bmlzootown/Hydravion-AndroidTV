@@ -8,6 +8,7 @@ import com.google.gson.Gson
 import ml.bmlzootown.hydravion.Constants
 import ml.bmlzootown.hydravion.creator.Creator
 import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream
+import ml.bmlzootown.hydravion.github.Release
 import ml.bmlzootown.hydravion.models.*
 import ml.bmlzootown.hydravion.models.Video
 import ml.bmlzootown.hydravion.post.Post
@@ -169,7 +170,7 @@ class HydravionClient private constructor(private val context: Context, private 
             override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
             override fun onError(error: VolleyError) = Unit
-        });
+        })
     }
 
     fun getLive(creatorGUID: String, callback: (Live) -> Unit) {
@@ -287,6 +288,26 @@ class HydravionClient private constructor(private val context: Context, private 
         });
     }
 
+    fun getLatest(callback: (String) -> Unit) {
+        RequestTask(context).sendRequest(LATEST, "", object : RequestTask.VolleyCallback {
+            override fun onResponseCode(response: Int) = Unit
+
+            override fun onSuccess(response: String) {
+
+                try {
+                    callback(Gson().fromJson(response, Release::class.java).tag_name)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+
+            override fun onError(error: VolleyError) = Unit
+
+        });
+    }
+
     fun toggleLikePost(postId: String, callback: (Boolean) -> Unit) {
         RequestTask(context).sendData(URI_LIKE, getCookiesString(), mapOf("id" to postId, "contentType" to "blogPost"), object : RequestTask.VolleyCallback {
 
@@ -331,6 +352,7 @@ class HydravionClient private constructor(private val context: Context, private 
         private const val URI_POST = "https://www.floatplane.com/api/v3/content/post"
         private const val URI_LIKE = "https://www.floatplane.com/api/v3/content/like"
         private const val URI_DISLIKE = "https://www.floatplane.com/api/v3/content/dislike"
+        private const val LATEST = "https://api.github.com/repos/bmlzootown/Hydravion-AndroidTV/releases/latest"
         private var INSTANCE: HydravionClient? = null
 
         @Synchronized

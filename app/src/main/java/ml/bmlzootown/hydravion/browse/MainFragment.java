@@ -3,6 +3,7 @@ package ml.bmlzootown.hydravion.browse;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -33,6 +34,7 @@ import com.google.gson.Gson;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -66,6 +68,7 @@ import ml.bmlzootown.hydravion.models.VideoInfo;
 import ml.bmlzootown.hydravion.playback.PlaybackActivity;
 import ml.bmlzootown.hydravion.subscription.Subscription;
 import ml.bmlzootown.hydravion.subscription.SubscriptionHeaderPresenter;
+import ml.bmlzootown.hydravion.BuildConfig;
 
 public class MainFragment extends BrowseSupportFragment {
 
@@ -73,6 +76,7 @@ public class MainFragment extends BrowseSupportFragment {
     public static boolean debug = true;
 
     private HydravionClient client;
+    private final String version = BuildConfig.VERSION_NAME;
 
     private SocketClient socketClient;
     private Socket socket;
@@ -101,6 +105,17 @@ public class MainFragment extends BrowseSupportFragment {
         client = HydravionClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
         socketClient = SocketClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
         checkLogin();
+
+        client.getLatest(v -> {
+            if (!version.equalsIgnoreCase(v.substring(1))) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                builder.setTitle("Update Available");
+                builder.setMessage("Version " + v + " now available via Github: \n\nhttps://github.com/bmlzootown/Hydravion-AndroidTV/releases");
+                builder.setPositiveButton("OKAY", null);
+                builder.create().show();
+            }
+            return Unit.INSTANCE;
+        });
     }
 
     private void checkLogin() {

@@ -1,9 +1,11 @@
 package ml.bmlzootown.hydravion.models
 
+import androidx.annotation.Keep
 import com.google.gson.annotations.Expose
 import com.google.gson.annotations.SerializedName
 import java.io.Serializable
 
+@Keep
 class Video : Serializable {
 
     @SerializedName("id")
@@ -30,7 +32,15 @@ class Video : Serializable {
     @Expose
     var type: String = ""
 
-    @SerializedName("description")
+    @SerializedName("tags")
+    @Expose
+    var tags: Array<String> = emptyArray()
+
+    @SerializedName("attachmentOrder")
+    @Expose
+    var attachmentIds: Array<String> = emptyArray()
+
+    @SerializedName("text")
     @Expose
     var description: String = ""
 
@@ -38,13 +48,9 @@ class Video : Serializable {
     @Expose
     var releaseDate: String = ""
 
-    @SerializedName("duration")
-    @Expose
-    var duration: Int? = null
-
     @SerializedName("creator")
     @Expose
-    var creator: String = ""
+    var creator: Creator? = null
 
     @SerializedName("likes")
     @Expose
@@ -54,14 +60,6 @@ class Video : Serializable {
     @Expose
     var dislikes: Int? = null
 
-    @SerializedName("score")
-    @Expose
-    var score: Int? = null
-
-    @SerializedName("isProcessing")
-    @Expose
-    var isProcessing: Boolean? = null
-
     @SerializedName("primaryBlogPost")
     @Expose
     var primaryBlogPost: String = ""
@@ -69,14 +67,6 @@ class Video : Serializable {
     @SerializedName("thumbnail")
     @Expose
     var thumbnail: Thumbnail? = null
-
-    @SerializedName("isAccessible")
-    @Expose
-    var isAccessible: Boolean? = null
-
-    @SerializedName("hasAccess")
-    @Expose
-    var hasAccess: Boolean? = null
 
     @SerializedName("private")
     @Expose
@@ -89,6 +79,8 @@ class Video : Serializable {
     @SerializedName("videoinfo")
     @Expose
     var videoInfo: VideoInfo? = null
+
+    fun getVideoId(): String = attachmentIds.firstOrNull() ?: guid
 
     override fun toString(): String =
         """

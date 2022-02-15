@@ -16,4 +16,34 @@
     <string name="codeTitle">reCATPCHA Token</string>
     <string name="codeMessage">Navigate to https://bmlzoo.town/hydravion and enter the following code:</string>
     <string name="action_resume">Resume</string>
+
+    <string-array name="default_colors">
+        <item>#311B92</item>
+        <item>#2196F3</item>
+        <item>#9C27B0</item>
+        <item>#F44336</item>
+        <item>#67bb43</item>
+        <item>#F44336</item>
+        <item>#fdd835</item>
+        <item>#64a582</item>
+        <item>#290866</item>
+        <item>#00BCD4</item>
+        <item>#660833</item>
+        <item>#085b66</item>
+        <item>#67bb43</item>
+        <item>#009688</item>
+        <item>#827716</item>
+        <item>#a4b0b2</item>
+        <item>#434d4f</item>
+        <item>#9365a5</item>
+        <item>#649ba5</item>
+        <item>#ec407a</item>
+        <item>#FFC107</item>
+        <item>#59c7ff</item>
+        <item>#a56496</item>
+        <item>#02517a</item>
+        <item>#a4c68b</item>
+        <item>#ffa726</item>
+        <item>#F44336</item>
+    </string-array>
 </resources>

@@ -3,7 +3,6 @@ package ml.bmlzootown.hydravion.browse;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -34,7 +33,6 @@ import com.google.gson.Gson;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -49,18 +47,20 @@ import io.socket.client.Ack;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 import kotlin.Unit;
-import ml.bmlzootown.hydravion.CardPresenter;
+import ml.bmlzootown.hydravion.BuildConfig;
 import ml.bmlzootown.hydravion.Constants;
 import ml.bmlzootown.hydravion.R;
+import ml.bmlzootown.hydravion.authenticate.LoginActivity;
 import ml.bmlzootown.hydravion.authenticate.LogoutRequestTask;
+import ml.bmlzootown.hydravion.card.CardPresenter;
 import ml.bmlzootown.hydravion.client.HydravionClient;
 import ml.bmlzootown.hydravion.client.SocketClient;
 import ml.bmlzootown.hydravion.client.SyncEvent;
 import ml.bmlzootown.hydravion.client.UserSync;
 import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
-import ml.bmlzootown.hydravion.authenticate.LoginActivity;
 import ml.bmlzootown.hydravion.models.ChildImage;
+import ml.bmlzootown.hydravion.models.Creator;
 import ml.bmlzootown.hydravion.models.Live;
 import ml.bmlzootown.hydravion.models.Thumbnail;
 import ml.bmlzootown.hydravion.models.Video;
@@ -68,7 +68,6 @@ import ml.bmlzootown.hydravion.models.VideoInfo;
 import ml.bmlzootown.hydravion.playback.PlaybackActivity;
 import ml.bmlzootown.hydravion.subscription.Subscription;
 import ml.bmlzootown.hydravion.subscription.SubscriptionHeaderPresenter;
-import ml.bmlzootown.hydravion.BuildConfig;
 
 public class MainFragment extends BrowseSupportFragment {
 
@@ -189,7 +188,7 @@ public class MainFragment extends BrowseSupportFragment {
     };
 
     private final Emitter.Listener onSyncEvent = args -> {
-        JSONObject obj = (JSONObject)args[0];
+        JSONObject obj = (JSONObject) args[0];
         SyncEvent event = socketClient.parseSyncEvent(obj);
         String e = gson.toJson(event);
         dLog("SOCKET", e);
@@ -390,7 +389,10 @@ public class MainFragment extends BrowseSupportFragment {
                 stream.setType("live");
                 FloatplaneLiveStream live = sub.getStreamInfo();
                 if (live != null) {
-                    stream.setCreator((sub.getCreator() == null) ? "" : sub.getCreator());
+                    Creator creator = new Creator();
+                    creator.setId((sub.getCreator() == null) ? "" : sub.getCreator());
+
+                    stream.setCreator(creator);
                     stream.setDescription(live.getDescription());
                     stream.setTitle("LIVE: " + live.getTitle());
                     stream.setVidUrl(sub.getStreamUrl());
@@ -495,7 +497,7 @@ public class MainFragment extends BrowseSupportFragment {
         dLog("addToRow", video.getGuid());
         for (int i = 0; i < subs.size(); i++) {
             String creator = subs.get(i).getCreator();
-            String vid = video.getCreator();
+            String vid = video.getCreator().getId();
             assert creator != null;
             if (creator.equalsIgnoreCase(vid)) {
                 dLog("addToRow", "Adding video to row " + i + ", creator " + creator);
@@ -522,7 +524,7 @@ public class MainFragment extends BrowseSupportFragment {
     private int getRow(Video video, List<Subscription> subs) {
         int row = -1;
         for (int i = 0; i < subs.size(); i++) {
-            if (subs.get(i).getCreator().equalsIgnoreCase(video.getCreator())) {
+            if (subs.get(i).getCreator().equalsIgnoreCase(video.getCreator().getId())) {
                 row = i;
             }
         }
@@ -611,7 +613,7 @@ public class MainFragment extends BrowseSupportFragment {
                         .toBundle();
                 requireActivity().startActivity(intent, bundle);
             } else {
-                client.getVideoInfo(video.getGuid(), videoInfo -> {
+                client.getVideoInfo(video.getVideoId(), videoInfo -> {
                     String res = getHighestSupportedRes(videoInfo);
                     client.getVideo(video, res, newVideo -> {
                         newVideo.setVideoInfo(videoInfo);
@@ -620,7 +622,7 @@ public class MainFragment extends BrowseSupportFragment {
 
                         Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
                                 requireActivity(),
-                                ((ImageCardView) itemViewHolder.view).getMainImageView(),
+                                itemViewHolder.view.findViewById(R.id.image),
                                 DetailsActivity.SHARED_ELEMENT_NAME)
                                 .toBundle();
                         requireActivity().startActivity(intent, bundle);

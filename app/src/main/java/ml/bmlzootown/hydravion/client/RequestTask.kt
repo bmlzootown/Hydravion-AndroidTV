@@ -13,7 +13,7 @@ class RequestTask(context: Context) {
     fun getReponseStatus(uri: String?, callback: VolleyCallback) {
         var responseCode: Int = 0;
         val stringRequest: StringRequest = object : StringRequest(Method.GET, uri,
-            Response.Listener { response: String? ->
+            Response.Listener { _: String? ->
                 //Log.d("JSON", response);
                 callback.onResponseCode(responseCode);
             }, Response.ErrorListener { error: VolleyError ->

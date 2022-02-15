@@ -18,15 +18,13 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentActivity;
 
-import com.google.android.exoplayer2.ExoPlaybackException;
+import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.PlaybackParameters;
+import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.extractor.ts.DefaultTsPayloadReaderFactory;
 import com.google.android.exoplayer2.source.hls.DefaultHlsExtractorFactory;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
-import com.google.android.exoplayer2.ui.PlayerControlView;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.util.Util;
@@ -52,7 +50,7 @@ public class PlaybackActivity extends FragmentActivity {
     private ImageView speed;
     private LinearLayout exo_playback_menu;
     private LinearLayout exo_settings_menu;
-    private SimpleExoPlayer player;
+    private ExoPlayer player;
 
     private boolean playWhenReady = true;
     private int currentWindow = 0;
@@ -160,7 +158,6 @@ public class PlaybackActivity extends FragmentActivity {
     }
 
 
-
     private void setupLikeAndDislike() {
         client.getPost(video.getPrimaryBlogPost(), post -> {
             if (!post.getUserInteractions().isEmpty()) {
@@ -203,9 +200,7 @@ public class PlaybackActivity extends FragmentActivity {
             exo_settings_menu.setVisibility(View.VISIBLE);
         });
 
-        speed.setOnClickListener(v -> {
-            showSpeedDialog();
-        });
+        speed.setOnClickListener(v -> showSpeedDialog());
     }
 
     private void showSpeedDialog() {
@@ -218,7 +213,7 @@ public class PlaybackActivity extends FragmentActivity {
 
         speedMenu.setOnMenuItemClickListener(item -> {
             String itemTitle = item.getTitle().toString();
-            float playbackSpeed = Float.parseFloat(itemTitle.substring(0, itemTitle.length() -1));
+            float playbackSpeed = Float.parseFloat(itemTitle.substring(0, itemTitle.length() - 1));
 
             String msg = "Playback Speed: " + itemTitle;
             Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
@@ -231,7 +226,7 @@ public class PlaybackActivity extends FragmentActivity {
     }
 
     private void initializePlayer() {
-        player = new SimpleExoPlayer.Builder(this).build();
+        player = new ExoPlayer.Builder(this).build();
         player.setPlayWhenReady(playWhenReady);
         player.seekTo(currentWindow, playbackPosition);
         playerView.setPlayer(player);
@@ -254,10 +249,10 @@ public class PlaybackActivity extends FragmentActivity {
             player.seekTo(defaultPrefs.getLong(video.getGuid(), 0));
         }
 
-        player.addListener(new Player.EventListener() {
+        player.addListener(new Player.Listener() {
 
             @Override
-            public void onPlayerError(@NonNull ExoPlaybackException error) {
+            public void onPlayerError(@NonNull PlaybackException error) {
                 if (video != null) {
                     releasePlayer();
                     Toast.makeText(PlaybackActivity.this, "Video could not be played!", Toast.LENGTH_LONG).show();
@@ -285,7 +280,7 @@ public class PlaybackActivity extends FragmentActivity {
         if (player != null) {
             playWhenReady = player.getPlayWhenReady();
             playbackPosition = player.getCurrentPosition();
-            currentWindow = player.getCurrentWindowIndex();
+            currentWindow = player.getCurrentMediaItemIndex();
             //player.removeListener((Player.EventListener) this);
             player.stop();
             player.release();

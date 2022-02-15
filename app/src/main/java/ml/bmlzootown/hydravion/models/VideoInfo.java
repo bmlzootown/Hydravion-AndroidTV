@@ -1,12 +1,12 @@
 package ml.bmlzootown.hydravion.models;
 
-import java.io.Serializable;
-import java.util.List;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
-public class VideoInfo implements Serializable
-{
+import java.io.Serializable;
+import java.util.List;
+
+public class VideoInfo implements Serializable {
 
     @SerializedName("id")
     @Expose

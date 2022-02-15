@@ -601,7 +601,6 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private Unit onVideoSelected(@Nullable Presenter.ViewHolder itemViewHolder, @NonNull Video video) {
-        Log.e("ERROR?", "Selected video with id " + video.getVideoId());
         if (itemViewHolder != null) {
             if (video.getType().equalsIgnoreCase("live")) {
                 Intent intent = new Intent(getActivity(), DetailsActivity.class);
@@ -623,7 +622,7 @@ public class MainFragment extends BrowseSupportFragment {
 
                         Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
                                 requireActivity(),
-                                ((ImageCardView) itemViewHolder.view).getMainImageView(),
+                                itemViewHolder.view.findViewById(R.id.image),
                                 DetailsActivity.SHARED_ELEMENT_NAME)
                                 .toBundle();
                         requireActivity().startActivity(intent, bundle);

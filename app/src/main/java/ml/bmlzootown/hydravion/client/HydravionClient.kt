@@ -126,7 +126,7 @@ class HydravionClient private constructor(private val context: Context, private 
     fun getVideo(video: Video, res: String, callback: (Video) -> Unit) {
         //val y = Util.getCurrentDisplayModeSize(context).y;
         RequestTask(context).sendRequest(
-            "$URI_LIVE?type=vod&guid=${video.guid}",
+            "$URI_LIVE?type=vod&guid=${video.getVideoId()}",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
 

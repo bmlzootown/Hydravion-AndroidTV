@@ -73,17 +73,18 @@ class CardPresenter : Presenter() {
         }
 
         private fun setIsSelected(isSelected: Boolean) {
+            rootView.isSelected = isSelected
+            title.isSelected = isSelected
+
             if (isSelected) {
                 rootView.setBackgroundColor(selectedBackgroundColor)
                 title.ellipsize = TextUtils.TruncateAt.MARQUEE
                 title.marqueeRepeatLimit = -1
-                title.isSelected = true
                 title.isFocusable = true
                 title.setHorizontallyScrolling(true)
             } else {
                 rootView.setBackgroundColor(defaultBackgroundColor)
                 title.ellipsize = TextUtils.TruncateAt.END
-                title.isSelected = false
             }
         }
 

@@ -61,6 +61,7 @@ import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
 import ml.bmlzootown.hydravion.authenticate.LoginActivity;
 import ml.bmlzootown.hydravion.models.ChildImage;
+import ml.bmlzootown.hydravion.models.Creator;
 import ml.bmlzootown.hydravion.models.Live;
 import ml.bmlzootown.hydravion.models.Thumbnail;
 import ml.bmlzootown.hydravion.models.Video;
@@ -390,7 +391,10 @@ public class MainFragment extends BrowseSupportFragment {
                 stream.setType("live");
                 FloatplaneLiveStream live = sub.getStreamInfo();
                 if (live != null) {
-                    stream.setCreator((sub.getCreator() == null) ? "" : sub.getCreator());
+                    Creator creator = new Creator();
+                    creator.setId((sub.getCreator() == null) ? "" : sub.getCreator());
+
+                    stream.setCreator(creator);
                     stream.setDescription(live.getDescription());
                     stream.setTitle("LIVE: " + live.getTitle());
                     stream.setVidUrl(sub.getStreamUrl());
@@ -495,7 +499,7 @@ public class MainFragment extends BrowseSupportFragment {
         dLog("addToRow", video.getGuid());
         for (int i = 0; i < subs.size(); i++) {
             String creator = subs.get(i).getCreator();
-            String vid = video.getCreator();
+            String vid = video.getCreator().getId();
             assert creator != null;
             if (creator.equalsIgnoreCase(vid)) {
                 dLog("addToRow", "Adding video to row " + i + ", creator " + creator);
@@ -522,7 +526,7 @@ public class MainFragment extends BrowseSupportFragment {
     private int getRow(Video video, List<Subscription> subs) {
         int row = -1;
         for (int i = 0; i < subs.size(); i++) {
-            if (subs.get(i).getCreator().equalsIgnoreCase(video.getCreator())) {
+            if (subs.get(i).getCreator().equalsIgnoreCase(video.getCreator().getId())) {
                 row = i;
             }
         }

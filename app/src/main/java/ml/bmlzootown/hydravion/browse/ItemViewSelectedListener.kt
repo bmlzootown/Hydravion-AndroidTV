@@ -14,7 +14,7 @@ class ItemViewSelectedListener(private val onCheckIndices: (String, Int) -> Unit
         if (item is Video && row is ListRow) {
             (row.adapter as ArrayObjectAdapter).let { current ->
                current.indexOf(item).let { selected ->
-                   onCheckIndices(item.creator, selected)
+                   onCheckIndices(item.creator?.id ?: "", selected)
 
                    if (selected != -1 && current.size() - 1 == selected) {
                        onVideoSelected()

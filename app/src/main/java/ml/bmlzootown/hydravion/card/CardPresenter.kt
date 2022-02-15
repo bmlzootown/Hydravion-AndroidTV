@@ -13,7 +13,6 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.leanback.widget.Presenter
 import com.bumptech.glide.Glide
-import com.google.android.material.chip.Chip
 import ml.bmlzootown.hydravion.R
 import ml.bmlzootown.hydravion.ext.getTagColor
 import ml.bmlzootown.hydravion.models.Video
@@ -110,10 +109,12 @@ class CardPresenter : Presenter() {
                     tagList.visibility = View.VISIBLE
 
                     video.tags.forEach { tag ->
-                        Chip(rootView.context).apply {
+                        TextView(rootView.context).apply {
                             text = "#$tag"
-                            chipBackgroundColor =
+                            background = ContextCompat.getDrawable(context, R.drawable.bg_chip)
+                            backgroundTintList =
                                 ColorStateList.valueOf(rootView.context.getTagColor(tag))
+                            setPadding(8, 8, 8, 8)
                             tagList.addView(this)
                         }
                     }

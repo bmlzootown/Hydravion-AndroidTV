@@ -106,7 +106,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
 
     private void initializeBackground() {
         mDetailsBackground.enableParallax();
-        client.getCreatorById(mSelectedMovie.getCreator(), creator -> {
+        client.getCreatorById(mSelectedMovie.getCreator().getId(), creator -> {
             Glide.with(requireActivity())
                     .asBitmap()
                     .load(creator.getCoverImage().getPath())

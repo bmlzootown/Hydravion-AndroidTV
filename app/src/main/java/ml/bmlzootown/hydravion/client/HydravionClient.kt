@@ -102,7 +102,7 @@ class HydravionClient private constructor(private val context: Context, private 
 
     fun getVideos(creatorGUID: String, page: Int, callback: (Array<Video>) -> Unit) {
         RequestTask(context).sendRequest(
-            "$URI_VIDEOS?creatorGUID=$creatorGUID&fetchAfter=${(page - 1) * 20}",
+            "$URI_VIDEOS?id=$creatorGUID&fetchAfter=${(page - 1) * 20}",
             getCookiesString(),
             creatorGUID,
             object : RequestTask.VolleyCallback {
@@ -392,7 +392,7 @@ class HydravionClient private constructor(private val context: Context, private 
         private const val TAG = "HydravionClient"
         private const val URI_SUBSCRIPTIONS = "https://www.floatplane.com/api/user/subscriptions"
         private const val URI_CREATOR_INFO = "https://www.floatplane.com/api/creator/info"
-        private const val URI_VIDEOS = "https://www.floatplane.com/api/creator/videos"
+        private const val URI_VIDEOS = "https://www.floatplane.com/api/v3/content/creator"
         private const val URI_SELECT_VIDEO = "https://www.floatplane.com/api/video/url"
         private const val URI_VIDEO_OBJECT = "https://www.floatplane.com/api/v3/content/info"
         private const val URI_VIDEO_INFO = "https://www.floatplane.com/api/v3/content/video"

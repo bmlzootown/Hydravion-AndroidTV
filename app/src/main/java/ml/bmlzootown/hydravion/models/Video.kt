@@ -30,6 +30,9 @@ class Video : Serializable {
     @Expose
     var type: String = ""
 
+    @SerializedName("tags")
+    var tags: Array<String> = emptyArray()
+
     @SerializedName("description")
     @Expose
     var description: String = ""

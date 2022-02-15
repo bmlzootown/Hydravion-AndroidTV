@@ -601,7 +601,7 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private Unit onVideoSelected(@Nullable Presenter.ViewHolder itemViewHolder, @NonNull Video video) {
-        Log.e("ERROR?", "Selected video with id " + video.getGuid());
+        Log.e("ERROR?", "Selected video with id " + video.getVideoId());
         if (itemViewHolder != null) {
             if (video.getType().equalsIgnoreCase("live")) {
                 Intent intent = new Intent(getActivity(), DetailsActivity.class);
@@ -614,7 +614,7 @@ public class MainFragment extends BrowseSupportFragment {
                         .toBundle();
                 requireActivity().startActivity(intent, bundle);
             } else {
-                client.getVideoInfo(video.getGuid(), videoInfo -> {
+                client.getVideoInfo(video.getVideoId(), videoInfo -> {
                     String res = getHighestSupportedRes(videoInfo);
                     client.getVideo(video, res, newVideo -> {
                         newVideo.setVideoInfo(videoInfo);

@@ -33,7 +33,12 @@ class Video : Serializable {
     var type: String = ""
 
     @SerializedName("tags")
+    @Expose
     var tags: Array<String> = emptyArray()
+
+    @SerializedName("attachmentOrder")
+    @Expose
+    var attachmentIds: Array<String> = emptyArray()
 
     @SerializedName("text")
     @Expose
@@ -74,6 +79,8 @@ class Video : Serializable {
     @SerializedName("videoinfo")
     @Expose
     var videoInfo: VideoInfo? = null
+
+    fun getVideoId(): String = attachmentIds.firstOrNull() ?: guid
 
     override fun toString(): String =
         """

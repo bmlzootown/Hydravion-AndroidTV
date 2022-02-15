@@ -440,7 +440,8 @@ public class MainFragment extends BrowseSupportFragment {
         ArrayObjectAdapter gridRowAdapter = new ArrayObjectAdapter(mGridPresenter);
         gridRowAdapter.add(getResources().getString(R.string.refresh));
         gridRowAdapter.add(getResources().getString(R.string.live_stream));
-        gridRowAdapter.add(getResources().getString(R.string.select_server));
+        //gridRowAdapter.add(getResources().getString(R.string.select_server));
+        gridRowAdapter.add(getResources().getString(R.string.app_info));
         gridRowAdapter.add(getResources().getString(R.string.logout));
         rowsAdapter.add(new ListRow(gridHeader, gridRowAdapter));
 
@@ -645,14 +646,30 @@ public class MainFragment extends BrowseSupportFragment {
             case LOGOUT:
                 logout();
                 break;
-            case SELECT_SERVER:
+            /*case SELECT_SERVER:
                 selectServer();
+                break;*/
+            case APP_INFO:
+                showInfo();
                 break;
             case LIVESTREAM:
                 selectLivestream();
                 break;
         }
         return Unit.INSTANCE;
+    }
+
+    private void showInfo() {
+        new AlertDialog.Builder(getContext())
+                .setTitle("Hydravion (AndroidTV)")
+                .setMessage("Version: " + version + "\n\n" +
+                            "Contributors:\n" +
+                            "- bmlzootown\n" +
+                            "- NickM-27\n" +
+                            "- Jman012\n")
+                //.setPositiveButton("OKAY", null)
+                .create()
+                .show();
     }
 
     private void selectServer() {

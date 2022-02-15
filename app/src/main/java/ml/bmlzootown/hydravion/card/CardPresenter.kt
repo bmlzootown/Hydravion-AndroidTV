@@ -3,20 +3,16 @@ package ml.bmlzootown.hydravion.card
 import android.content.res.ColorStateList
 import android.graphics.drawable.Drawable
 import android.text.TextUtils
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.Space
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.text.parseAsHtml
-import androidx.core.view.isGone
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
-import androidx.core.view.updateLayoutParams
 import androidx.leanback.widget.Presenter
 import com.bumptech.glide.Glide
 import ml.bmlzootown.hydravion.R
@@ -125,18 +121,9 @@ class CardPresenter : Presenter() {
                     desc.maxLines = 1
 
                     video.tags.forEach { tag ->
-                        TextView(rootView.context).apply {
+                        (LayoutInflater.from(rootView.context).inflate(R.layout.view_tag, tagList, false) as TextView).apply {
                             text = "#$tag"
-                            background = ContextCompat.getDrawable(context, R.drawable.bg_chip)
-                            backgroundTintList =
-                                ColorStateList.valueOf(rootView.context.getTagColor(tag))
-                            setPadding(8, 8, 8, 8)
-                            layoutParams = object : LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT) {
-
-                                override fun getMarginStart(): Int = 8
-
-                                override fun getMarginEnd(): Int = 8
-                            }
+                            backgroundTintList = ColorStateList.valueOf(rootView.context.getTagColor(tag))
                             tagList.addView(this)
                         }
                     }

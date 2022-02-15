@@ -10,6 +10,7 @@
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.2484375" />
         <entry key="app/src/main/res/layout/card_tag.xml" value="0.3" />
         <entry key="app/src/main/res/layout/card_video.xml" value="0.3" />
+        <entry key="app/src/main/res/layout/view_tag.xml" value="0.3" />
       </map>
     </option>
   </component>

@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import com.android.volley.VolleyError
 import com.google.gson.Gson
+import ml.bmlzootown.hydravion.BuildConfig
 import ml.bmlzootown.hydravion.Constants
 import ml.bmlzootown.hydravion.creator.Creator
 import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream
@@ -31,11 +32,16 @@ class HydravionClient private constructor(private val context: Context, private 
 
     fun getSubs(callback: (Array<Subscription>?) -> Unit) {
         RequestTask(context).sendRequest(URI_SUBSCRIPTIONS, getCookiesString(), object : RequestTask.VolleyCallback {
+
             override fun onResponseCode(response: Int) {
                 //Ignore
             }
 
             override fun onSuccess(response: String) {
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "getSubs: $response")
+                }
+
                 if (response.contains("errors")) {
                     callback(null)
                     return
@@ -68,6 +74,10 @@ class HydravionClient private constructor(private val context: Context, private 
     fun getCreatorInfo(creatorGUID: String, callback: (FloatplaneLiveStream) -> Unit) {
         RequestTask(context).sendRequest("$URI_CREATOR_INFO?creatorGUID=$creatorGUID", getCookiesString(), object : RequestTask.VolleyCallback {
             override fun onSuccess(response: String) {
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "getCreatorInfo: $response")
+                }
+
                 try {
                     JSONArray(response).getString(0)?.let {
                         Gson().fromJson(it, Creator::class.java).let { creator ->
@@ -93,10 +103,16 @@ class HydravionClient private constructor(private val context: Context, private 
             getCookiesString(),
             creatorGUID,
             object : RequestTask.VolleyCallback {
+
                 override fun onResponseCode(response: Int) = Unit
+
                 override fun onSuccess(response: String) = Unit
 
                 override fun onSuccessCreator(response: String, creatorGUID: String) {
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "getVideos: $response")
+                    }
+
                     callback(Gson().fromJson(response, Array<Video>::class.java))
                 }
 
@@ -109,6 +125,10 @@ class HydravionClient private constructor(private val context: Context, private 
         RequestTask(context).sendRequest("$URI_LIVE?type=vod&guid=${video.guid}", getCookiesString(), object : RequestTask.VolleyCallback {
 
             override fun onSuccess(response: String) {
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "getVideo: $response")
+                }
+
                 val cdnUri = Gson().fromJson(response, CdnUri::class.java)
                 val uri = cdnUri.cdn + cdnUri.resource.uri
 

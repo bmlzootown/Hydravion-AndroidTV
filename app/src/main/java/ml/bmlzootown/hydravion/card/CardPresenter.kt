@@ -1,7 +1,9 @@
 package ml.bmlzootown.hydravion.card
 
+import android.content.res.ColorStateList
 import android.graphics.drawable.Drawable
 import android.text.TextUtils
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,7 +13,9 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.leanback.widget.Presenter
 import com.bumptech.glide.Glide
+import com.google.android.material.chip.Chip
 import ml.bmlzootown.hydravion.R
+import ml.bmlzootown.hydravion.ext.getTagColor
 import ml.bmlzootown.hydravion.models.Video
 
 class CardPresenter : Presenter() {
@@ -97,6 +101,25 @@ class CardPresenter : Presenter() {
                         .centerCrop()
                         .error(defaultCardImage)
                         .into(image)
+                }
+
+                Log.e("ERROR?", "Tag is ${video.tags.contentToString()}")
+
+                if (video.tags.isNotEmpty()) {
+                    tagList.removeAllViews()
+                    tagList.visibility = View.VISIBLE
+
+                    video.tags.forEach { tag ->
+                        Chip(rootView.context).apply {
+                            text = "#$tag"
+                            chipBackgroundColor =
+                                ColorStateList.valueOf(rootView.context.getTagColor(tag))
+                            tagList.addView(this)
+                        }
+                    }
+                } else {
+                    tagList.removeAllViews()
+                    tagList.visibility = View.GONE
                 }
             }
         }

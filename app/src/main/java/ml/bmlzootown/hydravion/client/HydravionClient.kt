@@ -72,29 +72,32 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getCreatorInfo(creatorGUID: String, callback: (FloatplaneLiveStream) -> Unit) {
-        RequestTask(context).sendRequest("$URI_CREATOR_INFO?creatorGUID=$creatorGUID", getCookiesString(), object : RequestTask.VolleyCallback {
-            override fun onSuccess(response: String) {
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "getCreatorInfo: $response")
-                }
-
-                try {
-                    JSONArray(response).getString(0)?.let {
-                        Gson().fromJson(it, Creator::class.java).let { creator ->
-                            creator.lastLiveStream?.let { it1 -> callback.invoke(it1) }
-                        }
+        RequestTask(context).sendRequest(
+            "$URI_CREATOR_INFO?creatorGUID=$creatorGUID",
+            getCookiesString(),
+            object : RequestTask.VolleyCallback {
+                override fun onSuccess(response: String) {
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "getCreatorInfo: $response")
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
+
+                    try {
+                        JSONArray(response).getString(0)?.let {
+                            Gson().fromJson(it, Creator::class.java).let { creator ->
+                                creator.lastLiveStream?.let { it1 -> callback.invoke(it1) }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
-            }
 
-            override fun onResponseCode(response: Int) = Unit
+                override fun onResponseCode(response: Int) = Unit
 
-            override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
-            override fun onError(error: VolleyError) = Unit
-        })
+                override fun onError(error: VolleyError) = Unit
+            })
     }
 
     fun getVideos(creatorGUID: String, page: Int, callback: (Array<Video>) -> Unit) {
@@ -122,94 +125,106 @@ class HydravionClient private constructor(private val context: Context, private 
 
     fun getVideo(video: Video, res: String, callback: (Video) -> Unit) {
         //val y = Util.getCurrentDisplayModeSize(context).y;
-        RequestTask(context).sendRequest("$URI_LIVE?type=vod&guid=${video.guid}", getCookiesString(), object : RequestTask.VolleyCallback {
+        RequestTask(context).sendRequest(
+            "$URI_LIVE?type=vod&guid=${video.guid}",
+            getCookiesString(),
+            object : RequestTask.VolleyCallback {
 
-            override fun onSuccess(response: String) {
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "getVideo: $response")
+                override fun onSuccess(response: String) {
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "getVideo: $response")
+                    }
+
+                    val cdnUri = Gson().fromJson(response, CdnUri::class.java)
+                    val uri = cdnUri.cdn + cdnUri.resource.uri
+
+                    // replace {qualityLevels}
+                    val p = Pattern.compile("(?<=\\/)(\\{qualityLevels\\})(?=[.]mp4\\/)")
+                    val m = p.matcher(uri)
+                    val newUrl = m.replaceAll(res)
+
+                    // replace {qualityLevelParams.token}
+                    val p2 = Pattern.compile("(\\{qualityLevelParams.token\\})")
+                    val m2 = p2.matcher(newUrl)
+                    val newUrl2 = m2.replaceAll(cdnUri.resource.data.qualityLevelParams.get(res)?.token.toString())
+
+                    video.vidUrl = newUrl2
+                    Log.d(TAG, "Video: $video")
+                    callback(video)
                 }
 
-                val cdnUri = Gson().fromJson(response, CdnUri::class.java)
-                val uri = cdnUri.cdn + cdnUri.resource.uri
+                override fun onResponseCode(response: Int) = Unit
 
-                // replace {qualityLevels}
-                val p = Pattern.compile("(?<=\\/)(\\{qualityLevels\\})(?=[.]mp4\\/)")
-                val m = p.matcher(uri)
-                val newUrl = m.replaceAll(res)
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
-                // replace {qualityLevelParams.token}
-                val p2 = Pattern.compile("(\\{qualityLevelParams.token\\})")
-                val m2 = p2.matcher(newUrl)
-                val newUrl2 = m2.replaceAll(cdnUri.resource.data.qualityLevelParams.get(res)?.token.toString())
-
-                video.vidUrl = newUrl2
-                Log.d(TAG, "Video: $video")
-                callback(video)
-            }
-
-            override fun onResponseCode(response: Int) = Unit
-
-            override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
-
-            override fun onError(error: VolleyError) = Unit
-        })
+                override fun onError(error: VolleyError) = Unit
+            })
     }
 
     fun getVideoObject(id: String, callback: (Video) -> Unit) {
-        RequestTask(context).sendRequest("$URI_VIDEO_OBJECT?id=$id", getCookiesString(), object : RequestTask.VolleyCallback {
-            override fun onSuccess(response: String) {
-                try {
-                    callback(Gson().fromJson(response, Video::class.java))
-                } catch (e: Exception) {
-                    e.printStackTrace()
+        RequestTask(context).sendRequest(
+            "$URI_VIDEO_OBJECT?id=$id",
+            getCookiesString(),
+            object : RequestTask.VolleyCallback {
+                override fun onSuccess(response: String) {
+                    try {
+                        callback(Gson().fromJson(response, Video::class.java))
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
-            }
 
-            override fun onResponseCode(response: Int) = Unit
+                override fun onResponseCode(response: Int) = Unit
 
-            override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
-            override fun onError(error: VolleyError) = Unit
-        })
+                override fun onError(error: VolleyError) = Unit
+            })
     }
 
     fun getVideoInfo(postId: String, callback: (VideoInfo) -> Unit) {
-        RequestTask(context).sendRequest("$URI_VIDEO_INFO?id=$postId", getCookiesString(), object : RequestTask.VolleyCallback {
+        RequestTask(context).sendRequest(
+            "$URI_VIDEO_INFO?id=$postId",
+            getCookiesString(),
+            object : RequestTask.VolleyCallback {
 
 
-            override fun onSuccess(response: String) {
-                try {
-                    callback(Gson().fromJson(response, VideoInfo::class.java))
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                override fun onSuccess(response: String) {
+                    try {
+                        callback(Gson().fromJson(response, VideoInfo::class.java))
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
-            }
 
-            override fun onResponseCode(response: Int) = Unit
+                override fun onResponseCode(response: Int) = Unit
 
-            override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
-            override fun onError(error: VolleyError) = Unit
-        })
+                override fun onError(error: VolleyError) = Unit
+            })
     }
 
     fun getLive(creatorGUID: String, callback: (Live) -> Unit) {
-        RequestTask(context).sendRequest("$URI_LIVE?type=live&creator=$creatorGUID", getCookiesString(), object : RequestTask.VolleyCallback {
+        RequestTask(context).sendRequest(
+            "$URI_LIVE?type=live&creator=$creatorGUID",
+            getCookiesString(),
+            object : RequestTask.VolleyCallback {
 
-            override fun onSuccess(response: String) {
-                callback(Gson().fromJson(response, Live::class.java))
-            }
+                override fun onSuccess(response: String) {
+                    callback(Gson().fromJson(response, Live::class.java))
+                }
 
-            override fun onResponseCode(response: Int) = Unit
+                override fun onResponseCode(response: Int) = Unit
 
-            override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
-            override fun onError(error: VolleyError) = Unit
-        })
+                override fun onError(error: VolleyError) = Unit
+            })
     }
 
     fun checkLive(streamUri: String, callback: (Int) -> Unit) {
-        RequestTask(context).getReponseStatus(streamUri, object: RequestTask.VolleyCallback {
+        RequestTask(context).getReponseStatus(streamUri, object : RequestTask.VolleyCallback {
             override fun onResponseCode(response: Int) {
                 callback(response)
             }
@@ -265,47 +280,53 @@ class HydravionClient private constructor(private val context: Context, private 
             return
         }
 
-        RequestTask(context).sendRequest("$URI_CREATOR_INFO?creatorGUID=$creatorGUID", getCookiesString(), object : RequestTask.VolleyCallback {
+        RequestTask(context).sendRequest(
+            "$URI_CREATOR_INFO?creatorGUID=$creatorGUID",
+            getCookiesString(),
+            object : RequestTask.VolleyCallback {
 
-            override fun onSuccess(response: String) {
-                try {
-                    JSONArray(response).getString(0)?.let {
-                        Gson().fromJson(it, Creator::class.java).let { creator ->
-                            creatorCache[creatorGUID] = creator
-                            callback?.invoke(creator)
+                override fun onSuccess(response: String) {
+                    try {
+                        JSONArray(response).getString(0)?.let {
+                            Gson().fromJson(it, Creator::class.java).let { creator ->
+                                creatorCache[creatorGUID] = creator
+                                callback?.invoke(creator)
+                            }
                         }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
                 }
-            }
 
-            override fun onResponseCode(response: Int) = Unit
+                override fun onResponseCode(response: Int) = Unit
 
-            override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
-            override fun onError(error: VolleyError) = Unit
-        })
+                override fun onError(error: VolleyError) = Unit
+            })
     }
 
     fun getPost(postId: String, callback: (Post) -> Unit) {
-        RequestTask(context).sendRequest("$URI_POST?id=$postId", getCookiesString(), object : RequestTask.VolleyCallback {
+        RequestTask(context).sendRequest(
+            "$URI_POST?id=$postId",
+            getCookiesString(),
+            object : RequestTask.VolleyCallback {
 
 
-            override fun onSuccess(response: String) {
-                try {
-                    callback(Gson().fromJson(response, Post::class.java))
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                override fun onSuccess(response: String) {
+                    try {
+                        callback(Gson().fromJson(response, Post::class.java))
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
-            }
 
-            override fun onResponseCode(response: Int) = Unit
+                override fun onResponseCode(response: Int) = Unit
 
-            override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
-            override fun onError(error: VolleyError) = Unit
-        });
+                override fun onError(error: VolleyError) = Unit
+            });
     }
 
     fun getLatest(callback: (String) -> Unit) {
@@ -329,33 +350,41 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun toggleLikePost(postId: String, callback: (Boolean) -> Unit) {
-        RequestTask(context).sendData(URI_LIKE, getCookiesString(), mapOf("id" to postId, "contentType" to "blogPost"), object : RequestTask.VolleyCallback {
+        RequestTask(context).sendData(
+            URI_LIKE,
+            getCookiesString(),
+            mapOf("id" to postId, "contentType" to "blogPost"),
+            object : RequestTask.VolleyCallback {
 
-            override fun onSuccess(response: String) {
-                callback(response.contains("like"))
-            }
+                override fun onSuccess(response: String) {
+                    callback(response.contains("like"))
+                }
 
-            override fun onResponseCode(response: Int) = Unit
+                override fun onResponseCode(response: Int) = Unit
 
-            override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
-            override fun onError(error: VolleyError) = Unit
-        })
+                override fun onError(error: VolleyError) = Unit
+            })
     }
 
     fun toggleDislikePost(postId: String, callback: (Boolean) -> Unit) {
-        RequestTask(context).sendData(URI_DISLIKE, getCookiesString(), mapOf("id" to postId, "contentType" to "blogPost"), object : RequestTask.VolleyCallback {
+        RequestTask(context).sendData(
+            URI_DISLIKE,
+            getCookiesString(),
+            mapOf("id" to postId, "contentType" to "blogPost"),
+            object : RequestTask.VolleyCallback {
 
-            override fun onSuccess(response: String) {
-                callback(response.contains("dislike"))
-            }
+                override fun onSuccess(response: String) {
+                    callback(response.contains("dislike"))
+                }
 
-            override fun onResponseCode(response: Int) = Unit
+                override fun onResponseCode(response: Int) = Unit
 
-            override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
-            override fun onError(error: VolleyError) = Unit
-        })
+                override fun onError(error: VolleyError) = Unit
+            })
     }
 
     companion object {

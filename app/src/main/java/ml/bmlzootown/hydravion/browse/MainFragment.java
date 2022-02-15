@@ -3,7 +3,6 @@ package ml.bmlzootown.hydravion.browse;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -34,7 +33,6 @@ import com.google.gson.Gson;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -49,8 +47,10 @@ import io.socket.client.Ack;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 import kotlin.Unit;
+import ml.bmlzootown.hydravion.BuildConfig;
 import ml.bmlzootown.hydravion.Constants;
 import ml.bmlzootown.hydravion.R;
+import ml.bmlzootown.hydravion.authenticate.LoginActivity;
 import ml.bmlzootown.hydravion.authenticate.LogoutRequestTask;
 import ml.bmlzootown.hydravion.card.CardPresenter;
 import ml.bmlzootown.hydravion.client.HydravionClient;
@@ -59,7 +59,6 @@ import ml.bmlzootown.hydravion.client.SyncEvent;
 import ml.bmlzootown.hydravion.client.UserSync;
 import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
-import ml.bmlzootown.hydravion.authenticate.LoginActivity;
 import ml.bmlzootown.hydravion.models.ChildImage;
 import ml.bmlzootown.hydravion.models.Creator;
 import ml.bmlzootown.hydravion.models.Live;
@@ -69,7 +68,6 @@ import ml.bmlzootown.hydravion.models.VideoInfo;
 import ml.bmlzootown.hydravion.playback.PlaybackActivity;
 import ml.bmlzootown.hydravion.subscription.Subscription;
 import ml.bmlzootown.hydravion.subscription.SubscriptionHeaderPresenter;
-import ml.bmlzootown.hydravion.BuildConfig;
 
 public class MainFragment extends BrowseSupportFragment {
 
@@ -190,7 +188,7 @@ public class MainFragment extends BrowseSupportFragment {
     };
 
     private final Emitter.Listener onSyncEvent = args -> {
-        JSONObject obj = (JSONObject)args[0];
+        JSONObject obj = (JSONObject) args[0];
         SyncEvent event = socketClient.parseSyncEvent(obj);
         String e = gson.toJson(event);
         dLog("SOCKET", e);
@@ -603,6 +601,7 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private Unit onVideoSelected(@Nullable Presenter.ViewHolder itemViewHolder, @NonNull Video video) {
+        Log.e("ERROR?", "Selected video with id " + video.getGuid());
         if (itemViewHolder != null) {
             if (video.getType().equalsIgnoreCase("live")) {
                 Intent intent = new Intent(getActivity(), DetailsActivity.class);

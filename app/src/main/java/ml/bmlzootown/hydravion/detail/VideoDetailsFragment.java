@@ -88,7 +88,6 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
             mAdapter = new ArrayObjectAdapter(mPresenterSelector);
             setupDetailsOverviewRow();
             setupDetailsOverviewRowPresenter();
-            setupRelatedMovieListRow();
             setAdapter(mAdapter);
             setOnItemViewClickedListener(new ItemViewClickedListener());
         } else {
@@ -261,21 +260,6 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
             }
         });
         mPresenterSelector.addClassPresenter(DetailsOverviewRow.class, detailsPresenter);
-    }
-
-    private void setupRelatedMovieListRow() {
-        /*String subcategories[] = {getString(R.string.related_movies)};
-        List<Video> list;
-
-        Collections.shuffle(list);
-        ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(new CardPresenter());
-        for (int j = 0; j < NUM_COLS; j++) {
-            listRowAdapter.add(list.get(j % 5));
-        }
-
-        HeaderItem header = new HeaderItem(0, subcategories[0]);
-        mAdapter.add(new ListRow(header, listRowAdapter));
-        mPresenterSelector.addClassPresenter(ListRow.class, new ListRowPresenter());*/
     }
 
     private final class ItemViewClickedListener implements OnItemViewClickedListener {

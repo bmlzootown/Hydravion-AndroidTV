@@ -9,8 +9,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.Space
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.text.parseAsHtml
+import androidx.core.view.isGone
+import androidx.core.view.isInvisible
+import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.leanback.widget.Presenter
 import com.bumptech.glide.Glide
 import ml.bmlzootown.hydravion.R
@@ -88,7 +94,18 @@ class CardPresenter : Presenter() {
         fun setData(video: Video) {
             if (video.thumbnail != null && video.thumbnail!!.childImages != null) {
                 title.text = video.title
-                desc.text = video.description
+
+                video.description.parseAsHtml().let { videoDesc ->
+                    desc.text = videoDesc
+
+                    if (videoDesc.isBlank()) {
+                        desc.isInvisible = true
+                        title.textSize = 22f
+                    } else {
+                        desc.isVisible = true
+                        title.textSize = 18f
+                    }
+                }
 
                 (if (video.thumbnail?.childImages?.size ?: 0 > 0) {
                     video.thumbnail?.childImages?.get(0)?.path
@@ -102,11 +119,10 @@ class CardPresenter : Presenter() {
                         .into(image)
                 }
 
-                Log.e("ERROR?", "Tag is ${video.tags.contentToString()}")
-
                 if (video.tags.isNotEmpty()) {
                     tagList.removeAllViews()
                     tagList.visibility = View.VISIBLE
+                    desc.maxLines = 1
 
                     video.tags.forEach { tag ->
                         TextView(rootView.context).apply {
@@ -115,12 +131,19 @@ class CardPresenter : Presenter() {
                             backgroundTintList =
                                 ColorStateList.valueOf(rootView.context.getTagColor(tag))
                             setPadding(8, 8, 8, 8)
+                            layoutParams = object : LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT) {
+
+                                override fun getMarginStart(): Int = 8
+
+                                override fun getMarginEnd(): Int = 8
+                            }
                             tagList.addView(this)
                         }
                     }
                 } else {
                     tagList.removeAllViews()
                     tagList.visibility = View.GONE
+                    desc.maxLines = 2
                 }
             }
         }

@@ -6,6 +6,8 @@
     android:layout_height="wrap_content"
     android:focusable="true"
     android:focusableInTouchMode="true"
+    android:paddingTop="0dp"
+    android:paddingBottom="8dp"
     tools:background="@color/default_background"
     tools:layout_gravity="center">
 
@@ -42,7 +44,6 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:paddingHorizontal="8dp"
-        android:paddingBottom="8dp"
         android:textSize="16sp"
         app:layout_constraintBottom_toTopOf="@+id/tags"
         app:layout_constraintEnd_toEndOf="parent"
@@ -53,11 +54,13 @@
     <LinearLayout
         android:id="@+id/tags"
         android:layout_width="0dp"
-        android:layout_height="40dp"
+        android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:paddingHorizontal="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/desc" />
+        app:layout_constraintTop_toBottomOf="@+id/desc"
+        tools:layout_height="40dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

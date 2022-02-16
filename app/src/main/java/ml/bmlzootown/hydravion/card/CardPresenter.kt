@@ -97,10 +97,10 @@ class CardPresenter : Presenter() {
 
                     if (videoDesc.isBlank()) {
                         desc.isInvisible = true
-                        title.textSize = 22f
+                        title.textSize = 20f
                     } else {
                         desc.isVisible = true
-                        title.textSize = 18f
+                        title.textSize = 16f
                     }
                 }
 

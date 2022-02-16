@@ -1,7 +1,9 @@
 package ml.bmlzootown.hydravion.card
 
+import android.content.SharedPreferences
 import android.content.res.ColorStateList
 import android.graphics.drawable.Drawable
+import android.preference.PreferenceManager
 import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
@@ -11,10 +13,12 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.text.parseAsHtml
+import androidx.core.view.isGone
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.leanback.widget.Presenter
 import com.bumptech.glide.Glide
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import ml.bmlzootown.hydravion.R
 import ml.bmlzootown.hydravion.ext.getTagColor
 import ml.bmlzootown.hydravion.models.Video
@@ -44,6 +48,7 @@ class CardPresenter : Presenter() {
          * Views
          */
         private val image: ImageView = rootView.findViewById(R.id.image)
+        private val progress: LinearProgressIndicator = rootView.findViewById(R.id.watch_progress)
         private val title: TextView = rootView.findViewById(R.id.title)
         private val desc: TextView = rootView.findViewById(R.id.desc)
         private val tagList: LinearLayout = rootView.findViewById(R.id.tags)
@@ -51,12 +56,14 @@ class CardPresenter : Presenter() {
         /**
          * Colors and objects that need context
          */
+        private lateinit var defaultPrefs: SharedPreferences
         private var selectedBackgroundColor: Int = -1
         private var defaultBackgroundColor: Int = -1
         private var defaultCardImage: Drawable? = null
 
         init {
             rootView.context.run {
+                defaultPrefs = PreferenceManager.getDefaultSharedPreferences(this)
                 defaultBackgroundColor = ContextCompat.getColor(this, R.color.default_background)
                 selectedBackgroundColor = ContextCompat.getColor(this, R.color.selected_background)
 
@@ -116,13 +123,27 @@ class CardPresenter : Presenter() {
                         .into(image)
                 }
 
+                video.metadata?.videoDurationInSecs?.let { totalDurationSecs ->
+                    defaultPrefs.getLong(video.id, 0).let { watchedMs ->
+                        if (watchedMs <= 0) {
+                            progress.isGone = true
+                        } else {
+                            progress.isVisible = true
+                            progress.min = 0
+                            progress.max = (totalDurationSecs * 1000) // to get in milliseconds like watch time
+                            progress.progress = watchedMs.toInt()
+                        }
+                    }
+                } ?: run { progress.isGone = true }
+
                 if (video.tags.isNotEmpty()) {
                     tagList.removeAllViews()
                     tagList.visibility = View.VISIBLE
                     desc.maxLines = 1
 
                     video.tags.forEach { tag ->
-                        (LayoutInflater.from(rootView.context).inflate(R.layout.view_tag, tagList, false) as TextView).apply {
+                        (LayoutInflater.from(rootView.context)
+                            .inflate(R.layout.view_tag, tagList, false) as TextView).apply {
                             text = "#$tag"
                             backgroundTintList = ColorStateList.valueOf(rootView.context.getTagColor(tag))
                             tagList.addView(this)

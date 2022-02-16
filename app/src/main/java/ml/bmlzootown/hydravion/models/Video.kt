@@ -80,6 +80,10 @@ class Video : Serializable {
     @Expose
     var videoInfo: VideoInfo? = null
 
+    @SerializedName("metadata")
+    @Expose
+    var metadata: VideoMetaData? = null
+
     fun getVideoId(): String = attachmentIds.firstOrNull() ?: guid
 
     override fun toString(): String =

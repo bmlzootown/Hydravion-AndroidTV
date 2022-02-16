@@ -88,6 +88,7 @@ public class MainFragment extends BrowseSupportFragment {
     //private static List<Video> streams = new ArrayList<>();
     private static NavigableMap<Integer, Video> strms = new TreeMap<>();
     public static HashMap<String, ArrayList<Video>> videos = new HashMap<>();
+    public static BrowseSupportFragment bsf;
     private int subCount;
     private int page = 1;
 
@@ -101,6 +102,7 @@ public class MainFragment extends BrowseSupportFragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         //Log.i(TAG, "onCreate");
         super.onActivityCreated(savedInstanceState);
+        bsf = this;
         client = HydravionClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
         socketClient = SocketClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
         checkLogin();

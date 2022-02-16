@@ -120,6 +120,7 @@ public class PlaybackActivity extends FragmentActivity {
         super.onPause();
 
         if (Util.SDK_INT <= 23) {
+            saveVideoPosition();
             releasePlayer();
         }
     }
@@ -263,6 +264,7 @@ public class PlaybackActivity extends FragmentActivity {
             public void onPlaybackStateChanged(int state) {
                 Log.d("STATE", state + "");
                 if (state == Player.STATE_ENDED) {
+                    saveVideoPosition();
                     releasePlayer();
                 }
             }

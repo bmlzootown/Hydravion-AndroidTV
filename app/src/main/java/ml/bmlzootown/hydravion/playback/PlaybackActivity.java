@@ -158,7 +158,7 @@ public class PlaybackActivity extends FragmentActivity {
     }
 
     private void setupLikeAndDislike() {
-        client.getPost(video.getPrimaryBlogPost(), post -> {
+        client.getPost(video.getId(), post -> {
             if (!post.getUserInteractions().isEmpty()) {
                 if (post.isLiked()) {
                     like.setImageResource(R.drawable.ic_like);
@@ -170,7 +170,7 @@ public class PlaybackActivity extends FragmentActivity {
             return Unit.INSTANCE;
         });
 
-        like.setOnClickListener(v -> client.toggleLikePost(video.getPrimaryBlogPost(), liked -> {
+        like.setOnClickListener(v -> client.toggleLikePost(video.getId(), liked -> {
             if (liked) {
                 like.setImageResource(R.drawable.ic_like);
             } else {
@@ -180,7 +180,7 @@ public class PlaybackActivity extends FragmentActivity {
             dislike.setImageResource(R.drawable.ic_dislike_unselected);
             return Unit.INSTANCE;
         }));
-        dislike.setOnClickListener(v -> client.toggleDislikePost(video.getPrimaryBlogPost(), disliked -> {
+        dislike.setOnClickListener(v -> client.toggleDislikePost(video.getId(), disliked -> {
             if (disliked) {
                 dislike.setImageResource(R.drawable.ic_dislike);
             } else {

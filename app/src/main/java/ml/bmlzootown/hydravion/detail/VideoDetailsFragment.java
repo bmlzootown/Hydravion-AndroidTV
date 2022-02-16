@@ -40,8 +40,6 @@ import com.google.gson.Gson;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import kotlin.Unit;
 import ml.bmlzootown.hydravion.R;
@@ -153,20 +151,14 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
 
         ArrayObjectAdapter actionAdapter = new ArrayObjectAdapter();
 
-        actionAdapter.add(
-                new Action(
-                        ACTION_PLAY,
-                        getString(R.string.play)));
+        actionAdapter.add(new Action(ACTION_PLAY, getString(R.string.play)));
 
         if (!mSelectedMovie.getType().equalsIgnoreCase("live")) {
             if (PreferenceManager.getDefaultSharedPreferences(requireContext()).getLong(mSelectedMovie.getGuid(), -1) != -1) {
                 actionAdapter.add(new Action(ACTION_RESUME, getString(R.string.action_resume)));
             }
 
-            actionAdapter.add(
-                    new Action(
-                            ACTION_RES,
-                            getString(R.string.resolutions)));
+            actionAdapter.add(new Action(ACTION_RES, getString(R.string.resolutions)));
         }
 
         row.setActionsAdapter(actionAdapter);

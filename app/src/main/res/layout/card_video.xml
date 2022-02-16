@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
+    android:layout_height="220dp"
     android:focusable="true"
     android:focusableInTouchMode="true"
     android:paddingTop="0dp"
@@ -13,14 +13,28 @@
 
     <ImageView
         android:id="@+id/image"
-        android:layout_width="313dp"
-        android:layout_height="176dp"
+        android:layout_width="220dp"
+        android:layout_height="130dp"
         app:layout_constraintBottom_toTopOf="@+id/title"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:scaleType="centerCrop"
         tools:src="@tools:sample/backgrounds/scenic" />
+
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/watch_progress"
+        style="@style/Widget.MaterialComponents.LinearProgressIndicator"
+        android:layout_width="0dp"
+        android:layout_height="4dp"
+        app:indicatorColor="@android:color/holo_blue_dark"
+        app:layout_constraintBottom_toBottomOf="@+id/image"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:trackColor="@color/colorAccent"
+        tools:max="100"
+        tools:min="0"
+        tools:progress="88" />
 
     <TextView
         android:id="@+id/title"
@@ -29,7 +43,7 @@
         android:maxLines="1"
         android:paddingHorizontal="8dp"
         android:paddingTop="8dp"
-        android:textSize="18sp"
+        android:textSize="16sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toTopOf="@+id/desc"
         app:layout_constraintEnd_toEndOf="parent"
@@ -44,7 +58,7 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:paddingHorizontal="8dp"
-        android:textSize="16sp"
+        android:textSize="14sp"
         app:layout_constraintBottom_toTopOf="@+id/tags"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

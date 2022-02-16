@@ -663,10 +663,10 @@ public class MainFragment extends BrowseSupportFragment {
         new AlertDialog.Builder(getContext())
                 .setTitle("Hydravion (AndroidTV)")
                 .setMessage("Version: " + version + "\n\n" +
-                            "Contributors:\n" +
-                            "- bmlzootown\n" +
-                            "- NickM-27\n" +
-                            "- Jman012\n")
+                        "Contributors:\n" +
+                        "- bmlzootown\n" +
+                        "- NickM-27\n" +
+                        "- Jman012\n")
                 //.setPositiveButton("OKAY", null)
                 .create()
                 .show();

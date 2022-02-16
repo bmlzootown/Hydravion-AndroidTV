@@ -22,6 +22,20 @@
         tools:scaleType="centerCrop"
         tools:src="@tools:sample/backgrounds/scenic" />
 
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/watch_progress"
+        style="@style/Widget.MaterialComponents.LinearProgressIndicator"
+        android:layout_width="0dp"
+        android:layout_height="4dp"
+        app:indicatorColor="@android:color/holo_blue_dark"
+        app:layout_constraintBottom_toBottomOf="@+id/image"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:trackColor="@color/colorAccent"
+        tools:max="100"
+        tools:min="0"
+        tools:progress="88" />
+
     <TextView
         android:id="@+id/title"
         android:layout_width="0dp"

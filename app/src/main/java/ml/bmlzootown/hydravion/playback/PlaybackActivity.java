@@ -157,7 +157,6 @@ public class PlaybackActivity extends FragmentActivity {
         }
     }
 
-
     private void setupLikeAndDislike() {
         client.getPost(video.getPrimaryBlogPost(), post -> {
             if (!post.getUserInteractions().isEmpty()) {

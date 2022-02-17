@@ -18,4 +18,12 @@ class Post {
 
     @SerializedName("userInteraction")
     var userInteractions: List<String> = emptyList()
+
+    @SerializedName("videoAttachments")
+    var videoAttachments: List<VideoAttachments> = emptyList()
 }
+
+class VideoAttachments (
+    @SerializedName("guid")
+    var guid : String = ""
+)

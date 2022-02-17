@@ -20,7 +20,6 @@ import androidx.leanback.app.BackgroundManager;
 import androidx.leanback.app.BrowseSupportFragment;
 import androidx.leanback.widget.ArrayObjectAdapter;
 import androidx.leanback.widget.HeaderItem;
-import androidx.leanback.widget.ImageCardView;
 import androidx.leanback.widget.ListRow;
 import androidx.leanback.widget.ListRowPresenter;
 import androidx.leanback.widget.Presenter;
@@ -605,29 +604,25 @@ public class MainFragment extends BrowseSupportFragment {
 
     private Unit onVideoSelected(@Nullable Presenter.ViewHolder itemViewHolder, @NonNull Video video) {
         if (itemViewHolder != null) {
-            if (video.getType().equalsIgnoreCase("live")) {
-                Intent intent = new Intent(getActivity(), DetailsActivity.class);
-                intent.putExtra(DetailsActivity.Video, video);
+            // Get intent to switch to DetailActivity ready
+            Intent intent = new Intent(getActivity(), DetailsActivity.class);
 
-                Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
-                        requireActivity(),
-                        ((ImageCardView) itemViewHolder.view).getMainImageView(),
-                        DetailsActivity.SHARED_ELEMENT_NAME)
-                        .toBundle();
+            // Setup transition animation to detail screen
+            Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
+                    requireActivity(),
+                    itemViewHolder.view.findViewById(R.id.image),
+                    DetailsActivity.SHARED_ELEMENT_NAME)
+                    .toBundle();
+
+            if (video.getType().equalsIgnoreCase("live")) {
+                intent.putExtra(DetailsActivity.Video, video);
                 requireActivity().startActivity(intent, bundle);
             } else {
                 client.getVideoInfo(video.getVideoId(), videoInfo -> {
                     String res = getHighestSupportedRes(videoInfo);
                     client.getVideo(video, res, newVideo -> {
                         newVideo.setVideoInfo(videoInfo);
-                        Intent intent = new Intent(getActivity(), DetailsActivity.class);
                         intent.putExtra(DetailsActivity.Video, newVideo);
-
-                        Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
-                                requireActivity(),
-                                itemViewHolder.view.findViewById(R.id.image),
-                                DetailsActivity.SHARED_ELEMENT_NAME)
-                                .toBundle();
                         requireActivity().startActivity(intent, bundle);
                         return Unit.INSTANCE;
                     });

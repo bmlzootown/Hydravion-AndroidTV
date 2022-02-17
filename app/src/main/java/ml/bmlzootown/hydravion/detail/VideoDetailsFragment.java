@@ -193,24 +193,11 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                 intent.putExtra(DetailsActivity.Resume, true);
                 startActivity(intent);
             } else if (action.getId() == ACTION_RES) {
-                String uri = "https://www.floatplane.com/api/video/info?videoGUID=" + mSelectedMovie.getGuid();
-                Log.d("SELECTED VIDEO --> URL", uri);
-                //String cookies = "__cfduid=" + MainFragment.cfduid + "; sails.sid=" + MainFragment.sailssid;
-                String cookies = "sails.sid=" + MainFragment.sailssid;
-                RequestTask rt = new RequestTask(getActivity().getApplicationContext());
-                rt.sendRequest(uri, cookies, new RequestTask.VolleyCallback() {
-                    @Override
-                    public void onResponseCode(int response) {
-
-                    }
-
-                    @Override
-                    public void onSuccess(String string) {
-                        //gotSubscriptions(string);
-                        Gson gson = new Gson();
-                        VideoInfo info = gson.fromJson(string, VideoInfo.class);
-                        if (info != null) {
-                            List<Level> levels = info.getLevels();
+                client.getPost(mSelectedMovie.getGuid(), post -> {
+                    String guid = post.getVideoAttachments().get(0).getGuid();
+                    if (!guid.isEmpty()) {
+                        client.getVideoInfo(guid, videoInfo -> {
+                            List<Level> levels = videoInfo.getLevels();
                             List<String> resolutions = new ArrayList<>();
                             for (Level l : levels) {
                                 resolutions.add(l.getName());
@@ -219,33 +206,22 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
 
                             AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
                             builder.setTitle("Resolutions");
-                            builder.setItems(res,
-                                    new DialogInterface.OnClickListener() {
-                                        @Override
-                                        public void onClick(DialogInterface dialog, int which) {
-                                            String res = resolutions.get(which);
+                            builder.setItems(res, (dialog, which) -> {
+                                        String res1 = resolutions.get(which);
 
-                                            HydravionClient client = HydravionClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
-                                            client.getVideo(mSelectedMovie, res, newVideo -> {
-                                                mSelectedMovie.setVidUrl(newVideo.getVidUrl());
-                                                Intent intent = new Intent(getActivity(), PlaybackActivity.class);
-                                                intent.putExtra(DetailsActivity.Video, (Serializable) mSelectedMovie);
-                                                startActivity(intent);
-                                                return Unit.INSTANCE;
-                                            });
-                                        }
+                                        client.getVideo(mSelectedMovie, res1, newVideo -> {
+                                            mSelectedMovie.setVidUrl(newVideo.getVidUrl());
+                                            Intent intent = new Intent(getActivity(), PlaybackActivity.class);
+                                            intent.putExtra(DetailsActivity.Video, (Serializable) mSelectedMovie);
+                                            startActivity(intent);
+                                            return Unit.INSTANCE;
+                                        });
                                     });
                             builder.create().show();
-                        }
+                            return Unit.INSTANCE;
+                        });
                     }
-
-                    @Override
-                    public void onSuccessCreator(String string, String creatorGUID) {
-                    }
-
-                    @Override
-                    public void onError(VolleyError error) {
-                    }
+                    return Unit.INSTANCE;
                 });
             } else {
                 Toast.makeText(getActivity(), action.toString(), Toast.LENGTH_SHORT).show();
@@ -270,7 +246,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                 Bundle bundle =
                         ActivityOptionsCompat.makeSceneTransitionAnimation(
                                 getActivity(),
-                                ((ImageCardView) itemViewHolder.view).getMainImageView(),
+                                itemViewHolder.view.findViewById(R.id.image),
                                 DetailsActivity.SHARED_ELEMENT_NAME)
                                 .toBundle();
                 getActivity().startActivity(intent, bundle);

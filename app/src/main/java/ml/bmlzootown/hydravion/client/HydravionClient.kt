@@ -182,9 +182,9 @@ class HydravionClient private constructor(private val context: Context, private 
             })
     }
 
-    fun getVideoInfo(postId: String, callback: (VideoInfo) -> Unit) {
+    fun getVideoInfo(videoID: String, callback: (VideoInfo) -> Unit) {
         RequestTask(context).sendRequest(
-            "$URI_VIDEO_INFO?id=$postId",
+            "$URI_VIDEO_INFO?id=$videoID",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
 
@@ -390,17 +390,19 @@ class HydravionClient private constructor(private val context: Context, private 
     companion object {
 
         private const val TAG = "HydravionClient"
+        // TODO Update to v3 API
         private const val URI_SUBSCRIPTIONS = "https://www.floatplane.com/api/user/subscriptions"
         private const val URI_CREATOR_INFO = "https://www.floatplane.com/api/creator/info"
-        private const val URI_VIDEOS = "https://www.floatplane.com/api/v3/content/creator"
-        private const val URI_SELECT_VIDEO = "https://www.floatplane.com/api/video/url"
-        private const val URI_VIDEO_OBJECT = "https://www.floatplane.com/api/v3/content/info"
-        private const val URI_VIDEO_INFO = "https://www.floatplane.com/api/v3/content/video"
         private const val URI_LIVE = "https://www.floatplane.com/api/cdn/delivery"
         private const val URI_CDNS = "https://www.floatplane.com/api/edges"
+        // Already updated!
+        private const val URI_VIDEOS = "https://www.floatplane.com/api/v3/content/creator"
+        private const val URI_VIDEO_OBJECT = "https://www.floatplane.com/api/v3/content/info"
+        private const val URI_VIDEO_INFO = "https://www.floatplane.com/api/v3/content/video"
         private const val URI_POST = "https://www.floatplane.com/api/v3/content/post"
         private const val URI_LIKE = "https://www.floatplane.com/api/v3/content/like"
         private const val URI_DISLIKE = "https://www.floatplane.com/api/v3/content/dislike"
+
         private const val LATEST = "https://api.github.com/repos/bmlzootown/Hydravion-AndroidTV/releases/latest"
         private var INSTANCE: HydravionClient? = null
 

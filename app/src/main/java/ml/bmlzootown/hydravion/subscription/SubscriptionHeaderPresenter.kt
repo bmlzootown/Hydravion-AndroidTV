@@ -10,6 +10,8 @@ import androidx.leanback.widget.ListRow
 import androidx.leanback.widget.Presenter
 import androidx.leanback.widget.RowHeaderPresenter
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.model.GlideUrl
+import com.bumptech.glide.load.model.LazyHeaders
 import com.bumptech.glide.request.RequestOptions
 import ml.bmlzootown.hydravion.R
 import ml.bmlzootown.hydravion.client.HydravionClient
@@ -36,7 +38,13 @@ class SubscriptionHeaderPresenter : RowHeaderPresenter() {
                     subView.findViewById<TextView>(R.id.header_sub).text = name
                     client?.getCreatorByName(name) { creator ->
                         Glide.with(subView)
-                            .load(creator.icon?.path)
+                            .load(
+                                GlideUrl(
+                                    creator.icon?.path, LazyHeaders.Builder()
+                                        .addHeader("User-Agent", "Hydravion (AndroidTV), CFNetwork")
+                                        .build()
+                                )
+                            )
                             .apply(RequestOptions.circleCropTransform())
                             .into(subView.findViewById(R.id.header_icon))
                     }

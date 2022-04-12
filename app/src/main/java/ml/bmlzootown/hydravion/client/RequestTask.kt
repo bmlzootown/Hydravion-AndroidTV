@@ -42,6 +42,7 @@ class RequestTask(context: Context) {
                 val params: MutableMap<String, String> = HashMap()
                 params["Cookie"] = cookies
                 params["Accept"] = "application/json"
+                params["User-Agent"] = "Hydravion (AndroidTV), CFNetwork"
                 return params
             }
         }
@@ -66,7 +67,8 @@ class RequestTask(context: Context) {
             override fun getHeaders(): Map<String, String> =
                 mapOf(
                     "Cookie" to cookies,
-                    "Accept" to ACCEPT_JSON
+                    "Accept" to ACCEPT_JSON,
+                    "User-Agent" to "Hydravion (AndroidTV), CFNetwork"
                 )
         }
         volleyQueue.add(stringRequest)
@@ -86,7 +88,8 @@ class RequestTask(context: Context) {
             override fun getHeaders(): Map<String, String> =
                 mapOf(
                     "Cookie" to cookies,
-                    "Accept" to ACCEPT_JSON
+                    "Accept" to ACCEPT_JSON,
+                    "User-Agent" to "Hydravion (AndroidTV), CFNetwork"
                 )
         }
         volleyQueue.add(stringRequest)

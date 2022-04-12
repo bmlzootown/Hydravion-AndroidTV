@@ -95,6 +95,7 @@ public class LoginRequestTask {
                     cs.append(c).append(";");
                 }
                 params.put("Cookie", cs.toString());
+                params.put("User-Agent", "Hydravion (AndroidTV), CFNetwork");
                 params.put("Accept", "application/json");
                 return params;
             }

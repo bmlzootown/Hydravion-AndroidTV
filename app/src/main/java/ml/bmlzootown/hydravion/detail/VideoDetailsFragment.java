@@ -32,6 +32,8 @@ import androidx.leanback.widget.RowPresenter;
 
 import com.android.volley.VolleyError;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.model.GlideUrl;
+import com.bumptech.glide.load.model.LazyHeaders;
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
@@ -106,7 +108,10 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
         client.getCreatorById(mSelectedMovie.getCreator().getId(), creator -> {
             Glide.with(requireActivity())
                     .asBitmap()
-                    .load(creator.getCoverImage().getPath())
+                    .load(new GlideUrl(creator.getCoverImage().getPath(), new LazyHeaders.Builder()
+                            .addHeader("User-Agent", "Hydravion (AndroidTV), CFNetwork")
+                            .build())
+                        )
                     .override(1800, 519)
                     .centerCrop()
                     .error(R.drawable.default_background)
@@ -131,7 +136,10 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
         final DetailsOverviewRow row = new DetailsOverviewRow(mSelectedMovie);
         row.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.default_background));
         Glide.with(requireActivity())
-                .load(mSelectedMovie.getThumbnail().getPath())
+                .load(new GlideUrl(mSelectedMovie.getThumbnail().getPath(), new LazyHeaders.Builder()
+                        .addHeader("User-Agent", "Hydravion (AndroidTV), CFNetwork")
+                        .build())
+                )
                 .centerCrop()
                 .transform(new RoundedCorners(48))
                 .error(R.drawable.default_background)

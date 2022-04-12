@@ -2,7 +2,6 @@ package ml.bmlzootown.hydravion.creator
 
 import androidx.annotation.Keep
 import com.google.gson.annotations.SerializedName
-import ml.bmlzootown.hydravion.models.Live
 
 @Keep
 class Creator {

@@ -33,6 +33,7 @@ class SocketClient private constructor(private val context: Context, private val
         val heads = mutableMapOf<String, List<String>>()
         heads["Origin"] = listOf("https://www.floatplane.com")
         heads["Cookie"] = listOf(getCookiesString())
+        heads["User-Agent"] = listOf("Hydravion (AndroidTV), CFNetwork")
 
         val okHttpClient = OkHttpClient.Builder().build()
         IO.setDefaultOkHttpWebSocketFactory(okHttpClient)
@@ -58,6 +59,7 @@ class SocketClient private constructor(private val context: Context, private val
                 // Modify Request Headers
                 headers["Origin"] = listOf("https://www.floatplane.com")
                 headers["Cookie"] = listOf(getCookiesString())
+                headers["User-Agent"] = listOf("Hydravion (AndroidTV), CFNetwork")
                 MainFragment.dLog("$TAG --> MODIFYING HEADERS", headers.toString())
             }
             transport.on(Transport.EVENT_RESPONSE_HEADERS){

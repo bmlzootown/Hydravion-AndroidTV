@@ -3,7 +3,7 @@ package ml.bmlzootown.hydravion.card
 import android.content.SharedPreferences
 import android.content.res.ColorStateList
 import android.graphics.drawable.Drawable
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
@@ -18,6 +18,8 @@ import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.leanback.widget.Presenter
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.model.GlideUrl
+import com.bumptech.glide.load.model.LazyHeaders
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import ml.bmlzootown.hydravion.R
 import ml.bmlzootown.hydravion.ext.getTagColor
@@ -56,7 +58,7 @@ class CardPresenter : Presenter() {
         /**
          * Colors and objects that need context
          */
-        private lateinit var defaultPrefs: SharedPreferences
+        private var defaultPrefs: SharedPreferences
         private var selectedBackgroundColor: Int = -1
         private var defaultBackgroundColor: Int = -1
         private var defaultCardImage: Drawable? = null
@@ -117,7 +119,14 @@ class CardPresenter : Presenter() {
                     video.thumbnail?.path
                 })?.let { thumbnail ->
                     Glide.with(rootView.context)
-                        .load(thumbnail)
+                        //.load(thumbnail)
+                        .load(
+                            GlideUrl(
+                                thumbnail, LazyHeaders.Builder()
+                                    .addHeader("User-Agent", "Hydravion (AndroidTV), CFNetwork")
+                                    .build()
+                            )
+                        )
                         .centerCrop()
                         .error(defaultCardImage)
                         .into(image)

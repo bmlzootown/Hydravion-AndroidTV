@@ -37,6 +37,7 @@ import com.google.android.exoplayer2.extractor.ts.DefaultTsPayloadReaderFactory;
 import com.google.android.exoplayer2.source.hls.DefaultHlsExtractorFactory;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.ui.PlayerView;
+import com.google.android.exoplayer2.ui.StyledPlayerView;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 
@@ -58,7 +59,7 @@ public class PlaybackActivity extends FragmentActivity {
     private HydravionClient client;
     private SharedPreferences defaultPrefs;
 
-    private PlayerView playerView;
+    private StyledPlayerView playerView;
     private ImageView like;
     private ImageView dislike;
     private ImageView menu;
@@ -175,7 +176,7 @@ public class PlaybackActivity extends FragmentActivity {
     @Override
     public void onBackPressed() {
         // Hide the
-        if (playerView.isControllerVisible()) {
+        if (playerView.isControllerFullyVisible()) {
             //playerView.hideController();
             if (exo_playback_menu.getVisibility() == View.VISIBLE) {
                 playerView.hideController();

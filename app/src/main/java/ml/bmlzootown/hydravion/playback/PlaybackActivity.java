@@ -112,6 +112,10 @@ public class PlaybackActivity extends FragmentActivity {
                 exo_settings_menu.setVisibility(View.GONE);
             }
         });
+
+        // setup media session
+        mediaSession = new MediaSessionCompat(this, getPackageName());
+        mediaController = new MediaSessionConnector(mediaSession);
     }
 
     @Override
@@ -300,10 +304,6 @@ public class PlaybackActivity extends FragmentActivity {
         MediaItem mi = MediaItem.fromUri(url);
         HlsMediaSource hlsMediaSource = new HlsMediaSource.Factory(dataSourceFactory).setExtractorFactory(extractorFactory).createMediaSource(mi);
         player.setMediaSource(hlsMediaSource);
-
-        // setup media session
-        mediaSession = new MediaSessionCompat(this, getPackageName());
-        MediaSessionConnector mediaSessionConnector = new MediaSessionConnector(mediaSession);
 
         player.prepare();
 

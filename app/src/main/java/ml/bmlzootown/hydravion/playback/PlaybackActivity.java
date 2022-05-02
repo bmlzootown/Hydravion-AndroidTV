@@ -7,8 +7,10 @@ import static ml.bmlzootown.hydravion.browse.MainFragment.videos;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.media.session.MediaSession;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -30,10 +32,12 @@ import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector;
 import com.google.android.exoplayer2.extractor.ts.DefaultTsPayloadReaderFactory;
 import com.google.android.exoplayer2.source.hls.DefaultHlsExtractorFactory;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.ui.PlayerView;
+import com.google.android.exoplayer2.ui.StyledPlayerView;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 
@@ -55,7 +59,7 @@ public class PlaybackActivity extends FragmentActivity {
     private HydravionClient client;
     private SharedPreferences defaultPrefs;
 
-    private PlayerView playerView;
+    private StyledPlayerView playerView;
     private ImageView like;
     private ImageView dislike;
     private ImageView menu;
@@ -63,6 +67,8 @@ public class PlaybackActivity extends FragmentActivity {
     private LinearLayout exo_playback_menu;
     private LinearLayout exo_settings_menu;
     private ExoPlayer player;
+    private MediaSessionCompat mediaSession;
+    private MediaSessionConnector mediaController;
 
     private boolean playWhenReady = true;
     private int currentWindow = 0;
@@ -107,6 +113,10 @@ public class PlaybackActivity extends FragmentActivity {
                 exo_settings_menu.setVisibility(View.GONE);
             }
         });
+
+        // setup media session
+        mediaSession = new MediaSessionCompat(this, getPackageName());
+        mediaController = new MediaSessionConnector(mediaSession);
     }
 
     @Override
@@ -115,6 +125,8 @@ public class PlaybackActivity extends FragmentActivity {
 
         if (Util.SDK_INT > 23) {
             initializePlayer();
+            mediaController.setPlayer(player);
+            mediaSession.setActive(true);
         }
     }
 
@@ -124,6 +136,8 @@ public class PlaybackActivity extends FragmentActivity {
 
         if (Util.SDK_INT <= 23 || player == null) {
             initializePlayer();
+            mediaController.setPlayer(player);
+            mediaSession.setActive(true);
         }
     }
 
@@ -132,6 +146,8 @@ public class PlaybackActivity extends FragmentActivity {
         super.onPause();
 
         if (Util.SDK_INT <= 23) {
+            mediaController.setPlayer(null);
+            mediaSession.setActive(false);
             saveVideoPosition();
             releasePlayer();
         }
@@ -142,6 +158,8 @@ public class PlaybackActivity extends FragmentActivity {
         super.onStop();
 
         if (Util.SDK_INT > 23) {
+            mediaController.setPlayer(null);
+            mediaSession.setActive(false);
             quickRefreshRows();
             saveVideoPosition();
             releasePlayer();
@@ -158,7 +176,7 @@ public class PlaybackActivity extends FragmentActivity {
     @Override
     public void onBackPressed() {
         // Hide the
-        if (playerView.isControllerVisible()) {
+        if (playerView.isControllerFullyVisible()) {
             //playerView.hideController();
             if (exo_playback_menu.getVisibility() == View.VISIBLE) {
                 playerView.hideController();
@@ -287,8 +305,6 @@ public class PlaybackActivity extends FragmentActivity {
         MediaItem mi = MediaItem.fromUri(url);
         HlsMediaSource hlsMediaSource = new HlsMediaSource.Factory(dataSourceFactory).setExtractorFactory(extractorFactory).createMediaSource(mi);
         player.setMediaSource(hlsMediaSource);
-        //MediaItem mediaItem = MediaItem.fromUri("https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4");
-        //player.setMediaItem(mediaItem);
 
         player.prepare();
 

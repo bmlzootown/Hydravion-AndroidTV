@@ -59,7 +59,7 @@ public class PlaybackActivity extends FragmentActivity {
     private HydravionClient client;
     private SharedPreferences defaultPrefs;
 
-    private StyledPlayerView playerView;
+    private PlayerView playerView;
     private ImageView like;
     private ImageView dislike;
     private ImageView menu;
@@ -169,7 +169,7 @@ public class PlaybackActivity extends FragmentActivity {
     @Override
     public void onBackPressed() {
         // Hide the menu
-        if (playerView.isControllerFullyVisible()) {
+        if (playerView.isControllerVisible()) {
             if (exo_playback_menu.getVisibility() == View.VISIBLE) {
                 playerView.hideController();
             } else {
@@ -249,6 +249,10 @@ public class PlaybackActivity extends FragmentActivity {
         }));
     }
 
+    private void setupPlayPause() {
+
+    }
+
     private void setupMenu() {
         // Show settings menu
         menu.setOnClickListener(v -> {
@@ -292,7 +296,6 @@ public class PlaybackActivity extends FragmentActivity {
         dataSourceFactory.setDefaultRequestProperties(cookieMap);
         int flags = DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES | DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS;
         DefaultHlsExtractorFactory extractorFactory = new DefaultHlsExtractorFactory(flags, true);
-        //url = "https://cdn-vod-drm2.floatplane.com/Videos/CyKnsF4ZuT/2160.mp4/chunk.m3u8?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZXNzb3VyY2VQYXRoIjoiL1ZpZGVvcy9DeUtuc0Y0WnVULzIxNjAubXA0L2NodW5rLm0zdTgiLCJ1c2VySWQiOiI2MGU5MGUxYjgwMGM0NTE2YzQzYzU0ZTQiLCJpYXQiOjE2MjU5MzQ2MDQsImV4cCI6MTYyNTk1NjIwNH0.BUazqG_Pgd9ribOQ2jyQoLg9QiX77bC6ToGurfFo_pQ";
         MediaItem mi = MediaItem.fromUri(url);
         HlsMediaSource hlsMediaSource = new HlsMediaSource.Factory(dataSourceFactory).setExtractorFactory(extractorFactory).createMediaSource(mi);
         player.setMediaSource(hlsMediaSource);
@@ -317,9 +320,15 @@ public class PlaybackActivity extends FragmentActivity {
             @Override
             public void onPlaybackStateChanged(int state) {
                 Log.d("STATE", state + "");
-                if (state == Player.STATE_ENDED) {
-                    saveVideoPosition();
-                    releasePlayer();
+                switch (state) {
+                    case Player.STATE_READY:
+                        break;
+                    case Player.STATE_ENDED:
+                        saveVideoPosition();
+                        releasePlayer();
+                        break;
+                    default:
+                        break;
                 }
             }
         });
@@ -336,21 +345,10 @@ public class PlaybackActivity extends FragmentActivity {
             playWhenReady = player.getPlayWhenReady();
             playbackPosition = player.getCurrentPosition();
             currentWindow = player.getCurrentMediaItemIndex();
-            //player.removeListener((Player.EventListener) this);
             player.stop();
             player.release();
             player = null;
             this.finish();
         }
-    }
-
-    @SuppressLint("InlinedApi")
-    private void hideSystemUi() {
-        playerView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
-                | View.SYSTEM_UI_FLAG_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
     }
 }

@@ -83,17 +83,10 @@ public class PlaybackActivity extends FragmentActivity {
         client = HydravionClient.Companion.getInstance(this, getPreferences(Context.MODE_PRIVATE));
         defaultPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         setContentView(R.layout.activity_player);
-        /*if (savedInstanceState == null) {
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(android.R.id.content, new PlaybackVideoFragment())
-                    .commit();
-        }*/
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         final Video video = (Video) getIntent().getSerializableExtra(DetailsActivity.Video);
         this.video = video;
-        //url = video.getVidUrl().replaceAll("Edge01-na.floatplane.com", "edge03-na.floatplane.com");
         url = video.getVidUrl().replaceAll("Edge01-na.floatplane.com", MainFragment.cdn);
 
         playerView = findViewById(R.id.exoplayer);
@@ -175,9 +168,8 @@ public class PlaybackActivity extends FragmentActivity {
 
     @Override
     public void onBackPressed() {
-        // Hide the
+        // Hide the menu
         if (playerView.isControllerFullyVisible()) {
-            //playerView.hideController();
             if (exo_playback_menu.getVisibility() == View.VISIBLE) {
                 playerView.hideController();
             } else {
@@ -215,7 +207,6 @@ public class PlaybackActivity extends FragmentActivity {
         ArrayObjectAdapter gridRowAdapter = new ArrayObjectAdapter(mGridPresenter);
         gridRowAdapter.add(getResources().getString(R.string.refresh));
         gridRowAdapter.add(getResources().getString(R.string.live_stream));
-        //gridRowAdapter.add(getResources().getString(R.string.select_server));
         gridRowAdapter.add(getResources().getString(R.string.app_info));
         gridRowAdapter.add(getResources().getString(R.string.logout));
         rowsAdapter.add(new ListRow(gridHeader, gridRowAdapter));

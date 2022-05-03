@@ -158,7 +158,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                 });
 
         ArrayObjectAdapter actionAdapter = new ArrayObjectAdapter();
-        boolean isLive =  mSelectedMovie.getType().equalsIgnoreCase("live")
+        boolean isLive =  mSelectedMovie.getType().equalsIgnoreCase("live");
 
         // add RESUME first so it is the default
         if (!isLive) {

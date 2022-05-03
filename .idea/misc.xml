@@ -3,14 +3,18 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/bmlzootown/AndroidStudioProjects/Hydravion-AndroidTV-test/app/src/main/res/layout/card_video.xml" value="0.31040564373897706" />
+        <entry key="..\:/Users/bmlzootown/AndroidStudioProjects/Hydravion-AndroidTV/app/src/main/res/layout/card_video.xml" value="0.31040564373897706" />
         <entry key="app/src/main/res/drawable/bg_chip.xml" value="0.2605" />
         <entry key="app/src/main/res/drawable/default_background.xml" value="0.2605" />
         <entry key="app/src/main/res/drawable/detail_accent.xml" value="0.2605" />
         <entry key="app/src/main/res/drawable/detail_accent_selected.xml" value="0.2605" />
         <entry key="app/src/main/res/layout/activity_details.xml" value="0.2484375" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.2484375" />
+        <entry key="app/src/main/res/layout/activity_player.xml" value="0.24791666666666667" />
         <entry key="app/src/main/res/layout/card_tag.xml" value="0.3" />
         <entry key="app/src/main/res/layout/card_video.xml" value="0.3" />
+        <entry key="app/src/main/res/layout/view_exo_controller.xml" value="0.24791666666666667" />
         <entry key="app/src/main/res/layout/view_tag.xml" value="0.3" />
       </map>
     </option>

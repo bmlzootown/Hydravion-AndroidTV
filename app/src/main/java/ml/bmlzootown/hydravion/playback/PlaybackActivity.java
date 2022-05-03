@@ -249,10 +249,6 @@ public class PlaybackActivity extends FragmentActivity {
         }));
     }
 
-    private void setupPlayPause() {
-
-    }
-
     private void setupMenu() {
         // Show settings menu
         menu.setOnClickListener(v -> {

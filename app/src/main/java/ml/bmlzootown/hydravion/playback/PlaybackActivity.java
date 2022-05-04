@@ -7,7 +7,6 @@ import static ml.bmlzootown.hydravion.browse.MainFragment.videos;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.media.session.MediaSession;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.media.session.MediaSessionCompat;
@@ -37,7 +36,6 @@ import com.google.android.exoplayer2.extractor.ts.DefaultTsPayloadReaderFactory;
 import com.google.android.exoplayer2.source.hls.DefaultHlsExtractorFactory;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.ui.PlayerView;
-import com.google.android.exoplayer2.ui.StyledPlayerView;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 
@@ -59,7 +57,7 @@ public class PlaybackActivity extends FragmentActivity {
     private HydravionClient client;
     private SharedPreferences defaultPrefs;
 
-    private StyledPlayerView playerView;
+    private PlayerView playerView;
     private ImageView like;
     private ImageView dislike;
     private ImageView menu;
@@ -83,17 +81,10 @@ public class PlaybackActivity extends FragmentActivity {
         client = HydravionClient.Companion.getInstance(this, getPreferences(Context.MODE_PRIVATE));
         defaultPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         setContentView(R.layout.activity_player);
-        /*if (savedInstanceState == null) {
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(android.R.id.content, new PlaybackVideoFragment())
-                    .commit();
-        }*/
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         final Video video = (Video) getIntent().getSerializableExtra(DetailsActivity.Video);
         this.video = video;
-        //url = video.getVidUrl().replaceAll("Edge01-na.floatplane.com", "edge03-na.floatplane.com");
         url = video.getVidUrl().replaceAll("Edge01-na.floatplane.com", MainFragment.cdn);
 
         playerView = findViewById(R.id.exoplayer);
@@ -175,9 +166,8 @@ public class PlaybackActivity extends FragmentActivity {
 
     @Override
     public void onBackPressed() {
-        // Hide the
-        if (playerView.isControllerFullyVisible()) {
-            //playerView.hideController();
+        // Hide the menu
+        if (playerView.isControllerVisible()) {
             if (exo_playback_menu.getVisibility() == View.VISIBLE) {
                 playerView.hideController();
             } else {
@@ -215,7 +205,6 @@ public class PlaybackActivity extends FragmentActivity {
         ArrayObjectAdapter gridRowAdapter = new ArrayObjectAdapter(mGridPresenter);
         gridRowAdapter.add(getResources().getString(R.string.refresh));
         gridRowAdapter.add(getResources().getString(R.string.live_stream));
-        //gridRowAdapter.add(getResources().getString(R.string.select_server));
         gridRowAdapter.add(getResources().getString(R.string.app_info));
         gridRowAdapter.add(getResources().getString(R.string.logout));
         rowsAdapter.add(new ListRow(gridHeader, gridRowAdapter));
@@ -301,7 +290,6 @@ public class PlaybackActivity extends FragmentActivity {
         dataSourceFactory.setDefaultRequestProperties(cookieMap);
         int flags = DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES | DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS;
         DefaultHlsExtractorFactory extractorFactory = new DefaultHlsExtractorFactory(flags, true);
-        //url = "https://cdn-vod-drm2.floatplane.com/Videos/CyKnsF4ZuT/2160.mp4/chunk.m3u8?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZXNzb3VyY2VQYXRoIjoiL1ZpZGVvcy9DeUtuc0Y0WnVULzIxNjAubXA0L2NodW5rLm0zdTgiLCJ1c2VySWQiOiI2MGU5MGUxYjgwMGM0NTE2YzQzYzU0ZTQiLCJpYXQiOjE2MjU5MzQ2MDQsImV4cCI6MTYyNTk1NjIwNH0.BUazqG_Pgd9ribOQ2jyQoLg9QiX77bC6ToGurfFo_pQ";
         MediaItem mi = MediaItem.fromUri(url);
         HlsMediaSource hlsMediaSource = new HlsMediaSource.Factory(dataSourceFactory).setExtractorFactory(extractorFactory).createMediaSource(mi);
         player.setMediaSource(hlsMediaSource);
@@ -326,9 +314,15 @@ public class PlaybackActivity extends FragmentActivity {
             @Override
             public void onPlaybackStateChanged(int state) {
                 Log.d("STATE", state + "");
-                if (state == Player.STATE_ENDED) {
-                    saveVideoPosition();
-                    releasePlayer();
+                switch (state) {
+                    case Player.STATE_READY:
+                        break;
+                    case Player.STATE_ENDED:
+                        saveVideoPosition();
+                        releasePlayer();
+                        break;
+                    default:
+                        break;
                 }
             }
         });
@@ -345,21 +339,10 @@ public class PlaybackActivity extends FragmentActivity {
             playWhenReady = player.getPlayWhenReady();
             playbackPosition = player.getCurrentPosition();
             currentWindow = player.getCurrentMediaItemIndex();
-            //player.removeListener((Player.EventListener) this);
             player.stop();
             player.release();
             player = null;
             this.finish();
         }
-    }
-
-    @SuppressLint("InlinedApi")
-    private void hideSystemUi() {
-        playerView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
-                | View.SYSTEM_UI_FLAG_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
     }
 }

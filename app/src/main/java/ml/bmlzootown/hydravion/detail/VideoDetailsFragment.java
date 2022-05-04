@@ -158,14 +158,18 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                 });
 
         ArrayObjectAdapter actionAdapter = new ArrayObjectAdapter();
+        boolean isLive =  mSelectedMovie.getType().equalsIgnoreCase("live");
 
-        actionAdapter.add(new Action(ACTION_PLAY, getString(R.string.play)));
-
-        if (!mSelectedMovie.getType().equalsIgnoreCase("live")) {
+        // add RESUME first so it is the default
+        if (!isLive) {
             if (PreferenceManager.getDefaultSharedPreferences(requireContext()).getLong(mSelectedMovie.getGuid(), -1) != -1) {
                 actionAdapter.add(new Action(ACTION_RESUME, getString(R.string.action_resume)));
             }
+        }
 
+        actionAdapter.add(new Action(ACTION_PLAY, getString(R.string.play)));
+
+        if (!isLive) {
             actionAdapter.add(new Action(ACTION_RES, getString(R.string.resolutions)));
         }
 

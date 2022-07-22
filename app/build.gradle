@@ -7,10 +7,11 @@ android {
 
     defaultConfig {
         applicationId "ml.bmlzootown.hydravion"
+
         minSdkVersion 26
         targetSdkVersion 31
         versionCode 1
-        versionName "1.4.4"
+        versionName "1.4.5"
 
     }
 

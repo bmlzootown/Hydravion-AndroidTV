@@ -1,5 +1,5 @@
 # Hydravion-AndroidTV
-Port (in progress) of Hydravion, an unofficial Floatplane client, for AndroidTV
+Rewrite of Hydravion, an unofficial Floatplane client, for AndroidTV
 
 Having issues? Got feedback? Join the [Discord server](https://discord.gg/4xKDGz5M5B)!
 

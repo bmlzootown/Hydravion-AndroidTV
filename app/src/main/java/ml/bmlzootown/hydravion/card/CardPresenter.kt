@@ -178,9 +178,8 @@ class CardPresenter : Presenter() {
             }
         }
 
-        fun formatDuration(durationSecs: Int) : String {
-            return DateUtils.formatElapsedTime(durationSecs.toLong())
-        }
+        fun formatDuration(durationSecs: Int) : String =
+            DateUtils.formatElapsedTime(durationSecs.toLong())
 
         fun unBind() {
             image.setImageDrawable(null)

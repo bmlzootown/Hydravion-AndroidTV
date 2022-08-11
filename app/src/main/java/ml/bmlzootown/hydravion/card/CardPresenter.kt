@@ -139,6 +139,7 @@ class CardPresenter : Presenter() {
                         duration.isGone = true
                     }
                     else {
+                        duration.isVisible = true
                         duration.text = formatDuration(totalDurationSecs)
                     }
                 } ?: run { duration.isGone = true }

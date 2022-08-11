@@ -21,6 +21,23 @@
         tools:scaleType="centerCrop"
         tools:src="@tools:sample/backgrounds/scenic" />
 
+    <TextView
+        android:id="@+id/duration"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="4dp"
+        android:layout_marginBottom="2dp"
+        android:background="@drawable/bg_duration_chip"
+        android:maxLines="1"
+        android:paddingVertical="0dp"
+        android:paddingHorizontal="2dp"
+        android:text="@tools:sample/date/hhmm"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:textColor="@color/chipTextColor"
+        app:layout_constraintBottom_toTopOf="@+id/watch_progress"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <com.google.android.material.progressindicator.LinearProgressIndicator
         android:id="@+id/watch_progress"
         style="@style/Widget.MaterialComponents.LinearProgressIndicator"

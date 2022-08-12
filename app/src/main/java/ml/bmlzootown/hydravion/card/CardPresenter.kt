@@ -5,6 +5,7 @@ import android.content.res.ColorStateList
 import android.graphics.drawable.Drawable
 import androidx.preference.PreferenceManager
 import android.text.TextUtils
+import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -51,6 +52,7 @@ class CardPresenter : Presenter() {
          */
         private val image: ImageView = rootView.findViewById(R.id.image)
         private val progress: LinearProgressIndicator = rootView.findViewById(R.id.watch_progress)
+        private val duration: TextView = rootView.findViewById(R.id.duration)
         private val title: TextView = rootView.findViewById(R.id.title)
         private val desc: TextView = rootView.findViewById(R.id.desc)
         private val tagList: LinearLayout = rootView.findViewById(R.id.tags)
@@ -133,6 +135,16 @@ class CardPresenter : Presenter() {
                 }
 
                 video.metadata?.videoDurationInSecs?.let { totalDurationSecs ->
+                    if (totalDurationSecs <= 0) {
+                        duration.isGone = true
+                    }
+                    else {
+                        duration.isVisible = true
+                        duration.text = formatDuration(totalDurationSecs)
+                    }
+                } ?: run { duration.isGone = true }
+
+                video.metadata?.videoDurationInSecs?.let { totalDurationSecs ->
                     defaultPrefs.getLong(video.id, 0).let { watchedMs ->
                         if (watchedMs <= 0) {
                             progress.isGone = true
@@ -165,6 +177,9 @@ class CardPresenter : Presenter() {
                 }
             }
         }
+
+        fun formatDuration(durationSecs: Int) : String =
+            DateUtils.formatElapsedTime(durationSecs.toLong())
 
         fun unBind() {
             image.setImageDrawable(null)

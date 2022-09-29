@@ -139,14 +139,15 @@ class HydravionClient private constructor(private val context: Context, private 
                     val uri = cdnUri.cdn + cdnUri.resource.uri
 
                     // replace {qualityLevels}
-                    val p = Pattern.compile("(?<=\\/)(\\{qualityLevels\\})(?=[.]mp4\\/)")
+                    val p = Pattern.compile("(?<=\\/)(\\{qualityLevelParams\\.2\\})")
                     val m = p.matcher(uri)
-                    val newUrl = m.replaceAll(res)
+                    val newUrl = m.replaceAll("$res.mp4")
 
                     // replace {qualityLevelParams.token}
-                    val p2 = Pattern.compile("(\\{qualityLevelParams.token\\})")
+                    val p2 = Pattern.compile("(\\{qualityLevelParams.4\\})")
                     val m2 = p2.matcher(newUrl)
-                    val newUrl2 = m2.replaceAll(cdnUri.resource.data.qualityLevelParams.get(res)?.token.toString())
+                    val ql = cdnUri.resource.data.qualityLevels.find { it.label.contains(res)}
+                    val newUrl2 = m2.replaceAll(cdnUri.resource.data.qualityLevelParams.get(ql?.name)?.token.toString())
 
                     video.vidUrl = newUrl2
                     Log.d(TAG, "Video: $video")

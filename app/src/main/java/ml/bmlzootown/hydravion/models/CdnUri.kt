@@ -1,5 +1,7 @@
 package ml.bmlzootown.hydravion.models
 
+import com.google.gson.annotations.SerializedName
+
 data class CdnUri (
     val cdn: String,
     val strategy: String,
@@ -18,7 +20,8 @@ data class Data (
 )
 
 data class QualityLevelParam (
-    val token: String
+    @SerializedName("2") val quality: String,
+    @SerializedName("4") val token: String
 )
 
 data class QualityLevel (
@@ -26,5 +29,7 @@ data class QualityLevel (
     val width: Long,
     val height: Long,
     val label: String,
-    val order: Long
+    val order: Long,
+    val mimeType: String,
+    val codecs: String
 )

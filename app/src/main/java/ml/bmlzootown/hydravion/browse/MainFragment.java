@@ -271,27 +271,13 @@ public class MainFragment extends BrowseSupportFragment {
 
     private void gotLiveInfo(Subscription sub, Live live) {
         String l = live.getCdn() + live.getResource().getUri();
-        String pattern = "\\{(.*?)\\}";
-        Pattern p = Pattern.compile(pattern);
-        Matcher m = p.matcher(live.getResource().getUri());
-        if (m.find()) {
-            for (int i = 0; i < m.groupCount(); i++) {
-                //dLog("LIVE", m.group(i));
-                String var = m.group(i).substring(1, m.group(i).length() - 1);
-
-                if (var.equalsIgnoreCase("token")) {
-                    l = l.replaceAll("\\{token\\}", live.getResource().getData().getToken());
-                    sub.setStreamUrl(l);
-                    client.checkLive(l, (status) -> {
-                        sub.setStreaming(status == 200);
-                        dLog("LIVE STATUS", String.valueOf(status));
-                        return Unit.INSTANCE;
-                    });
-                    dLog("LIVE", l);
-                }
-                //dLog("LIVE", l);
-            }
-        }
+        sub.setStreamUrl(l);
+        client.checkLive(l, (status) -> {
+            sub.setStreaming(status == 200);
+            dLog("LIVE STATUS", String.valueOf(status));
+            return Unit.INSTANCE;
+        });
+        dLog("LIVE", l);
     }
 
     private void refreshSubscriptions() {

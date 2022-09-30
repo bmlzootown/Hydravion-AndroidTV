@@ -15,8 +15,7 @@ data class Resource (
 
 data class Data (
     val qualityLevels: List<QualityLevel>,
-    val qualityLevelParams: Map<String, QualityLevelParam>,
-    val token: String
+    val qualityLevelParams: Map<String, QualityLevelParam>
 )
 
 data class QualityLevelParam (

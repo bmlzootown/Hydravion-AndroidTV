@@ -1,14 +1,8 @@
 package ml.bmlzootown.hydravion.playback;
 
-import static ml.bmlzootown.hydravion.browse.MainFragment.bsf;
-import static ml.bmlzootown.hydravion.browse.MainFragment.subscriptions;
-import static ml.bmlzootown.hydravion.browse.MainFragment.videos;
-
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -22,10 +16,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentActivity;
-import androidx.leanback.widget.ArrayObjectAdapter;
-import androidx.leanback.widget.HeaderItem;
-import androidx.leanback.widget.ListRow;
-import androidx.leanback.widget.ListRowPresenter;
 
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.MediaItem;
@@ -39,19 +29,14 @@ import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 import kotlin.Unit;
 import ml.bmlzootown.hydravion.R;
-import ml.bmlzootown.hydravion.browse.GridItemPresenter;
 import ml.bmlzootown.hydravion.browse.MainFragment;
-import ml.bmlzootown.hydravion.card.CardPresenter;
 import ml.bmlzootown.hydravion.client.HydravionClient;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
 import ml.bmlzootown.hydravion.models.Video;
-import ml.bmlzootown.hydravion.subscription.Subscription;
 
 public class PlaybackActivity extends FragmentActivity {
 
@@ -151,7 +136,6 @@ public class PlaybackActivity extends FragmentActivity {
         if (Util.SDK_INT > 23) {
             mediaController.setPlayer(null);
             mediaSession.setActive(false);
-            quickRefreshRows();
             saveVideoPosition();
             releasePlayer();
         }
@@ -177,39 +161,6 @@ public class PlaybackActivity extends FragmentActivity {
         } else {
             super.onBackPressed();
         }
-    }
-
-    private void quickRefreshRows() {
-        List<Subscription> subs = subscriptions;
-        ArrayObjectAdapter rowsAdapter = new ArrayObjectAdapter(new ListRowPresenter());
-        CardPresenter cardPresenter = new CardPresenter(new ArrayList<>());
-
-        int i;
-        for (i = 0; i < subs.size(); i++) {
-            ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(cardPresenter);
-
-            Subscription sub = subscriptions.get(i);
-            List<Video> vids = videos.get(sub.getCreator());
-
-            if (vids != null) {
-                vids.forEach(listRowAdapter::add);
-            }
-
-            HeaderItem header = new HeaderItem(i, sub.getPlan().getTitle());
-            rowsAdapter.add(new ListRow(header, listRowAdapter));
-        }
-
-        HeaderItem gridHeader = new HeaderItem(i, getString(R.string.settings));
-
-        GridItemPresenter mGridPresenter = new GridItemPresenter();
-        ArrayObjectAdapter gridRowAdapter = new ArrayObjectAdapter(mGridPresenter);
-        gridRowAdapter.add(getResources().getString(R.string.refresh));
-        gridRowAdapter.add(getResources().getString(R.string.live_stream));
-        gridRowAdapter.add(getResources().getString(R.string.app_info));
-        gridRowAdapter.add(getResources().getString(R.string.logout));
-        rowsAdapter.add(new ListRow(gridHeader, gridRowAdapter));
-
-        bsf.setAdapter(rowsAdapter);
     }
 
     private void setupLikeAndDislike() {

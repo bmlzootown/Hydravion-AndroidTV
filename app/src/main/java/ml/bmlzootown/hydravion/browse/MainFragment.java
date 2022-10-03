@@ -1,5 +1,7 @@
 package ml.bmlzootown.hydravion.browse;
 
+import static android.app.Activity.RESULT_OK;
+
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -149,6 +151,10 @@ public class MainFragment extends BrowseSupportFragment {
 
             saveCredentials();
             initialize();
+        } else if (requestCode == Constants.REQ_CODE_DETAIL && resultCode == RESULT_OK && data != null) {
+            if (data.getBooleanExtra("REFRESH", false)) {
+                refreshVideoProgress();
+            }
         }
     }
 
@@ -634,7 +640,7 @@ public class MainFragment extends BrowseSupportFragment {
                     client.getVideo(video, res, newVideo -> {
                         newVideo.setVideoInfo(videoInfo);
                         intent.putExtra(DetailsActivity.Video, newVideo);
-                        requireActivity().startActivity(intent, bundle);
+                        startActivityForResult(intent, Constants.REQ_CODE_DETAIL, bundle);
                         return Unit.INSTANCE;
                     });
                     return Unit.INSTANCE;

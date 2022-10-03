@@ -313,9 +313,7 @@ public class PlaybackActivity extends FragmentActivity {
                 switch (state) {
                     case Player.STATE_READY:
                         if (getIntent().getBooleanExtra(DetailsActivity.Resume, false) && !resumed) {
-                            int progressPoint = (int) ((video.getVideoInfo().getProgress() / 100f) * player.getDuration());
-                            Log.e("ERROR?", "Setting progress (" + video.getVideoInfo().getProgress() + ") to " + progressPoint + " / " + player.getDuration());
-                            player.seekTo(progressPoint);
+                            player.seekTo(video.getVideoInfo().getProgress() * 1000);
                             resumed = true;
                         }
                         break;
@@ -332,7 +330,7 @@ public class PlaybackActivity extends FragmentActivity {
 
     private void saveVideoPosition() {
         if (player != null) {
-            client.setVideoProgress(video.getVideoId(), (int) ((player.getCurrentPosition() * 100) / player.getDuration()));
+            client.setVideoProgress(video.getVideoId(), (int) (player.getCurrentPosition() / 1000));
         }
     }
 

@@ -58,12 +58,14 @@ import ml.bmlzootown.hydravion.client.SyncEvent;
 import ml.bmlzootown.hydravion.client.UserSync;
 import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
+import ml.bmlzootown.hydravion.ext.MapExtensionKt;
 import ml.bmlzootown.hydravion.models.ChildImage;
 import ml.bmlzootown.hydravion.models.Creator;
 import ml.bmlzootown.hydravion.models.Live;
 import ml.bmlzootown.hydravion.models.Thumbnail;
 import ml.bmlzootown.hydravion.models.Video;
 import ml.bmlzootown.hydravion.models.VideoInfo;
+import ml.bmlzootown.hydravion.models.VideoProgress;
 import ml.bmlzootown.hydravion.playback.PlaybackActivity;
 import ml.bmlzootown.hydravion.subscription.Subscription;
 import ml.bmlzootown.hydravion.subscription.SubscriptionHeaderPresenter;
@@ -88,6 +90,7 @@ public class MainFragment extends BrowseSupportFragment {
     private static NavigableMap<Integer, Video> strms = new TreeMap<>();
     public static HashMap<String, ArrayList<Video>> videos = new HashMap<>();
     public static BrowseSupportFragment bsf;
+    private List<VideoProgress> videoProgress = new ArrayList<>();
     private int subCount;
     private int page = 1;
 
@@ -363,16 +366,24 @@ public class MainFragment extends BrowseSupportFragment {
         if (subCount > 1) {
             subCount--;
         } else {
-            refreshRows();
+            refreshVideoProgress();
             subCount = subscriptions.size();
             setSelectedPosition(rowSelected, false, new ListRowPresenter.SelectItemViewHolderTask(colSelected));
         }
     }
 
+    private void refreshVideoProgress() {
+        client.getVideoProgress(MapExtensionKt.getBlogPostIdsFromCreatorMap(videos), progress -> {
+            videoProgress = progress;
+            refreshRows();
+            return Unit.INSTANCE;
+        });
+    }
+
     private void refreshRows() {
         List<Subscription> subs = subscriptions;
         ArrayObjectAdapter rowsAdapter = new ArrayObjectAdapter(new ListRowPresenter());
-        CardPresenter cardPresenter = new CardPresenter();
+        CardPresenter cardPresenter = new CardPresenter(videoProgress);
 
         int i;
         for (i = 0; i < subs.size(); i++) {
@@ -609,9 +620,9 @@ public class MainFragment extends BrowseSupportFragment {
 
             // Setup transition animation to detail screen
             Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(
-                    requireActivity(),
-                    itemViewHolder.view.findViewById(R.id.image),
-                    DetailsActivity.SHARED_ELEMENT_NAME)
+                            requireActivity(),
+                            itemViewHolder.view.findViewById(R.id.image),
+                            DetailsActivity.SHARED_ELEMENT_NAME)
                     .toBundle();
 
             if (video.getType().equalsIgnoreCase("live")) {

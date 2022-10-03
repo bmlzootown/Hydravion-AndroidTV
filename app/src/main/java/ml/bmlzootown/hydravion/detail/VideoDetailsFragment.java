@@ -162,7 +162,8 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
 
         // add RESUME first so it is the default
         if (!isLive) {
-            if (PreferenceManager.getDefaultSharedPreferences(requireContext()).getLong(mSelectedMovie.getGuid(), -1) != -1) {
+
+            if (mSelectedMovie.getVideoInfo().getProgress() > 0) {
                 actionAdapter.add(new Action(ACTION_RESUME, getString(R.string.action_resume)));
             }
         }

@@ -39,6 +39,7 @@ import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -55,7 +56,6 @@ import ml.bmlzootown.hydravion.subscription.Subscription;
 public class PlaybackActivity extends FragmentActivity {
 
     private HydravionClient client;
-    private SharedPreferences defaultPrefs;
 
     private PlayerView playerView;
     private ImageView like;
@@ -71,6 +71,7 @@ public class PlaybackActivity extends FragmentActivity {
     private boolean playWhenReady = true;
     private int currentWindow = 0;
     private long playbackPosition = 0;
+    private boolean resumed = false;
 
     private String url = "";
     private Video video;
@@ -79,7 +80,6 @@ public class PlaybackActivity extends FragmentActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         client = HydravionClient.Companion.getInstance(this, getPreferences(Context.MODE_PRIVATE));
-        defaultPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         setContentView(R.layout.activity_player);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -182,7 +182,7 @@ public class PlaybackActivity extends FragmentActivity {
     private void quickRefreshRows() {
         List<Subscription> subs = subscriptions;
         ArrayObjectAdapter rowsAdapter = new ArrayObjectAdapter(new ListRowPresenter());
-        CardPresenter cardPresenter = new CardPresenter();
+        CardPresenter cardPresenter = new CardPresenter(new ArrayList<>());
 
         int i;
         for (i = 0; i < subs.size(); i++) {
@@ -296,10 +296,6 @@ public class PlaybackActivity extends FragmentActivity {
 
         player.prepare();
 
-        if (getIntent().getBooleanExtra(DetailsActivity.Resume, false)) {
-            player.seekTo(defaultPrefs.getLong(video.getGuid(), 0));
-        }
-
         player.addListener(new Player.Listener() {
 
             @Override
@@ -316,6 +312,12 @@ public class PlaybackActivity extends FragmentActivity {
                 Log.d("STATE", state + "");
                 switch (state) {
                     case Player.STATE_READY:
+                        if (getIntent().getBooleanExtra(DetailsActivity.Resume, false) && !resumed) {
+                            int progressPoint = (int) ((video.getVideoInfo().getProgress() / 100f) * player.getDuration());
+                            Log.e("ERROR?", "Setting progress (" + video.getVideoInfo().getProgress() + ") to " + progressPoint + " / " + player.getDuration());
+                            player.seekTo(progressPoint);
+                            resumed = true;
+                        }
                         break;
                     case Player.STATE_ENDED:
                         saveVideoPosition();
@@ -330,7 +332,7 @@ public class PlaybackActivity extends FragmentActivity {
 
     private void saveVideoPosition() {
         if (player != null) {
-            defaultPrefs.edit().putLong(video.getGuid(), player.getCurrentPosition()).apply();
+            client.setVideoProgress(video.getVideoId(), (int) ((player.getCurrentPosition() * 100) / player.getDuration()));
         }
     }
 

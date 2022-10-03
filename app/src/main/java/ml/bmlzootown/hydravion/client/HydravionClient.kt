@@ -136,20 +136,16 @@ class HydravionClient private constructor(private val context: Context, private 
                     }
 
                     val cdnUri = Gson().fromJson(response, CdnUri::class.java)
-                    val uri = cdnUri.cdn + cdnUri.resource.uri
+                    video.vidUrl = (cdnUri.cdn + cdnUri.resource.uri).let { uri ->
+                        // replace {qualityLevels}
+                        var url = Pattern.compile("(?<=\\/)(\\{qualityLevelParams\\.2\\})").matcher(uri).replaceAll("$res.mp4")
 
-                    // replace {qualityLevels}
-                    val p = Pattern.compile("(?<=\\/)(\\{qualityLevelParams\\.2\\})")
-                    val m = p.matcher(uri)
-                    val newUrl = m.replaceAll("$res.mp4")
-
-                    // replace {qualityLevelParams.token}
-                    val p2 = Pattern.compile("(\\{qualityLevelParams.4\\})")
-                    val m2 = p2.matcher(newUrl)
-                    val ql = cdnUri.resource.data.qualityLevels.find { it.label.contains(res)}
-                    val newUrl2 = m2.replaceAll(cdnUri.resource.data.qualityLevelParams.get(ql?.name)?.token.toString())
-
-                    video.vidUrl = newUrl2
+                        // replace {qualityLevelParams.token}
+                        val qualityRes = if (res != "2160") res else "4K"
+                        val ql = cdnUri.resource.data.qualityLevels.find { it.label.contains(qualityRes)}
+                        url = Pattern.compile("(\\{qualityLevelParams.4\\})").matcher(url).replaceAll(cdnUri.resource.data.qualityLevelParams[ql?.name]?.token.toString())
+                        url
+                    }
                     Log.d(TAG, "Video: $video")
                     callback(video)
                 }

@@ -5,6 +5,9 @@ import android.content.SharedPreferences
 import android.util.Log
 import com.android.volley.VolleyError
 import com.google.gson.Gson
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
+import com.google.gson.reflect.TypeToken
 import ml.bmlzootown.hydravion.BuildConfig
 import ml.bmlzootown.hydravion.Constants
 import ml.bmlzootown.hydravion.creator.Creator
@@ -15,6 +18,7 @@ import ml.bmlzootown.hydravion.models.Video
 import ml.bmlzootown.hydravion.post.Post
 import ml.bmlzootown.hydravion.subscription.Subscription
 import org.json.JSONArray
+import org.json.JSONObject
 import java.util.regex.Pattern
 
 class HydravionClient private constructor(private val context: Context, private val mainPrefs: SharedPreferences) {
@@ -384,6 +388,52 @@ class HydravionClient private constructor(private val context: Context, private 
             })
     }
 
+    fun getVideoProgress(blogPostIds: List<String>, callback: (List<String>) -> Unit) {
+
+        val body = JSONObject().let { json ->
+            json.put("ids", JSONArray(blogPostIds))
+            json.put("contentType", "blogPost")
+            json
+        }.toString()
+        RequestTask(context).sendDataWithBody(
+            URI_GET_PROGRESS,
+            getCookiesString(),
+            body,
+            object : RequestTask.VolleyCallback {
+
+                override fun onSuccess(response: String) {
+                    Log.e("ERROR?", "Get progress for ${blogPostIds.toString()} :: $response")
+                }
+
+                override fun onResponseCode(response: Int) = Unit
+
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+
+                override fun onError(error: VolleyError) {
+                    Log.e("ERROR?", "Error progress for ${blogPostIds.toString()} :: ${error.toString()}")
+                }
+            }
+        )
+    }
+
+    fun setVideoProgress(videoId: String, progressInPercent: Int) {
+        RequestTask(context).sendData(
+            URI_UPDATE_PROGRESS,
+            getCookiesString(),
+            mapOf("id" to videoId, "contentType" to "video", "progress" to progressInPercent.toString()),
+            object : RequestTask.VolleyCallback {
+
+                override fun onSuccess(response: String) = Unit
+
+                override fun onResponseCode(response: Int) = Unit
+
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+
+                override fun onError(error: VolleyError) = Unit
+            }
+        )
+    }
+
     companion object {
 
         private const val TAG = "HydravionClient"
@@ -399,6 +449,8 @@ class HydravionClient private constructor(private val context: Context, private 
         private const val URI_POST = "https://www.floatplane.com/api/v3/content/post"
         private const val URI_LIKE = "https://www.floatplane.com/api/v3/content/like"
         private const val URI_DISLIKE = "https://www.floatplane.com/api/v3/content/dislike"
+        private const val URI_GET_PROGRESS = "https://www.floatplane.com/api/v3/content/get/progress"
+        private const val URI_UPDATE_PROGRESS = "https://www.floatplane.com/api/v3/content/progress"
 
         private const val LATEST = "https://api.github.com/repos/bmlzootown/Hydravion-AndroidTV/releases/latest"
         private var INSTANCE: HydravionClient? = null

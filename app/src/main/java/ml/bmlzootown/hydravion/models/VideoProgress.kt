@@ -1,4 +1,13 @@
 package ml.bmlzootown.hydravion.models
 
-class VideoProgress {
-}
+import androidx.annotation.Keep
+import com.google.gson.annotations.SerializedName
+
+@Keep
+data class VideoProgress(
+    @SerializedName("id")
+    val id: String,
+
+    @SerializedName("progress")
+    val progress: Int
+)

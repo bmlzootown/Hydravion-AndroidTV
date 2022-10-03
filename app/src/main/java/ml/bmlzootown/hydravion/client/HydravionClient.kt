@@ -4,10 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.android.volley.VolleyError
+import com.google.common.reflect.TypeToken
 import com.google.gson.Gson
-import com.google.gson.JsonArray
-import com.google.gson.JsonObject
-import com.google.gson.reflect.TypeToken
 import ml.bmlzootown.hydravion.BuildConfig
 import ml.bmlzootown.hydravion.Constants
 import ml.bmlzootown.hydravion.creator.Creator
@@ -142,12 +140,14 @@ class HydravionClient private constructor(private val context: Context, private 
                     val cdnUri = Gson().fromJson(response, CdnUri::class.java)
                     video.vidUrl = (cdnUri.cdn + cdnUri.resource.uri).let { uri ->
                         // replace {qualityLevels}
-                        var url = Pattern.compile("(?<=\\/)(\\{qualityLevelParams\\.2\\})").matcher(uri).replaceAll("$res.mp4")
+                        var url = Pattern.compile("(?<=\\/)(\\{qualityLevelParams\\.2\\})").matcher(uri)
+                            .replaceAll("$res.mp4")
 
                         // replace {qualityLevelParams.token}
                         val qualityRes = if (res != "2160") res else "4K"
-                        val ql = cdnUri.resource.data.qualityLevels.find { it.label.contains(qualityRes)}
-                        url = Pattern.compile("(\\{qualityLevelParams.4\\})").matcher(url).replaceAll(cdnUri.resource.data.qualityLevelParams[ql?.name]?.token.toString())
+                        val ql = cdnUri.resource.data.qualityLevels.find { it.label.contains(qualityRes) }
+                        url = Pattern.compile("(\\{qualityLevelParams.4\\})").matcher(url)
+                            .replaceAll(cdnUri.resource.data.qualityLevelParams[ql?.name]?.token.toString())
                         url
                     }
                     Log.d(TAG, "Video: $video")
@@ -388,7 +388,7 @@ class HydravionClient private constructor(private val context: Context, private 
             })
     }
 
-    fun getVideoProgress(blogPostIds: List<String>, callback: (List<String>) -> Unit) {
+    fun getVideoProgress(blogPostIds: List<String>, callback: (List<VideoProgress>) -> Unit) {
 
         val body = JSONObject().let { json ->
             json.put("ids", JSONArray(blogPostIds))
@@ -402,7 +402,13 @@ class HydravionClient private constructor(private val context: Context, private 
             object : RequestTask.VolleyCallback {
 
                 override fun onSuccess(response: String) {
-                    Log.e("ERROR?", "Get progress for ${blogPostIds.toString()} :: $response")
+                    try {
+                        val type = (object : TypeToken<List<VideoProgress>>() {}).getType()
+                        callback(Gson().fromJson(response, type))
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        callback(ArrayList())
+                    }
                 }
 
                 override fun onResponseCode(response: Int) = Unit
@@ -410,7 +416,7 @@ class HydravionClient private constructor(private val context: Context, private 
                 override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
                 override fun onError(error: VolleyError) {
-                    Log.e("ERROR?", "Error progress for ${blogPostIds.toString()} :: ${error.toString()}")
+                    callback(ArrayList())
                 }
             }
         )
@@ -437,11 +443,13 @@ class HydravionClient private constructor(private val context: Context, private 
     companion object {
 
         private const val TAG = "HydravionClient"
+
         // TODO Update to v3 API
         private const val URI_SUBSCRIPTIONS = "https://www.floatplane.com/api/user/subscriptions"
         private const val URI_CREATOR_INFO = "https://www.floatplane.com/api/creator/info"
         private const val URI_LIVE = "https://www.floatplane.com/api/cdn/delivery"
         private const val URI_CDNS = "https://www.floatplane.com/api/edges"
+
         // Already updated!
         private const val URI_VIDEOS = "https://www.floatplane.com/api/v3/content/creator"
         private const val URI_VIDEO_OBJECT = "https://www.floatplane.com/api/v3/content/info"

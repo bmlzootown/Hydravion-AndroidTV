@@ -3,9 +3,9 @@ package ml.bmlzootown.hydravion.card
 import android.content.SharedPreferences
 import android.content.res.ColorStateList
 import android.graphics.drawable.Drawable
-import androidx.preference.PreferenceManager
 import android.text.TextUtils
 import android.text.format.DateUtils
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,6 +18,7 @@ import androidx.core.view.isGone
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.leanback.widget.Presenter
+import androidx.preference.PreferenceManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.model.LazyHeaders
@@ -25,8 +26,9 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 import ml.bmlzootown.hydravion.R
 import ml.bmlzootown.hydravion.ext.getTagColor
 import ml.bmlzootown.hydravion.models.Video
+import ml.bmlzootown.hydravion.models.VideoProgress
 
-class CardPresenter : Presenter() {
+class CardPresenter(private val videoProgress: List<VideoProgress>) : Presenter() {
 
     override fun onCreateViewHolder(parent: ViewGroup): ViewHolder {
         val cardView = CardViewHolder(
@@ -37,7 +39,7 @@ class CardPresenter : Presenter() {
 
     override fun onBindViewHolder(viewHolder: ViewHolder, item: Any?) {
         (item as? Video?)?.let { video ->
-            CardViewHolder(viewHolder.view).setData(video)
+            CardViewHolder(viewHolder.view).setData(video, videoProgress.find { it.id == video.id })
         }
     }
 
@@ -99,7 +101,7 @@ class CardPresenter : Presenter() {
             }
         }
 
-        fun setData(video: Video) {
+        fun setData(video: Video, videoProgress: VideoProgress?) {
             if (video.thumbnail != null && video.thumbnail!!.childImages != null) {
                 title.text = video.title
 
@@ -115,7 +117,7 @@ class CardPresenter : Presenter() {
                     }
                 }
 
-                (if (video.thumbnail?.childImages?.size ?: 0 > 0) {
+                (if ((video.thumbnail?.childImages?.size ?: 0) > 0) {
                     video.thumbnail?.childImages?.get(0)?.path
                 } else {
                     video.thumbnail?.path
@@ -137,25 +139,20 @@ class CardPresenter : Presenter() {
                 video.metadata?.videoDurationInSecs?.let { totalDurationSecs ->
                     if (totalDurationSecs <= 0) {
                         duration.isGone = true
-                    }
-                    else {
+                    } else {
                         duration.isVisible = true
                         duration.text = formatDuration(totalDurationSecs)
                     }
                 } ?: run { duration.isGone = true }
 
-                video.metadata?.videoDurationInSecs?.let { totalDurationSecs ->
-                    defaultPrefs.getLong(video.id, 0).let { watchedMs ->
-                        if (watchedMs <= 0) {
-                            progress.isGone = true
-                        } else {
-                            progress.isVisible = true
-                            progress.min = 0
-                            progress.max = (totalDurationSecs * 1000) // to get in milliseconds like watch time
-                            progress.progress = watchedMs.toInt()
-                        }
-                    }
-                } ?: run { progress.isGone = true }
+                if (videoProgress != null) {
+                    progress.isVisible = true
+                    progress.min = 0
+                    progress.max = 100 // to get in milliseconds like watch time
+                    progress.progress = videoProgress.progress
+                } else {
+                    progress.isGone = true
+                }
 
                 if (video.tags.isNotEmpty()) {
                     tagList.removeAllViews()
@@ -178,7 +175,7 @@ class CardPresenter : Presenter() {
             }
         }
 
-        fun formatDuration(durationSecs: Int) : String =
+        fun formatDuration(durationSecs: Int): String =
             DateUtils.formatElapsedTime(durationSecs.toLong())
 
         fun unBind() {

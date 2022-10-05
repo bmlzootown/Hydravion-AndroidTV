@@ -1,5 +1,6 @@
 package ml.bmlzootown.hydravion.detail
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import ml.bmlzootown.hydravion.R
@@ -16,6 +17,11 @@ class DetailsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_details)
         supportFragmentManager.beginTransaction().add(R.id.details_fragment, VideoDetailsFragment()).commit()
+    }
+
+    override fun onBackPressed() {
+        setResult(RESULT_OK, Intent().putExtra("REFRESH", true))
+        super.onBackPressed()
     }
 
     companion object {

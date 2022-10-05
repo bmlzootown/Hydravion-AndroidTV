@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.android.volley.VolleyError
+import com.google.common.reflect.TypeToken
 import com.google.gson.Gson
 import ml.bmlzootown.hydravion.BuildConfig
 import ml.bmlzootown.hydravion.Constants
@@ -15,6 +16,7 @@ import ml.bmlzootown.hydravion.models.Video
 import ml.bmlzootown.hydravion.post.Post
 import ml.bmlzootown.hydravion.subscription.Subscription
 import org.json.JSONArray
+import org.json.JSONObject
 import java.util.regex.Pattern
 
 class HydravionClient private constructor(private val context: Context, private val mainPrefs: SharedPreferences) {
@@ -138,12 +140,14 @@ class HydravionClient private constructor(private val context: Context, private 
                     val cdnUri = Gson().fromJson(response, CdnUri::class.java)
                     video.vidUrl = (cdnUri.cdn + cdnUri.resource.uri).let { uri ->
                         // replace {qualityLevels}
-                        var url = Pattern.compile("(?<=\\/)(\\{qualityLevelParams\\.2\\})").matcher(uri).replaceAll("$res.mp4")
+                        var url = Pattern.compile("(?<=\\/)(\\{qualityLevelParams\\.2\\})").matcher(uri)
+                            .replaceAll("$res.mp4")
 
                         // replace {qualityLevelParams.token}
                         val qualityRes = if (res != "2160") res else "4K"
-                        val ql = cdnUri.resource.data.qualityLevels.find { it.label.contains(qualityRes)}
-                        url = Pattern.compile("(\\{qualityLevelParams.4\\})").matcher(url).replaceAll(cdnUri.resource.data.qualityLevelParams[ql?.name]?.token.toString())
+                        val ql = cdnUri.resource.data.qualityLevels.find { it.label.contains(qualityRes) }
+                        url = Pattern.compile("(\\{qualityLevelParams.4\\})").matcher(url)
+                            .replaceAll(cdnUri.resource.data.qualityLevelParams[ql?.name]?.token.toString())
                         url
                     }
                     Log.d(TAG, "Video: $video")
@@ -384,14 +388,68 @@ class HydravionClient private constructor(private val context: Context, private 
             })
     }
 
+    fun getVideoProgress(blogPostIds: List<String>, callback: (List<VideoProgress>) -> Unit) {
+
+        val body = JSONObject().let { json ->
+            json.put("ids", JSONArray(blogPostIds))
+            json.put("contentType", "blogPost")
+            json
+        }.toString()
+        RequestTask(context).sendDataWithBody(
+            URI_GET_PROGRESS,
+            getCookiesString(),
+            body,
+            object : RequestTask.VolleyCallback {
+
+                override fun onSuccess(response: String) {
+                    try {
+                        val type = (object : TypeToken<List<VideoProgress>>() {}).getType()
+                        callback(Gson().fromJson(response, type))
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        callback(ArrayList())
+                    }
+                }
+
+                override fun onResponseCode(response: Int) = Unit
+
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+
+                override fun onError(error: VolleyError) {
+                    callback(ArrayList())
+                }
+            }
+        )
+    }
+
+    fun setVideoProgress(videoId: String, progressInPercent: Int) {
+        RequestTask(context).sendData(
+            URI_UPDATE_PROGRESS,
+            getCookiesString(),
+            mapOf("id" to videoId, "contentType" to "video", "progress" to progressInPercent.toString()),
+            object : RequestTask.VolleyCallback {
+
+                override fun onSuccess(response: String) = Unit
+
+                override fun onResponseCode(response: Int) = Unit
+
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+
+                override fun onError(error: VolleyError) = Unit
+            }
+        )
+    }
+
     companion object {
 
         private const val TAG = "HydravionClient"
+
         // TODO Update to v3 API
         private const val URI_SUBSCRIPTIONS = "https://www.floatplane.com/api/user/subscriptions"
         private const val URI_CREATOR_INFO = "https://www.floatplane.com/api/creator/info"
         private const val URI_LIVE = "https://www.floatplane.com/api/cdn/delivery"
         private const val URI_CDNS = "https://www.floatplane.com/api/edges"
+
         // Already updated!
         private const val URI_VIDEOS = "https://www.floatplane.com/api/v3/content/creator"
         private const val URI_VIDEO_OBJECT = "https://www.floatplane.com/api/v3/content/info"
@@ -399,6 +457,8 @@ class HydravionClient private constructor(private val context: Context, private 
         private const val URI_POST = "https://www.floatplane.com/api/v3/content/post"
         private const val URI_LIKE = "https://www.floatplane.com/api/v3/content/like"
         private const val URI_DISLIKE = "https://www.floatplane.com/api/v3/content/dislike"
+        private const val URI_GET_PROGRESS = "https://www.floatplane.com/api/v3/content/get/progress"
+        private const val URI_UPDATE_PROGRESS = "https://www.floatplane.com/api/v3/content/progress"
 
         private const val LATEST = "https://api.github.com/repos/bmlzootown/Hydravion-AndroidTV/releases/latest"
         private var INSTANCE: HydravionClient? = null

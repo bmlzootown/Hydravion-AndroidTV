@@ -2,9 +2,9 @@ package ml.bmlzootown.hydravion.client
 
 import android.content.Context
 import com.android.volley.*
+import com.android.volley.toolbox.JsonRequest
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
-import java.util.*
 
 class RequestTask(context: Context) {
 
@@ -72,6 +72,35 @@ class RequestTask(context: Context) {
                 )
         }
         volleyQueue.add(stringRequest)
+    }
+
+    fun sendDataWithBody(uri: String?, cookies: String, body: String, callback: VolleyCallback) {
+        val jsonRequest: JsonRequest<String> = object : JsonRequest<String>(
+            Method.POST,
+            uri,
+            body,
+            Response.Listener { response: String? ->
+                callback.onSuccess(response ?: "")
+            }, Response.ErrorListener { error ->
+                error.printStackTrace()
+                callback.onError(error)
+            }) {
+
+            @Throws(AuthFailureError::class)
+            override fun getHeaders(): Map<String, String> =
+                mapOf(
+                    "Cookie" to cookies,
+                    "Accept" to ACCEPT_JSON,
+                    "User-Agent" to "Hydravion (AndroidTV), CFNetwork",
+                    "Content-Type" to "application/json"
+                )
+
+            override fun getBodyContentType(): String = "application/json"
+
+            override fun parseNetworkResponse(response: NetworkResponse?): Response<String> =
+                Response.success(String(response?.data ?: ByteArray(0)), null)
+        }
+        volleyQueue.add(jsonRequest)
     }
 
     fun sendRequest(uri: String?, cookies: String, creatorGUID: String?, callback: VolleyCallback) {

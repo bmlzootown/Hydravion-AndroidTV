@@ -86,6 +86,10 @@ class VideoInfo : Serializable {
     @Expose
     var canWatchVideo: Boolean? = null
 
+    @SerializedName("progress")
+    @Expose
+    var progress: Int = 0
+
     companion object {
 
         private const val serialVersionUID = 8503392556194772771L

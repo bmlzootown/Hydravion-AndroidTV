@@ -63,6 +63,7 @@ import ml.bmlzootown.hydravion.detail.DetailsActivity;
 import ml.bmlzootown.hydravion.ext.MapExtensionKt;
 import ml.bmlzootown.hydravion.models.ChildImage;
 import ml.bmlzootown.hydravion.models.Creator;
+import ml.bmlzootown.hydravion.models.Delivery;
 import ml.bmlzootown.hydravion.models.Live;
 import ml.bmlzootown.hydravion.models.Thumbnail;
 import ml.bmlzootown.hydravion.models.Video;
@@ -88,7 +89,6 @@ public class MainFragment extends BrowseSupportFragment {
     public static String cdn;
 
     public static List<Subscription> subscriptions = new ArrayList<>();
-    //private static List<Video> streams = new ArrayList<>();
     private static NavigableMap<Integer, Video> strms = new TreeMap<>();
     public static HashMap<String, ArrayList<Video>> videos = new HashMap<>();
     public static BrowseSupportFragment bsf;
@@ -104,7 +104,6 @@ public class MainFragment extends BrowseSupportFragment {
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
-        //Log.i(TAG, "onCreate");
         super.onActivityCreated(savedInstanceState);
         bsf = this;
         client = HydravionClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
@@ -278,8 +277,8 @@ public class MainFragment extends BrowseSupportFragment {
                 .apply();
     }
 
-    private void gotLiveInfo(Subscription sub, Live live) {
-        String l = live.getCdn() + live.getResource().getUri();
+    private void gotLiveInfo(Subscription sub, Delivery live) {
+        String l = live.getGroups().get(0).getOrigins().get(0).getUrl() + live.getGroups().get(0).getVariants().get(0).getUrl();
         sub.setStreamUrl(l);
         client.checkLive(l, (status) -> {
             sub.setStreaming(status == 200);
@@ -324,7 +323,7 @@ public class MainFragment extends BrowseSupportFragment {
         subscriptions = trimmed;
         for (Subscription sub : subscriptions) {
             if (sub.getCreator() != null) {
-                client.getLive(sub.getCreator(), live -> {
+                client.getLive(sub, live -> {
                     gotLiveInfo(sub, live);
                     return Unit.INSTANCE;
                 });
@@ -672,23 +671,6 @@ public class MainFragment extends BrowseSupportFragment {
                 .show();
     }
 
-    private void selectServer() {
-        client.getCdnServers(hostnames -> {
-            new AlertDialog.Builder(getContext())
-                    .setTitle("Select CDN Server")
-                    .setItems(hostnames,
-                            (dialog, which) -> {
-                                String server = hostnames[which];
-                                dLog("CDN", server);
-                                SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
-                                prefs.edit().putString("cdn", server).apply();
-                            })
-                    .create()
-                    .show();
-            return Unit.INSTANCE;
-        });
-    }
-
     private void selectLivestream() {
         List<String> subs = new ArrayList<>();
         for (Subscription s : subscriptions) {
@@ -737,6 +719,12 @@ public class MainFragment extends BrowseSupportFragment {
     public static void dLog(String tag, String msg) {
         if (debug) {
             Log.d(tag, msg);
+        }
+    }
+
+    public static void dError(String tag, String msg) {
+        if (debug) {
+            Log.e(tag, msg);
         }
     }
 }

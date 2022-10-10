@@ -731,10 +731,6 @@ public class MainFragment extends BrowseSupportFragment {
             res = "1080";
         }
 
-        //TODO -- Fix 4K playback
-        if (res == "2160") {
-            res = "1080";
-        }
         return res;
     }
 

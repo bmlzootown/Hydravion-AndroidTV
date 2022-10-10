@@ -255,12 +255,12 @@ public class PlaybackActivity extends FragmentActivity {
                     releasePlayer();
                     Toast.makeText(PlaybackActivity.this, "Video could not be played!", Toast.LENGTH_LONG).show();
                 }
-                Log.e("EXOPLAYER", error.getLocalizedMessage());
+                MainFragment.dError("EXOPLAYER", error.getLocalizedMessage());
             }
 
             @Override
             public void onPlaybackStateChanged(int state) {
-                Log.d("STATE", state + "");
+                MainFragment.dLog("STATE", state + "");
                 switch (state) {
                     case Player.STATE_READY:
                         if (getIntent().getBooleanExtra(DetailsActivity.Resume, false) && !resumed) {

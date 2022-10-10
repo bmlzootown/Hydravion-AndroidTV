@@ -76,7 +76,6 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        //Log.d(TAG, "onCreate DetailsFragment");
         super.onCreate(savedInstanceState);
 
         mDetailsBackground = new DetailsSupportFragmentBackgroundController(this);
@@ -132,7 +131,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
     }
 
     private void setupDetailsOverviewRow() {
-        Log.d(TAG, "doInBackground: " + mSelectedMovie.toString());
+        MainFragment.dLog(TAG, "doInBackground: " + mSelectedMovie.toString());
         final DetailsOverviewRow row = new DetailsOverviewRow(mSelectedMovie);
         row.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.default_background));
         Glide.with(requireActivity())
@@ -252,7 +251,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                 Row row) {
 
             if (item instanceof Video) {
-                Log.d(TAG, "Item: " + item.toString());
+                MainFragment.dLog(TAG, "Item: " + item.toString());
                 Intent intent = new Intent(getActivity(), DetailsActivity.class);
                 intent.putExtra(getResources().getString(R.string.movie), (Serializable) mSelectedMovie);
 

@@ -14,7 +14,6 @@ class RequestTask(context: Context) {
         var responseCode: Int = 0;
         val stringRequest: StringRequest = object : StringRequest(Method.GET, uri,
             Response.Listener { _: String? ->
-                //Log.d("JSON", response);
                 callback.onResponseCode(responseCode);
             }, Response.ErrorListener { error: VolleyError ->
                 //error.printStackTrace()
@@ -32,7 +31,6 @@ class RequestTask(context: Context) {
     fun sendRequest(uri: String?, cookies: String, callback: VolleyCallback) {
         val stringRequest: StringRequest = object : StringRequest(Method.GET, uri,
             Response.Listener { response: String? ->
-                //Log.d("JSON", response);
                 callback.onSuccess(response ?: "")
             }, Response.ErrorListener { error: VolleyError ->
                 error.printStackTrace()

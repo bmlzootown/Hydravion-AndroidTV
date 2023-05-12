@@ -20,4 +20,5 @@ data class Variant (
     val mimeType: String,
     val order: Int?,
     val hidden: Boolean,
+    val enabled: Boolean,
 )

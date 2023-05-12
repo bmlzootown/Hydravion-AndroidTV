@@ -142,9 +142,27 @@ class HydravionClient private constructor(private val context: Context, private 
                     val resolution = if (res != "2160") res else "4K"
                     val cdn = delivery.groups.get(0).origins.get(0).url
                     var uri = ""
-                    for(variant in delivery.groups.get(0).variants) {
-                        if (variant.label.contains(resolution, true)) {
+                    val variants = (delivery.groups.get(0).variants).sortedWith(
+                        compareByDescending<Variant> {
+                            when (it.name) {
+                                "2160-avc1" -> 5
+                                "1080-avc1" -> 4
+                                "720-avc1" -> 3
+                                "480-avc1" -> 2
+                                "360-avc1" -> 1
+                                else -> 0
+                            }
+                        }
+                    )
+
+                    for(variant in variants) {
+                        MainFragment.dLog("VARIANT", variant.toString())
+                        if (!variant.enabled) {
+                            MainFragment.dLog("VARIANT", variant.label + " DISABLED")
+                            continue
+                        } else {
                             uri = variant.url
+                            break
                         }
                     }
                     video.vidUrl = cdn + uri

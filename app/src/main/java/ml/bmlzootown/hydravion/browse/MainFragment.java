@@ -41,8 +41,6 @@ import java.util.List;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import io.socket.client.Ack;
 import io.socket.client.Socket;
@@ -64,7 +62,6 @@ import ml.bmlzootown.hydravion.ext.MapExtensionKt;
 import ml.bmlzootown.hydravion.models.ChildImage;
 import ml.bmlzootown.hydravion.models.Creator;
 import ml.bmlzootown.hydravion.models.Delivery;
-import ml.bmlzootown.hydravion.models.Live;
 import ml.bmlzootown.hydravion.models.Thumbnail;
 import ml.bmlzootown.hydravion.models.Video;
 import ml.bmlzootown.hydravion.models.VideoInfo;
@@ -86,7 +83,6 @@ public class MainFragment extends BrowseSupportFragment {
     private final Gson gson = new Gson();
 
     public static String sailssid;
-    public static String cdn;
 
     public static List<Subscription> subscriptions = new ArrayList<>();
     private static NavigableMap<Integer, Video> strms = new TreeMap<>();
@@ -128,7 +124,6 @@ public class MainFragment extends BrowseSupportFragment {
             Intent intent = new Intent(getActivity(), LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
             startActivityForResult(intent, 42);
-            cdn = "edge03-na.floatplane.com";
         } else {
             initialize();
         }
@@ -175,7 +170,7 @@ public class MainFragment extends BrowseSupportFragment {
         dLog("SOCKET", "Connected");
         JSONObject jo = new JSONObject();
         try {
-            jo.put("url", "/api/sync/connect");
+            jo.put("url", "/api/v3/socket/connect");
             dLog("SOCKET --> EMIT", jo.toString());
             socket.emit("post", jo, new Ack() {
                 @Override
@@ -235,11 +230,9 @@ public class MainFragment extends BrowseSupportFragment {
     private boolean loadCredentials() {
         SharedPreferences prefs = requireActivity().getPreferences(Context.MODE_PRIVATE);
         sailssid = prefs.getString(Constants.PREF_SAIL_SSID, "default");
-        cdn = prefs.getString(Constants.PREF_CDN, "default");
         dLog("SAILS.SID", sailssid);
-        dLog("CDN", cdn);
 
-        if (sailssid.equals("default") || cdn.equals("default")) {
+        if (sailssid.equals("default")) {
             dLog("LOGIN", "Credentials not found!");
             return false;
         } else {
@@ -273,7 +266,6 @@ public class MainFragment extends BrowseSupportFragment {
     private void saveCredentials() {
         requireActivity().getPreferences(Context.MODE_PRIVATE).edit()
                 .putString(Constants.PREF_SAIL_SSID, sailssid)
-                .putString(Constants.PREF_CDN, cdn)
                 .apply();
     }
 
@@ -443,7 +435,6 @@ public class MainFragment extends BrowseSupportFragment {
         ArrayObjectAdapter gridRowAdapter = new ArrayObjectAdapter(mGridPresenter);
         gridRowAdapter.add(getResources().getString(R.string.refresh));
         gridRowAdapter.add(getResources().getString(R.string.live_stream));
-        //gridRowAdapter.add(getResources().getString(R.string.select_server));
         gridRowAdapter.add(getResources().getString(R.string.app_info));
         gridRowAdapter.add(getResources().getString(R.string.logout));
         rowsAdapter.add(new ListRow(gridHeader, gridRowAdapter));
@@ -569,15 +560,6 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void setupEventListeners() {
-        /*setOnSearchClickedListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View view) {
-                Toast.makeText(getActivity(), "Implement your own in-app search", Toast.LENGTH_LONG)
-                        .show();
-            }
-        });*/
-
         setOnItemViewClickedListener(new BrowseViewClickListener(requireContext(), this::onVideoSelected, this::onSettingsSelected));
         setOnItemViewSelectedListener(new ItemViewSelectedListener(this::onCheckIndices, this::onRowSelected));
     }
@@ -645,9 +627,6 @@ public class MainFragment extends BrowseSupportFragment {
             case LOGOUT:
                 logout();
                 break;
-            /*case SELECT_SERVER:
-                selectServer();
-                break;*/
             case APP_INFO:
                 showInfo();
                 break;
@@ -713,6 +692,7 @@ public class MainFragment extends BrowseSupportFragment {
             res = "1080";
         }
 
+        dLog("Supported Resolution", res);
         return res;
     }
 

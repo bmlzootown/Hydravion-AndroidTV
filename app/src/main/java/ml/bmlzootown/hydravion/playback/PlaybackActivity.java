@@ -61,6 +61,7 @@ public class PlaybackActivity extends FragmentActivity {
     private String url = "";
     private Video video;
 
+    @SuppressLint("MissingInflatedId")
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,7 +71,7 @@ public class PlaybackActivity extends FragmentActivity {
 
         final Video video = (Video) getIntent().getSerializableExtra(DetailsActivity.Video);
         this.video = video;
-        url = video.getVidUrl().replaceAll("Edge01-na.floatplane.com", MainFragment.cdn);
+        url = video.getVidUrl();
 
         playerView = findViewById(R.id.exoplayer);
         ((TextView) findViewById(R.id.exo_title)).setText(video.getTitle());

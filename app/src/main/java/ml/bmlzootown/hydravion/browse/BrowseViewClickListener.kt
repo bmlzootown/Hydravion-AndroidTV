@@ -20,7 +20,6 @@ private class BrowseViewClickListener(
             context.getString(R.string.refresh) -> onSettingsSelected(SettingsAction.REFRESH)
             context.getString(R.string.logout) -> onSettingsSelected(SettingsAction.LOGOUT)
             context.getString(R.string.app_info) -> onSettingsSelected(SettingsAction.APP_INFO)
-            //context.getString(R.string.select_server) -> onSettingsSelected(SettingsAction.SELECT_SERVER)
             context.getString(R.string.live_stream) -> onSettingsSelected(SettingsAction.LIVESTREAM)
         }
     }

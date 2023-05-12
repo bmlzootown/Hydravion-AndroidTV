@@ -7,8 +7,21 @@ data class SyncEvent (
 
 data class Data (
     val id: String,
+    val eventType: String,
+    val title: String? = null,
+    val message: String? = null,
+    val creator: String,
+    val channel: String? = null,
+    val content: String? = null,
+    val icon: String? = null,
+    val thumbnail: String? = null,
+    val target: Target? = null,
+    val foregroundVisible: String? = null,
+    val video: Video? = null,
+    val post: Post? = null,
+    val deliveryDelayRange: ArrayList<Int>? = null,
+
     val guid: String? = null,
-    val title: String,
     val text: String? = null,
     val type: String? = null,
     val attachmentOrder: List<String>? = null,
@@ -18,16 +31,27 @@ data class Data (
     val dislikes: Long? = null,
     val score: Long? = null,
     val comments: Long? = null,
+)
+
+data class Target (
+    val url: String,
+    val matchScheme: String,
+    val match: String,
+    val foregroundDiscardOnMatch: Boolean,
+    val matchPortion: String
+)
+
+data class Video (
     val creator: String,
-    val thumbnail: Thumbnail? = null,
-    val eventType: String? = null,
-    val message: String? = null,
-    val content: String? = null,
-    val icon: String? = null,
-    val target: Target? = null,
-    val foregroundVisible: String? = null,
-    val video: Video? = null,
-    val post: Post? = null
+    val guid: String
+)
+
+data class Post (
+    val creator: String,
+    val guid: String,
+    val id: String,
+    val text: String,
+    val title: String
 )
 
 data class Metadata (
@@ -44,30 +68,4 @@ data class Metadata (
     val isFeatured: Boolean
 )
 
-data class Post (
-    val creator: String,
-    val guid: String,
-    val id: String,
-    val text: String,
-    val title: String
-)
 
-data class Target (
-    val url: String,
-    val matchScheme: String,
-    val match: String,
-    val foregroundDiscardOnMatch: Boolean,
-    val matchPortion: String
-)
-
-data class Thumbnail (
-    val width: Long,
-    val height: Long,
-    val path: String,
-    val childImages: List<Any?>
-)
-
-data class Video (
-    val creator: String,
-    val guid: String
-)

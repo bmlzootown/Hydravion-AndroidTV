@@ -24,6 +24,7 @@ class HydravionClient private constructor(private val context: Context, private 
 
     private val creatorIds: MutableMap<String, String> = hashMapOf()
     private val creatorCache: MutableMap<String, Creator> = hashMapOf()
+    private val requestTask: RequestTask = RequestTask(context)
 
     /**
      * Convenience fun to get cookies string
@@ -34,7 +35,7 @@ class HydravionClient private constructor(private val context: Context, private 
         "${Constants.PREF_SAIL_SSID}=${mainPrefs.getString(Constants.PREF_SAIL_SSID, "")}"
 
     fun getSubs(callback: (Array<Subscription>?) -> Unit) {
-        RequestTask(context).sendRequest(URI_SUBSCRIPTIONS, getCookiesString(), object : RequestTask.VolleyCallback {
+        requestTask.sendRequest(URI_SUBSCRIPTIONS, getCookiesString(), object : RequestTask.VolleyCallback {
 
             override fun onResponseCode(response: Int) {
                 //Ignore
@@ -75,7 +76,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getCreatorInfo(creatorGUID: String, callback: (FloatplaneLiveStream) -> Unit) {
-        RequestTask(context).sendRequest(
+        requestTask.sendRequest(
             "$URI_CREATOR_INFO?creatorGUID=$creatorGUID",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
@@ -104,7 +105,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getVideos(creatorGUID: String, page: Int, callback: (Array<Video>) -> Unit) {
-        RequestTask(context).sendRequest(
+        requestTask.sendRequest(
             "$URI_VIDEOS?id=$creatorGUID&fetchAfter=${(page - 1) * 20}",
             getCookiesString(),
             creatorGUID,
@@ -128,7 +129,7 @@ class HydravionClient private constructor(private val context: Context, private 
 
     fun getVideo(video: Video, res: String, callback: (Video) -> Unit) {
         //val y = Util.getCurrentDisplayModeSize(context).y;
-        RequestTask(context).sendRequest(
+        requestTask.sendRequest(
             "$URI_DELIVERY?scenario=onDemand&entityId=${video.getVideoId()}",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
@@ -139,7 +140,7 @@ class HydravionClient private constructor(private val context: Context, private 
                     }
 
                     val delivery = Gson().fromJson(response, Delivery::class.java)
-                    val resolution = if (res != "2160") res else "4K"
+                    //val resolution = if (res != "2160") res else "4K"
                     val cdn = delivery.groups.get(0).origins.get(0).url
                     var uri = ""
                     val variants = (delivery.groups.get(0).variants).sortedWith(
@@ -180,7 +181,7 @@ class HydravionClient private constructor(private val context: Context, private 
 
 
     fun getVideoObject(id: String, callback: (Video) -> Unit) {
-        RequestTask(context).sendRequest(
+        requestTask.sendRequest(
             "$URI_VIDEO_OBJECT?id=$id",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
@@ -201,7 +202,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getVideoInfo(videoID: String, callback: (VideoInfo) -> Unit) {
-        RequestTask(context).sendRequest(
+        requestTask.sendRequest(
             "$URI_VIDEO_INFO?id=$videoID",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
@@ -224,7 +225,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getLive(sub: Subscription, callback: (Delivery) -> Unit) {
-        RequestTask(context).sendRequest(
+        requestTask.sendRequest(
             "$URI_CREATOR?id=${sub.creator}",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
@@ -248,7 +249,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getLive(livestreamID: String, callback: (Delivery) -> Unit) {
-        RequestTask(context).sendRequest(
+        requestTask.sendRequest(
             "$URI_DELIVERY?scenario=live&entityId=$livestreamID",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
@@ -266,7 +267,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     /*fun getLive(creatorGUID: String, callback: (Live) -> Unit) {
-        RequestTask(context).sendRequest(
+        requestTask.sendRequest(
             "$URI_LIVE?type=live&creator=$creatorGUID",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
@@ -284,7 +285,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }*/
 
     fun checkLive(streamUri: String, callback: (Int) -> Unit) {
-        RequestTask(context).getReponseStatus(streamUri, object : RequestTask.VolleyCallback {
+        requestTask.getReponseStatus(streamUri, object : RequestTask.VolleyCallback {
             override fun onResponseCode(response: Int) {
                 callback(response)
             }
@@ -317,7 +318,7 @@ class HydravionClient private constructor(private val context: Context, private 
             return
         }
 
-        RequestTask(context).sendRequest(
+        requestTask.sendRequest(
             "$URI_CREATOR_INFO?creatorGUID=$creatorGUID",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
@@ -344,7 +345,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getPost(postId: String, callback: (Post) -> Unit) {
-        RequestTask(context).sendRequest(
+        requestTask.sendRequest(
             "$URI_POST?id=$postId",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
@@ -367,7 +368,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getLatest(callback: (String) -> Unit) {
-        RequestTask(context).sendRequest(LATEST, "", object : RequestTask.VolleyCallback {
+        requestTask.sendRequest(LATEST, "", object : RequestTask.VolleyCallback {
             override fun onResponseCode(response: Int) = Unit
 
             override fun onSuccess(response: String) {
@@ -387,7 +388,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun toggleLikePost(postId: String, callback: (Boolean) -> Unit) {
-        RequestTask(context).sendData(
+        requestTask.sendData(
             URI_LIKE,
             getCookiesString(),
             mapOf("id" to postId, "contentType" to "blogPost"),
@@ -406,7 +407,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun toggleDislikePost(postId: String, callback: (Boolean) -> Unit) {
-        RequestTask(context).sendData(
+        requestTask.sendData(
             URI_DISLIKE,
             getCookiesString(),
             mapOf("id" to postId, "contentType" to "blogPost"),
@@ -431,7 +432,7 @@ class HydravionClient private constructor(private val context: Context, private 
             json.put("contentType", "blogPost")
             json
         }.toString()
-        RequestTask(context).sendDataWithBody(
+        requestTask.sendDataWithBody(
             URI_GET_PROGRESS,
             getCookiesString(),
             body,
@@ -459,7 +460,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun setVideoProgress(videoId: String, progressInPercent: Int) {
-        RequestTask(context).sendData(
+        requestTask.sendData(
             URI_UPDATE_PROGRESS,
             getCookiesString(),
             mapOf("id" to videoId, "contentType" to "video", "progress" to progressInPercent.toString()),

@@ -18,7 +18,12 @@ class RequestTask(context: Context) {
                 callback.onResponseCode(responseCode);
             }, Response.ErrorListener { error: VolleyError ->
                 //error.printStackTrace()
-                callback.onResponseCode(error.networkResponse.statusCode)
+                @Suppress("SENSELESS_COMPARISON")
+                if (error.networkResponse.statusCode == null) {
+                    callback.onResponseCode(404)
+                } else {
+                    callback.onResponseCode(error.networkResponse.statusCode)
+                }
             }) {
             override fun parseNetworkResponse(response: NetworkResponse?): Response<String>? {
                 responseCode = response?.statusCode ?: 0;

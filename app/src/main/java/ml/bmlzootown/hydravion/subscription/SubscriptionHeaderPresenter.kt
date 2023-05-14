@@ -19,6 +19,7 @@ import ml.bmlzootown.hydravion.client.HydravionClient
 class SubscriptionHeaderPresenter : RowHeaderPresenter() {
 
     private var client: HydravionClient? = null
+    val version = ml.bmlzootown.hydravion.BuildConfig.VERSION_NAME
 
     override fun onCreateViewHolder(parent: ViewGroup): ViewHolder {
         if (client == null) {
@@ -41,7 +42,7 @@ class SubscriptionHeaderPresenter : RowHeaderPresenter() {
                             .load(
                                 GlideUrl(
                                     creator.icon?.path, LazyHeaders.Builder()
-                                        .addHeader("User-Agent", "Hydravion (AndroidTV), CFNetwork")
+                                        .addHeader("User-Agent", "Hydravion (AndroidTV $version), CFNetwork")
                                         .build()
                                 )
                             )

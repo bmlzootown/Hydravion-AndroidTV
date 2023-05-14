@@ -49,6 +49,8 @@ class CardPresenter(private val videoProgress: List<VideoProgress>) : Presenter(
 
     private class CardViewHolder(val rootView: View) {
 
+        val version = ml.bmlzootown.hydravion.BuildConfig.VERSION_NAME
+
         /**
          * Views
          */
@@ -127,7 +129,7 @@ class CardPresenter(private val videoProgress: List<VideoProgress>) : Presenter(
                         .load(
                             GlideUrl(
                                 thumbnail, LazyHeaders.Builder()
-                                    .addHeader("User-Agent", "Hydravion (AndroidTV), CFNetwork")
+                                    .addHeader("User-Agent", "Hydravion (AndroidTV $version), CFNetwork")
                                     .build()
                             )
                         )

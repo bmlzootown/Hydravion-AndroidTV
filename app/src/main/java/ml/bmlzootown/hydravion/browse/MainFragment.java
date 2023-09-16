@@ -42,6 +42,7 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.github.g00fy2.versioncompare.Version;
 import io.socket.client.Ack;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
@@ -107,13 +108,20 @@ public class MainFragment extends BrowseSupportFragment {
         checkLogin();
 
         client.getLatest(v -> {
-            if (!version.equalsIgnoreCase(v.substring(1))) {
+            if (new Version(version).isLowerThan(v.substring(1))) {
                 AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
                 builder.setTitle("Update Available");
                 builder.setMessage("Version " + v + " now available via Github: \n\nhttps://github.com/bmlzootown/Hydravion-AndroidTV/releases");
                 builder.setPositiveButton("OKAY", null);
                 builder.create().show();
             }
+            /*if (!version.equalsIgnoreCase(v.substring(1))) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                builder.setTitle("Update Available");
+                builder.setMessage("Version " + v + " now available via Github: \n\nhttps://github.com/bmlzootown/Hydravion-AndroidTV/releases");
+                builder.setPositiveButton("OKAY", null);
+                builder.create().show();
+            }*/
             return Unit.INSTANCE;
         });
     }

@@ -75,4 +75,7 @@ dependencies {
     // ExoPlayer
     implementation 'com.google.android.exoplayer:exoplayer:2.17.1'
     implementation 'com.google.android.exoplayer:extension-mediasession:2.17.1'
+
+    // Version Compare
+    implementation("io.github.g00fy2:versioncompare:1.5.0")
 }

@@ -216,21 +216,21 @@ public class MainFragment extends BrowseSupportFragment {
         } else if (event.getEvent().equalsIgnoreCase("creatorNotification")) {
             dLog("SOCKET", "creatorNotification");
             // TODO Re-enable when livestream notifications are working again!
-//            if (event.getData().getEventType().equalsIgnoreCase("CONTENT_LIVESTREAM_START")) {
-//                dLog("SOCKET", "CONTENT_LIVESTREAM_START");
-//                Integer row = getRow(event.getData().getCreator(), subscriptions);
-//                Thumbnail th = new Thumbnail();
-//                th.setPath(event.getData().getIcon());
-//                if (strms.containsKey(row))
-//                    strms.get(row).setThumbnail(th);
-//                //streams.get(row).setThumbnail(th);
-//
-//                if (row != -1) {
-//                    if (strms.containsKey(row))
-//                        addToRow(strms.get(row), subscriptions);
-//                    //addToRow(streams.get(row), subscriptions);
-//                }
-//            }
+            if (event.getData().getEventType().equalsIgnoreCase("CONTENT_LIVESTREAM_START")) {
+                dLog("SOCKET", "CONTENT_LIVESTREAM_START");
+                Integer row = getRow(event.getData().getCreator(), subscriptions);
+                Thumbnail th = new Thumbnail();
+                th.setPath(event.getData().getIcon());
+                if (strms.containsKey(row))
+                    strms.get(row).setThumbnail(th);
+                //streams.get(row).setThumbnail(th);
+
+                if (row != -1) {
+                    if (strms.containsKey(row))
+                        addToRow(strms.get(row), subscriptions);
+                    //addToRow(streams.get(row), subscriptions);
+                }
+            }
         }
         dLog("SOCKET --> SYNCEVENT", event.toString());
     };
@@ -302,6 +302,18 @@ public class MainFragment extends BrowseSupportFragment {
                         .create()
                         .show();
             } else {
+                if (subscriptions.length == 0) {
+                    new AlertDialog.Builder(getContext())
+                            .setTitle("No Subscriptions Found")
+                            .setMessage("Must be subscribed to a creator to utilize this app -- see official Floatplane website.")
+                            .setPositiveButton("OK",
+                                    (dialog, which) -> {
+                                        dialog.dismiss();
+                                        logout();
+                                    })
+                            .create()
+                            .show();
+                }
                 gotSubscriptions(subscriptions);
             }
 
@@ -434,7 +446,7 @@ public class MainFragment extends BrowseSupportFragment {
         }
 
         if (!strms.isEmpty()) {
-            setupLiveCheck();
+            //setupLiveCheck();
         }
 
         HeaderItem gridHeader = new HeaderItem(i, getString(R.string.settings));

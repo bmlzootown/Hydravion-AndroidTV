@@ -6,8 +6,8 @@ data class SyncEvent (
 )
 
 data class Data (
-    val id: String,
-    val eventType: String,
+    val id: String? = null,
+    val eventType: String? = null,
     val title: String? = null,
     val message: String? = null,
     val creator: String,
@@ -34,38 +34,38 @@ data class Data (
 )
 
 data class Target (
-    val url: String,
-    val matchScheme: String,
-    val match: String,
-    val foregroundDiscardOnMatch: Boolean,
-    val matchPortion: String
+    val url: String? = null,
+    val matchScheme: String? = null,
+    val match: String? = null,
+    val foregroundDiscardOnMatch: Boolean? = null,
+    val matchPortion: String? = null
 )
 
 data class Video (
-    val creator: String,
-    val guid: String
+    val creator: String? = null,
+    val guid: String? = null
 )
 
 data class Post (
-    val creator: String,
-    val guid: String,
-    val id: String,
-    val text: String,
-    val title: String
+    val creator: String? = null,
+    val guid: String? = null,
+    val id: String? = null,
+    val text: String? = null,
+    val title: String? = null
 )
 
 data class Metadata (
-    val hasVideo: Boolean,
-    val videoCount: Long,
-    val videoDuration: Long,
-    val hasAudio: Boolean,
-    val audioCount: Long,
-    val audioDuration: Long,
-    val hasPicture: Boolean,
-    val pictureCount: Long,
-    val hasGallery: Boolean,
-    val galleryCount: Long,
-    val isFeatured: Boolean
+    val hasVideo: Boolean? = null,
+    val videoCount: Long? = null,
+    val videoDuration: Long? = null,
+    val hasAudio: Boolean? = null,
+    val audioCount: Long? = null,
+    val audioDuration: Long? = null,
+    val hasPicture: Boolean? = null,
+    val pictureCount: Long? = null,
+    val hasGallery: Boolean? = null,
+    val galleryCount: Long? = null,
+    val isFeatured: Boolean? = null
 )
 
 

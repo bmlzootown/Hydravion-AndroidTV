@@ -2,7 +2,6 @@ package ml.bmlzootown.hydravion.client
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
 import com.android.volley.VolleyError
 import com.google.common.reflect.TypeToken
 import com.google.gson.Gson
@@ -18,7 +17,6 @@ import ml.bmlzootown.hydravion.post.Post
 import ml.bmlzootown.hydravion.subscription.Subscription
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.regex.Pattern
 
 class HydravionClient private constructor(private val context: Context, private val mainPrefs: SharedPreferences) {
 
@@ -31,7 +29,6 @@ class HydravionClient private constructor(private val context: Context, private 
      * @return Cookies string
      */
     private fun getCookiesString(): String =
-        //"${Constants.PREF_CFD_UID}=${mainPrefs.getString(Constants.PREF_CFD_UID, "")}; ${Constants.PREF_SAIL_SSID}=${mainPrefs.getString(Constants.PREF_SAIL_SSID, "")}"
         "${Constants.PREF_SAIL_SSID}=${mainPrefs.getString(Constants.PREF_SAIL_SSID, "")}"
 
     fun getSubs(callback: (Array<Subscription>?) -> Unit) {

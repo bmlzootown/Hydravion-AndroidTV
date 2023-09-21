@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -167,6 +168,10 @@ public class MainFragment extends BrowseSupportFragment {
         setupEventListeners();
 
         // Setup Socket
+        setupSocket();
+    }
+
+    private void setupSocket() {
         socket = socketClient.initialize();
         socket.on("connect", onSocketConnect);
         socket.on("disconnect", onSocketDisconnect);
@@ -197,6 +202,7 @@ public class MainFragment extends BrowseSupportFragment {
 
     private final Emitter.Listener onSocketDisconnect = args -> {
         dLog("SOCKET", "Disconnected");
+        setupSocket();
     };
 
     private final Emitter.Listener onSyncEvent = args -> {
@@ -204,18 +210,8 @@ public class MainFragment extends BrowseSupportFragment {
         SyncEvent event = socketClient.parseSyncEvent(obj);
         String e = gson.toJson(event);
         dLog("SOCKET", e);
-        if (event.getEvent().equalsIgnoreCase("postRelease")) {
-            dLog("SOCKET", "postRelease");
-            client.getVideoObject(event.getData().getVideo().getGuid(), video -> {
-                int row = getRow(video, subscriptions);
-                if (row != -1) {
-                    addToRow(video, subscriptions);
-                }
-                return Unit.INSTANCE;
-            });
-        } else if (event.getEvent().equalsIgnoreCase("creatorNotification")) {
+        if (event.getEvent().equalsIgnoreCase("creatorNotification")) {
             dLog("SOCKET", "creatorNotification");
-            // TODO Re-enable when livestream notifications are working again!
             if (event.getData().getEventType().equalsIgnoreCase("CONTENT_LIVESTREAM_START")) {
                 dLog("SOCKET", "CONTENT_LIVESTREAM_START");
                 Integer row = getRow(event.getData().getCreator(), subscriptions);
@@ -223,13 +219,25 @@ public class MainFragment extends BrowseSupportFragment {
                 th.setPath(event.getData().getIcon());
                 if (strms.containsKey(row))
                     strms.get(row).setThumbnail(th);
-                //streams.get(row).setThumbnail(th);
 
                 if (row != -1) {
-                    if (strms.containsKey(row))
-                        addToRow(strms.get(row), subscriptions);
-                    //addToRow(streams.get(row), subscriptions);
+                    if (strms.containsKey(row)) {
+                        getActivity().runOnUiThread(() -> {
+                            addToRow(strms.get(row), subscriptions);
+                        });
+                    }
                 }
+            } else if (event.getData().getEventType().equalsIgnoreCase("CONTENT_POST_RELEASE")) {
+                dLog("SOCKET", "CONTENT_POST_RELEASE");
+                client.getVideoObject(event.getData().getVideo().getGuid(), video -> {
+                    int row = getRow(video, subscriptions);
+                    if (row != -1) {
+                        getActivity().runOnUiThread(() -> {
+                            addToRow(video, subscriptions);
+                        });
+                    }
+                    return Unit.INSTANCE;
+                });
             }
         }
         dLog("SOCKET --> SYNCEVENT", event.toString());

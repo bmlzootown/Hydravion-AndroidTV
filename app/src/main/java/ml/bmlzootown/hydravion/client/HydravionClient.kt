@@ -179,7 +179,7 @@ class HydravionClient private constructor(private val context: Context, private 
 
     fun getVideoObject(id: String, callback: (Video) -> Unit) {
         requestTask.sendRequest(
-            "$URI_VIDEO_OBJECT?id=$id",
+            "$URI_POST?id=$id",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
                 override fun onSuccess(response: String) {

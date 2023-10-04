@@ -41,7 +41,7 @@
             android:name=".browse.MainActivity"
             android:banner="@drawable/banner"
             android:exported="true"
-            android:icon="@drawable/banner"
+            android:icon="@drawable/icon"
             android:label="@string/app_name"
             android:logo="@drawable/banner"
             android:screenOrientation="landscape">

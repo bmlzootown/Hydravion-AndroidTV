@@ -74,6 +74,9 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
 
     private DetailsSupportFragmentBackgroundController mDetailsBackground;
 
+    private static final String version = ml.bmlzootown.hydravion.BuildConfig.VERSION_NAME;
+    private static final String userAgent = String.format("Hydravion %s (AndroidTV), CFNetwork", version);
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -108,7 +111,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
             Glide.with(requireActivity())
                     .asBitmap()
                     .load(new GlideUrl(creator.getCoverImage().getPath(), new LazyHeaders.Builder()
-                            .addHeader("User-Agent", "Hydravion (AndroidTV), CFNetwork")
+                            .addHeader("User-Agent", userAgent)
                             .build())
                         )
                     .override(1800, 519)
@@ -136,7 +139,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
         row.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.default_background));
         Glide.with(requireActivity())
                 .load(new GlideUrl(mSelectedMovie.getThumbnail().getPath(), new LazyHeaders.Builder()
-                        .addHeader("User-Agent", "Hydravion (AndroidTV), CFNetwork")
+                        .addHeader("User-Agent", userAgent)
                         .build())
                 )
                 .centerCrop()

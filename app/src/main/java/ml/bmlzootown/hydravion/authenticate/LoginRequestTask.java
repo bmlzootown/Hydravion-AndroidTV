@@ -20,6 +20,9 @@ public class LoginRequestTask {
     private Context context;
     private ArrayList<String> cookies;
 
+    private static final String version = ml.bmlzootown.hydravion.BuildConfig.VERSION_NAME;
+    private static final String userAgent = String.format("Hydravion %s (AndroidTV), CFNetwork", version);
+
     public LoginRequestTask(Context context) {
         this.context = context;
     }
@@ -49,7 +52,7 @@ public class LoginRequestTask {
             public Map<String, String> getHeaders() {
                 Map<String, String> params = new HashMap<>();
                 params.put("Accept", "application/json");
-                params.put("User-Agent", "Hydravion (AndroidTV), CFNetwork");
+                params.put("User-Agent", userAgent);
                 return params;
             }
 
@@ -95,7 +98,7 @@ public class LoginRequestTask {
                     cs.append(c).append(";");
                 }
                 params.put("Cookie", cs.toString());
-                params.put("User-Agent", "Hydravion (AndroidTV), CFNetwork");
+                params.put("User-Agent", userAgent);
                 params.put("Accept", "application/json");
                 return params;
             }

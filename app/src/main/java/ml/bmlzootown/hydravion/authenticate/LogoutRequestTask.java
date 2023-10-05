@@ -19,6 +19,9 @@ import java.util.Map;
 public class LogoutRequestTask {
     private Context context;
 
+    private static final String version = ml.bmlzootown.hydravion.BuildConfig.VERSION_NAME;
+    private static final String userAgent = String.format("Hydravion %s (AndroidTV), CFNetwork", version);
+
     public LogoutRequestTask(Context context) {
         this.context = context;
     }
@@ -36,7 +39,7 @@ public class LogoutRequestTask {
                 Map<String, String> params = new HashMap<>();
                 params.put("Cookie", cookies);
                 params.put("Accept", "application/json");
-                params.put("User-Agent", "Hydravion (AndroidTV), CFNetwork");
+                params.put("User-Agent", userAgent);
                 return params;
             }
         };

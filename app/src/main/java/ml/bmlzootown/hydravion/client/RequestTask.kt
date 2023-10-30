@@ -9,16 +9,21 @@ import com.android.volley.toolbox.Volley
 class RequestTask(context: Context) {
 
     private val volleyQueue: RequestQueue = Volley.newRequestQueue(context)
+    val version = ml.bmlzootown.hydravion.BuildConfig.VERSION_NAME
 
     fun getReponseStatus(uri: String?, callback: VolleyCallback) {
         var responseCode: Int = 0;
         val stringRequest: StringRequest = object : StringRequest(Method.GET, uri,
             Response.Listener { _: String? ->
-                //Log.d("JSON", response);
                 callback.onResponseCode(responseCode);
             }, Response.ErrorListener { error: VolleyError ->
                 //error.printStackTrace()
-                callback.onResponseCode(error.networkResponse.statusCode)
+                @Suppress("SENSELESS_COMPARISON")
+                if (error.networkResponse.statusCode == null) {
+                    callback.onResponseCode(404)
+                } else {
+                    callback.onResponseCode(error.networkResponse.statusCode)
+                }
             }) {
             override fun parseNetworkResponse(response: NetworkResponse?): Response<String>? {
                 responseCode = response?.statusCode ?: 0;
@@ -32,7 +37,6 @@ class RequestTask(context: Context) {
     fun sendRequest(uri: String?, cookies: String, callback: VolleyCallback) {
         val stringRequest: StringRequest = object : StringRequest(Method.GET, uri,
             Response.Listener { response: String? ->
-                //Log.d("JSON", response);
                 callback.onSuccess(response ?: "")
             }, Response.ErrorListener { error: VolleyError ->
                 error.printStackTrace()
@@ -42,7 +46,7 @@ class RequestTask(context: Context) {
                 val params: MutableMap<String, String> = HashMap()
                 params["Cookie"] = cookies
                 params["Accept"] = "application/json"
-                params["User-Agent"] = "Hydravion (AndroidTV), CFNetwork"
+                params["User-Agent"] = "Hydravion (AndroidTV $version), CFNetwork"
                 return params
             }
         }
@@ -68,7 +72,7 @@ class RequestTask(context: Context) {
                 mapOf(
                     "Cookie" to cookies,
                     "Accept" to ACCEPT_JSON,
-                    "User-Agent" to "Hydravion (AndroidTV), CFNetwork"
+                    "User-Agent" to "Hydravion (AndroidTV $version), CFNetwork"
                 )
         }
         volleyQueue.add(stringRequest)
@@ -91,7 +95,7 @@ class RequestTask(context: Context) {
                 mapOf(
                     "Cookie" to cookies,
                     "Accept" to ACCEPT_JSON,
-                    "User-Agent" to "Hydravion (AndroidTV), CFNetwork",
+                    "User-Agent" to "Hydravion (AndroidTV $version), CFNetwork",
                     "Content-Type" to "application/json"
                 )
 
@@ -118,7 +122,7 @@ class RequestTask(context: Context) {
                 mapOf(
                     "Cookie" to cookies,
                     "Accept" to ACCEPT_JSON,
-                    "User-Agent" to "Hydravion (AndroidTV), CFNetwork"
+                    "User-Agent" to "Hydravion (AndroidTV $version), CFNetwork"
                 )
         }
         volleyQueue.add(stringRequest)

@@ -2,12 +2,12 @@ package ml.bmlzootown.hydravion.client
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
 import com.android.volley.VolleyError
 import com.google.common.reflect.TypeToken
 import com.google.gson.Gson
 import ml.bmlzootown.hydravion.BuildConfig
 import ml.bmlzootown.hydravion.Constants
+import ml.bmlzootown.hydravion.browse.MainFragment
 import ml.bmlzootown.hydravion.creator.Creator
 import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream
 import ml.bmlzootown.hydravion.github.Release
@@ -17,23 +17,22 @@ import ml.bmlzootown.hydravion.post.Post
 import ml.bmlzootown.hydravion.subscription.Subscription
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.regex.Pattern
 
 class HydravionClient private constructor(private val context: Context, private val mainPrefs: SharedPreferences) {
 
     private val creatorIds: MutableMap<String, String> = hashMapOf()
     private val creatorCache: MutableMap<String, Creator> = hashMapOf()
+    private val requestTask: RequestTask = RequestTask(context)
 
     /**
      * Convenience fun to get cookies string
      * @return Cookies string
      */
     private fun getCookiesString(): String =
-        //"${Constants.PREF_CFD_UID}=${mainPrefs.getString(Constants.PREF_CFD_UID, "")}; ${Constants.PREF_SAIL_SSID}=${mainPrefs.getString(Constants.PREF_SAIL_SSID, "")}"
         "${Constants.PREF_SAIL_SSID}=${mainPrefs.getString(Constants.PREF_SAIL_SSID, "")}"
 
     fun getSubs(callback: (Array<Subscription>?) -> Unit) {
-        RequestTask(context).sendRequest(URI_SUBSCRIPTIONS, getCookiesString(), object : RequestTask.VolleyCallback {
+        requestTask.sendRequest(URI_SUBSCRIPTIONS, getCookiesString(), object : RequestTask.VolleyCallback {
 
             override fun onResponseCode(response: Int) {
                 //Ignore
@@ -41,7 +40,7 @@ class HydravionClient private constructor(private val context: Context, private 
 
             override fun onSuccess(response: String) {
                 if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "getSubs: $response")
+                    MainFragment.dLog(TAG, "getSubs: $response")
                 }
 
                 if (response.contains("errors")) {
@@ -74,13 +73,13 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getCreatorInfo(creatorGUID: String, callback: (FloatplaneLiveStream) -> Unit) {
-        RequestTask(context).sendRequest(
+        requestTask.sendRequest(
             "$URI_CREATOR_INFO?creatorGUID=$creatorGUID",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
                 override fun onSuccess(response: String) {
                     if (BuildConfig.DEBUG) {
-                        Log.d(TAG, "getCreatorInfo: $response")
+                        MainFragment.dLog(TAG,"getCreatorInfo: $response")
                     }
 
                     try {
@@ -103,7 +102,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getVideos(creatorGUID: String, page: Int, callback: (Array<Video>) -> Unit) {
-        RequestTask(context).sendRequest(
+        requestTask.sendRequest(
             "$URI_VIDEOS?id=$creatorGUID&fetchAfter=${(page - 1) * 20}",
             getCookiesString(),
             creatorGUID,
@@ -115,7 +114,7 @@ class HydravionClient private constructor(private val context: Context, private 
 
                 override fun onSuccessCreator(response: String, creatorGUID: String) {
                     if (BuildConfig.DEBUG) {
-                        Log.d(TAG, "getVideos: $response")
+                        MainFragment.dLog(TAG, "getVideos: $response")
                     }
 
                     callback(Gson().fromJson(response, Array<Video>::class.java))
@@ -127,30 +126,45 @@ class HydravionClient private constructor(private val context: Context, private 
 
     fun getVideo(video: Video, res: String, callback: (Video) -> Unit) {
         //val y = Util.getCurrentDisplayModeSize(context).y;
-        RequestTask(context).sendRequest(
-            "$URI_LIVE?type=vod&guid=${video.getVideoId()}",
+        requestTask.sendRequest(
+            "$URI_DELIVERY?scenario=onDemand&entityId=${video.getVideoId()}",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
 
                 override fun onSuccess(response: String) {
                     if (BuildConfig.DEBUG) {
-                        Log.d(TAG, "getVideo: $response")
+                        MainFragment.dLog(TAG, "getVideo: $response")
                     }
 
-                    val cdnUri = Gson().fromJson(response, CdnUri::class.java)
-                    video.vidUrl = (cdnUri.cdn + cdnUri.resource.uri).let { uri ->
-                        // replace {qualityLevels}
-                        var url = Pattern.compile("(?<=\\/)(\\{qualityLevelParams\\.2\\})").matcher(uri)
-                            .replaceAll("$res.mp4")
+                    val delivery = Gson().fromJson(response, Delivery::class.java)
+                    //val resolution = if (res != "2160") res else "4K"
+                    val cdn = delivery.groups.get(0).origins.get(0).url
+                    var uri = ""
+                    val variants = (delivery.groups.get(0).variants).sortedWith(
+                        compareByDescending<Variant> {
+                            when (it.name) {
+                                "2160-avc1" -> 5
+                                "1080-avc1" -> 4
+                                "720-avc1" -> 3
+                                "480-avc1" -> 2
+                                "360-avc1" -> 1
+                                else -> 0
+                            }
+                        }
+                    )
 
-                        // replace {qualityLevelParams.token}
-                        val qualityRes = if (res != "2160") res else "4K"
-                        val ql = cdnUri.resource.data.qualityLevels.find { it.label.contains(qualityRes) }
-                        url = Pattern.compile("(\\{qualityLevelParams.4\\})").matcher(url)
-                            .replaceAll(cdnUri.resource.data.qualityLevelParams[ql?.name]?.token.toString())
-                        url
+                    for(variant in variants) {
+                        MainFragment.dLog("VARIANT", variant.toString())
+                        if (!variant.enabled) {
+                            MainFragment.dLog("VARIANT", variant.label + " DISABLED")
+                            continue
+                        } else {
+                            uri = variant.url
+                            break
+                        }
                     }
-                    Log.d(TAG, "Video: $video")
+                    video.vidUrl = cdn + uri
+                    MainFragment.dLog(TAG, "Video: $video")
                     callback(video)
                 }
 
@@ -162,9 +176,10 @@ class HydravionClient private constructor(private val context: Context, private 
             })
     }
 
+
     fun getVideoObject(id: String, callback: (Video) -> Unit) {
-        RequestTask(context).sendRequest(
-            "$URI_VIDEO_OBJECT?id=$id",
+        requestTask.sendRequest(
+            "$URI_POST?id=$id",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
                 override fun onSuccess(response: String) {
@@ -184,7 +199,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getVideoInfo(videoID: String, callback: (VideoInfo) -> Unit) {
-        RequestTask(context).sendRequest(
+        requestTask.sendRequest(
             "$URI_VIDEO_INFO?id=$videoID",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
@@ -206,8 +221,50 @@ class HydravionClient private constructor(private val context: Context, private 
             })
     }
 
-    fun getLive(creatorGUID: String, callback: (Live) -> Unit) {
-        RequestTask(context).sendRequest(
+    fun getLive(sub: Subscription, callback: (Delivery) -> Unit) {
+        requestTask.sendRequest(
+            "$URI_CREATOR?id=${sub.creator}",
+            getCookiesString(),
+            object : RequestTask.VolleyCallback {
+
+                override fun onSuccess(response: String) {
+                    val c: Creator = Gson().fromJson(response, Creator::class.java)
+                    c.lastLiveStream?.let {
+                        getLive(it.id) {
+                            callback(it)
+                        }
+                    }
+                    //callback(Gson().fromJson(response, Creator::class.java))
+                }
+
+                override fun onResponseCode(response: Int) = Unit
+
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+
+                override fun onError(error: VolleyError) = Unit
+            })
+    }
+
+    fun getLive(livestreamID: String, callback: (Delivery) -> Unit) {
+        requestTask.sendRequest(
+            "$URI_DELIVERY?scenario=live&entityId=$livestreamID",
+            getCookiesString(),
+            object : RequestTask.VolleyCallback {
+
+                override fun onSuccess(response: String) {
+                    callback(Gson().fromJson(response, Delivery::class.java))
+                }
+
+                override fun onResponseCode(response: Int) = Unit
+
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+
+                override fun onError(error: VolleyError) = Unit
+            })
+    }
+
+    /*fun getLive(creatorGUID: String, callback: (Live) -> Unit) {
+        requestTask.sendRequest(
             "$URI_LIVE?type=live&creator=$creatorGUID",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
@@ -222,10 +279,10 @@ class HydravionClient private constructor(private val context: Context, private 
 
                 override fun onError(error: VolleyError) = Unit
             })
-    }
+    }*/
 
     fun checkLive(streamUri: String, callback: (Int) -> Unit) {
-        RequestTask(context).getReponseStatus(streamUri, object : RequestTask.VolleyCallback {
+        requestTask.getReponseStatus(streamUri, object : RequestTask.VolleyCallback {
             override fun onResponseCode(response: Int) {
                 callback(response)
             }
@@ -236,29 +293,6 @@ class HydravionClient private constructor(private val context: Context, private 
 
             override fun onError(error: VolleyError) = Unit
 
-        })
-    }
-
-    fun getCdnServers(callback: (Array<String>) -> Unit) {
-        RequestTask(context).sendRequest(URI_CDNS, getCookiesString(), object : RequestTask.VolleyCallback {
-
-            override fun onSuccess(response: String) {
-                Gson().fromJson(response, Edges::class.java)?.let { edges ->
-                    callback(
-                        edges.edges.filter { edge ->
-                            edge.allowStreaming // filter only those that allow streaming
-                        }.map { liveEdge ->
-                            liveEdge.hostname // map list of streaming edge to hostname
-                        }.toTypedArray() // convert to array and send to callback
-                    )
-                }
-            }
-
-            override fun onResponseCode(response: Int) = Unit
-
-            override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
-
-            override fun onError(error: VolleyError) = Unit
         })
     }
 
@@ -281,7 +315,7 @@ class HydravionClient private constructor(private val context: Context, private 
             return
         }
 
-        RequestTask(context).sendRequest(
+        requestTask.sendRequest(
             "$URI_CREATOR_INFO?creatorGUID=$creatorGUID",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
@@ -308,7 +342,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getPost(postId: String, callback: (Post) -> Unit) {
-        RequestTask(context).sendRequest(
+        requestTask.sendRequest(
             "$URI_POST?id=$postId",
             getCookiesString(),
             object : RequestTask.VolleyCallback {
@@ -331,7 +365,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getLatest(callback: (String) -> Unit) {
-        RequestTask(context).sendRequest(LATEST, "", object : RequestTask.VolleyCallback {
+        requestTask.sendRequest(LATEST, "", object : RequestTask.VolleyCallback {
             override fun onResponseCode(response: Int) = Unit
 
             override fun onSuccess(response: String) {
@@ -351,7 +385,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun toggleLikePost(postId: String, callback: (Boolean) -> Unit) {
-        RequestTask(context).sendData(
+        requestTask.sendData(
             URI_LIKE,
             getCookiesString(),
             mapOf("id" to postId, "contentType" to "blogPost"),
@@ -370,7 +404,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun toggleDislikePost(postId: String, callback: (Boolean) -> Unit) {
-        RequestTask(context).sendData(
+        requestTask.sendData(
             URI_DISLIKE,
             getCookiesString(),
             mapOf("id" to postId, "contentType" to "blogPost"),
@@ -395,7 +429,7 @@ class HydravionClient private constructor(private val context: Context, private 
             json.put("contentType", "blogPost")
             json
         }.toString()
-        RequestTask(context).sendDataWithBody(
+        requestTask.sendDataWithBody(
             URI_GET_PROGRESS,
             getCookiesString(),
             body,
@@ -423,7 +457,7 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun setVideoProgress(videoId: String, progressInPercent: Int) {
-        RequestTask(context).sendData(
+        requestTask.sendData(
             URI_UPDATE_PROGRESS,
             getCookiesString(),
             mapOf("id" to videoId, "contentType" to "video", "progress" to progressInPercent.toString()),
@@ -443,22 +477,23 @@ class HydravionClient private constructor(private val context: Context, private 
     companion object {
 
         private const val TAG = "HydravionClient"
+        private const val SITE = "https://www.floatplane.com"
 
         // TODO Update to v3 API
-        private const val URI_SUBSCRIPTIONS = "https://www.floatplane.com/api/user/subscriptions"
-        private const val URI_CREATOR_INFO = "https://www.floatplane.com/api/creator/info"
-        private const val URI_LIVE = "https://www.floatplane.com/api/cdn/delivery"
-        private const val URI_CDNS = "https://www.floatplane.com/api/edges"
+        private const val URI_SUBSCRIPTIONS = "$SITE/api/user/subscriptions"
+        private const val URI_CREATOR_INFO = "$SITE/api/creator/info"
 
         // Already updated!
-        private const val URI_VIDEOS = "https://www.floatplane.com/api/v3/content/creator"
-        private const val URI_VIDEO_OBJECT = "https://www.floatplane.com/api/v3/content/info"
-        private const val URI_VIDEO_INFO = "https://www.floatplane.com/api/v3/content/video"
-        private const val URI_POST = "https://www.floatplane.com/api/v3/content/post"
-        private const val URI_LIKE = "https://www.floatplane.com/api/v3/content/like"
-        private const val URI_DISLIKE = "https://www.floatplane.com/api/v3/content/dislike"
-        private const val URI_GET_PROGRESS = "https://www.floatplane.com/api/v3/content/get/progress"
-        private const val URI_UPDATE_PROGRESS = "https://www.floatplane.com/api/v3/content/progress"
+        private const val URI_DELIVERY = "$SITE/api/v3/delivery/info"
+        private const val URI_CREATOR = "$SITE/api/v3/creator/info"
+        private const val URI_VIDEOS = "$SITE/api/v3/content/creator"
+        private const val URI_VIDEO_OBJECT = "$SITE/api/v3/content/info"
+        private const val URI_VIDEO_INFO = "$SITE/api/v3/content/video"
+        private const val URI_POST = "$SITE/api/v3/content/post"
+        private const val URI_LIKE = "$SITE/api/v3/content/like"
+        private const val URI_DISLIKE = "$SITE/api/v3/content/dislike"
+        private const val URI_GET_PROGRESS = "$SITE/api/v3/content/get/progress"
+        private const val URI_UPDATE_PROGRESS = "$SITE/api/v3/content/progress"
 
         private const val LATEST = "https://api.github.com/repos/bmlzootown/Hydravion-AndroidTV/releases/latest"
         private var INSTANCE: HydravionClient? = null

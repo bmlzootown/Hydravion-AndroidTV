@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 import ml.bmlzootown.hydravion.R;
+import ml.bmlzootown.hydravion.browse.MainFragment;
 import ml.bmlzootown.hydravion.models.LoginResponse;
 
 public class LoginActivity extends Activity {
@@ -60,11 +61,11 @@ public class LoginActivity extends Activity {
             @Override
             public void onSuccess(ArrayList<String> cookies, String response) {
                 if (response.length() < 19) {
-                    Log.d("RESPONSE", "Possible 2FA");
+                    MainFragment.dLog("RESPONSE", "Possible 2FA");
                     Gson gson = new Gson();
                     LoginResponse res = gson.fromJson(response, LoginResponse.class);
                     if (res.getNeeds2FA()) {
-                        Log.d("RESPONSE", "NEEDS 2FA");
+                        MainFragment.dLog("RESPONSE", "NEEDS 2FA");
                         AlertDialog.Builder builder = new AlertDialog.Builder(LoginActivity.this);
                         builder.setTitle("2FA Token");
                         final EditText input = new EditText(LoginActivity.this);
@@ -108,7 +109,7 @@ public class LoginActivity extends Activity {
                     setResult(1, intent);
                     finish();
                 }
-                Log.d("response", response);
+                MainFragment.dLog("response", response);
             }
 
             @Override

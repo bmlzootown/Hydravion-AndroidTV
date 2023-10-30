@@ -39,11 +39,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+import io.github.g00fy2.versioncompare.Version;
 import io.socket.client.Ack;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
@@ -63,7 +63,7 @@ import ml.bmlzootown.hydravion.detail.DetailsActivity;
 import ml.bmlzootown.hydravion.ext.MapExtensionKt;
 import ml.bmlzootown.hydravion.models.ChildImage;
 import ml.bmlzootown.hydravion.models.Creator;
-import ml.bmlzootown.hydravion.models.Live;
+import ml.bmlzootown.hydravion.models.Delivery;
 import ml.bmlzootown.hydravion.models.Thumbnail;
 import ml.bmlzootown.hydravion.models.Video;
 import ml.bmlzootown.hydravion.models.VideoInfo;
@@ -85,10 +85,8 @@ public class MainFragment extends BrowseSupportFragment {
     private final Gson gson = new Gson();
 
     public static String sailssid;
-    public static String cdn;
 
     public static List<Subscription> subscriptions = new ArrayList<>();
-    //private static List<Video> streams = new ArrayList<>();
     private static NavigableMap<Integer, Video> strms = new TreeMap<>();
     public static HashMap<String, ArrayList<Video>> videos = new HashMap<>();
     public static BrowseSupportFragment bsf;
@@ -104,7 +102,6 @@ public class MainFragment extends BrowseSupportFragment {
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
-        //Log.i(TAG, "onCreate");
         super.onActivityCreated(savedInstanceState);
         bsf = this;
         client = HydravionClient.Companion.getInstance(requireActivity(), requireActivity().getPreferences(Context.MODE_PRIVATE));
@@ -112,13 +109,20 @@ public class MainFragment extends BrowseSupportFragment {
         checkLogin();
 
         client.getLatest(v -> {
-            if (!version.equalsIgnoreCase(v.substring(1))) {
+            if (new Version(version).isLowerThan(v.substring(1))) {
                 AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
                 builder.setTitle("Update Available");
                 builder.setMessage("Version " + v + " now available via Github: \n\nhttps://github.com/bmlzootown/Hydravion-AndroidTV/releases");
                 builder.setPositiveButton("OKAY", null);
                 builder.create().show();
             }
+            /*if (!version.equalsIgnoreCase(v.substring(1))) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                builder.setTitle("Update Available");
+                builder.setMessage("Version " + v + " now available via Github: \n\nhttps://github.com/bmlzootown/Hydravion-AndroidTV/releases");
+                builder.setPositiveButton("OKAY", null);
+                builder.create().show();
+            }*/
             return Unit.INSTANCE;
         });
     }
@@ -129,7 +133,6 @@ public class MainFragment extends BrowseSupportFragment {
             Intent intent = new Intent(getActivity(), LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
             startActivityForResult(intent, 42);
-            cdn = "edge03-na.floatplane.com";
         } else {
             initialize();
         }
@@ -165,6 +168,10 @@ public class MainFragment extends BrowseSupportFragment {
         setupEventListeners();
 
         // Setup Socket
+        setupSocket();
+    }
+
+    private void setupSocket() {
         socket = socketClient.initialize();
         socket.on("connect", onSocketConnect);
         socket.on("disconnect", onSocketDisconnect);
@@ -176,7 +183,7 @@ public class MainFragment extends BrowseSupportFragment {
         dLog("SOCKET", "Connected");
         JSONObject jo = new JSONObject();
         try {
-            jo.put("url", "/api/sync/connect");
+            jo.put("url", "/api/v3/socket/connect");
             dLog("SOCKET --> EMIT", jo.toString());
             socket.emit("post", jo, new Ack() {
                 @Override
@@ -195,6 +202,7 @@ public class MainFragment extends BrowseSupportFragment {
 
     private final Emitter.Listener onSocketDisconnect = args -> {
         dLog("SOCKET", "Disconnected");
+        setupSocket();
     };
 
     private final Emitter.Listener onSyncEvent = args -> {
@@ -202,33 +210,35 @@ public class MainFragment extends BrowseSupportFragment {
         SyncEvent event = socketClient.parseSyncEvent(obj);
         String e = gson.toJson(event);
         dLog("SOCKET", e);
-        if (event.getEvent().equalsIgnoreCase("postRelease")) {
-            dLog("SOCKET", "postRelease");
-            client.getVideoObject(event.getData().getVideo().getGuid(), video -> {
-                int row = getRow(video, subscriptions);
-                if (row != -1) {
-                    addToRow(video, subscriptions);
-                }
-                return Unit.INSTANCE;
-            });
-        } else if (event.getEvent().equalsIgnoreCase("creatorNotification")) {
+        if (event.getEvent().equalsIgnoreCase("creatorNotification")) {
             dLog("SOCKET", "creatorNotification");
-            // TODO Re-enable when livestream notifications are working again!
-//            if (event.getData().getEventType().equalsIgnoreCase("CONTENT_LIVESTREAM_START")) {
-//                dLog("SOCKET", "CONTENT_LIVESTREAM_START");
-//                Integer row = getRow(event.getData().getCreator(), subscriptions);
-//                Thumbnail th = new Thumbnail();
-//                th.setPath(event.getData().getIcon());
-//                if (strms.containsKey(row))
-//                    strms.get(row).setThumbnail(th);
-//                //streams.get(row).setThumbnail(th);
-//
-//                if (row != -1) {
-//                    if (strms.containsKey(row))
-//                        addToRow(strms.get(row), subscriptions);
-//                    //addToRow(streams.get(row), subscriptions);
-//                }
-//            }
+            if (event.getData().getEventType().equalsIgnoreCase("CONTENT_LIVESTREAM_START")) {
+                dLog("SOCKET", "CONTENT_LIVESTREAM_START");
+                Integer row = getRow(event.getData().getCreator(), subscriptions);
+                Thumbnail th = new Thumbnail();
+                th.setPath(event.getData().getIcon());
+                if (strms.containsKey(row))
+                    strms.get(row).setThumbnail(th);
+
+                if (row != -1) {
+                    if (strms.containsKey(row)) {
+                        getActivity().runOnUiThread(() -> {
+                            addToRow(strms.get(row), subscriptions);
+                        });
+                    }
+                }
+            } else if (event.getData().getEventType().equalsIgnoreCase("CONTENT_POST_RELEASE")) {
+                dLog("SOCKET", "CONTENT_POST_RELEASE");
+                client.getVideoObject(event.getData().getVideo().getGuid(), video -> {
+                    int row = getRow(video, subscriptions);
+                    if (row != -1) {
+                        getActivity().runOnUiThread(() -> {
+                            addToRow(video, subscriptions);
+                        });
+                    }
+                    return Unit.INSTANCE;
+                });
+            }
         }
         dLog("SOCKET --> SYNCEVENT", event.toString());
     };
@@ -236,11 +246,9 @@ public class MainFragment extends BrowseSupportFragment {
     private boolean loadCredentials() {
         SharedPreferences prefs = requireActivity().getPreferences(Context.MODE_PRIVATE);
         sailssid = prefs.getString(Constants.PREF_SAIL_SSID, "default");
-        cdn = prefs.getString(Constants.PREF_CDN, "default");
         dLog("SAILS.SID", sailssid);
-        dLog("CDN", cdn);
 
-        if (sailssid.equals("default") || cdn.equals("default")) {
+        if (sailssid.equals("default")) {
             dLog("LOGIN", "Credentials not found!");
             return false;
         } else {
@@ -274,33 +282,18 @@ public class MainFragment extends BrowseSupportFragment {
     private void saveCredentials() {
         requireActivity().getPreferences(Context.MODE_PRIVATE).edit()
                 .putString(Constants.PREF_SAIL_SSID, sailssid)
-                .putString(Constants.PREF_CDN, cdn)
                 .apply();
     }
 
-    private void gotLiveInfo(Subscription sub, Live live) {
-        String l = live.getCdn() + live.getResource().getUri();
-        String pattern = "\\{(.*?)\\}";
-        Pattern p = Pattern.compile(pattern);
-        Matcher m = p.matcher(live.getResource().getUri());
-        if (m.find()) {
-            for (int i = 0; i < m.groupCount(); i++) {
-                //dLog("LIVE", m.group(i));
-                String var = m.group(i).substring(1, m.group(i).length() - 1);
-
-                if (var.equalsIgnoreCase("token")) {
-                    l = l.replaceAll("\\{token\\}", live.getResource().getData().getToken());
-                    sub.setStreamUrl(l);
-                    client.checkLive(l, (status) -> {
-                        sub.setStreaming(status == 200);
-                        dLog("LIVE STATUS", String.valueOf(status));
-                        return Unit.INSTANCE;
-                    });
-                    dLog("LIVE", l);
-                }
-                //dLog("LIVE", l);
-            }
-        }
+    private void gotLiveInfo(Subscription sub, Delivery live) {
+        String l = live.getGroups().get(0).getOrigins().get(0).getUrl() + live.getGroups().get(0).getVariants().get(0).getUrl();
+        sub.setStreamUrl(l);
+        client.checkLive(l, (status) -> {
+            sub.setStreaming(status == 200);
+            dLog("LIVE STATUS", String.valueOf(status));
+            return Unit.INSTANCE;
+        });
+        dLog("LIVE", l);
     }
 
     private void refreshSubscriptions() {
@@ -317,6 +310,18 @@ public class MainFragment extends BrowseSupportFragment {
                         .create()
                         .show();
             } else {
+                if (subscriptions.length == 0) {
+                    new AlertDialog.Builder(getContext())
+                            .setTitle("No Subscriptions Found")
+                            .setMessage("Must be subscribed to a creator to utilize this app -- see official Floatplane website.")
+                            .setPositiveButton("OK",
+                                    (dialog, which) -> {
+                                        dialog.dismiss();
+                                        logout();
+                                    })
+                            .create()
+                            .show();
+                }
                 gotSubscriptions(subscriptions);
             }
 
@@ -338,7 +343,7 @@ public class MainFragment extends BrowseSupportFragment {
         subscriptions = trimmed;
         for (Subscription sub : subscriptions) {
             if (sub.getCreator() != null) {
-                client.getLive(sub.getCreator(), live -> {
+                client.getLive(sub, live -> {
                     gotLiveInfo(sub, live);
                     return Unit.INSTANCE;
                 });
@@ -449,7 +454,7 @@ public class MainFragment extends BrowseSupportFragment {
         }
 
         if (!strms.isEmpty()) {
-            setupLiveCheck();
+            //setupLiveCheck();
         }
 
         HeaderItem gridHeader = new HeaderItem(i, getString(R.string.settings));
@@ -458,7 +463,6 @@ public class MainFragment extends BrowseSupportFragment {
         ArrayObjectAdapter gridRowAdapter = new ArrayObjectAdapter(mGridPresenter);
         gridRowAdapter.add(getResources().getString(R.string.refresh));
         gridRowAdapter.add(getResources().getString(R.string.live_stream));
-        //gridRowAdapter.add(getResources().getString(R.string.select_server));
         gridRowAdapter.add(getResources().getString(R.string.app_info));
         gridRowAdapter.add(getResources().getString(R.string.logout));
         rowsAdapter.add(new ListRow(gridHeader, gridRowAdapter));
@@ -584,15 +588,6 @@ public class MainFragment extends BrowseSupportFragment {
     }
 
     private void setupEventListeners() {
-        /*setOnSearchClickedListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View view) {
-                Toast.makeText(getActivity(), "Implement your own in-app search", Toast.LENGTH_LONG)
-                        .show();
-            }
-        });*/
-
         setOnItemViewClickedListener(new BrowseViewClickListener(requireContext(), this::onVideoSelected, this::onSettingsSelected));
         setOnItemViewSelectedListener(new ItemViewSelectedListener(this::onCheckIndices, this::onRowSelected));
     }
@@ -660,9 +655,6 @@ public class MainFragment extends BrowseSupportFragment {
             case LOGOUT:
                 logout();
                 break;
-            /*case SELECT_SERVER:
-                selectServer();
-                break;*/
             case APP_INFO:
                 showInfo();
                 break;
@@ -684,23 +676,6 @@ public class MainFragment extends BrowseSupportFragment {
                 //.setPositiveButton("OKAY", null)
                 .create()
                 .show();
-    }
-
-    private void selectServer() {
-        client.getCdnServers(hostnames -> {
-            new AlertDialog.Builder(getContext())
-                    .setTitle("Select CDN Server")
-                    .setItems(hostnames,
-                            (dialog, which) -> {
-                                String server = hostnames[which];
-                                dLog("CDN", server);
-                                SharedPreferences prefs = getActivity().getPreferences(Context.MODE_PRIVATE);
-                                prefs.edit().putString("cdn", server).apply();
-                            })
-                    .create()
-                    .show();
-            return Unit.INSTANCE;
-        });
     }
 
     private void selectLivestream() {
@@ -745,12 +720,19 @@ public class MainFragment extends BrowseSupportFragment {
             res = "1080";
         }
 
+        dLog("Supported Resolution", res);
         return res;
     }
 
     public static void dLog(String tag, String msg) {
         if (debug) {
             Log.d(tag, msg);
+        }
+    }
+
+    public static void dError(String tag, String msg) {
+        if (debug) {
+            Log.e(tag, msg);
         }
     }
 }

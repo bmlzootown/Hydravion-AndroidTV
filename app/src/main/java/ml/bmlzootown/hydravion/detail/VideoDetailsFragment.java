@@ -74,9 +74,11 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
 
     private DetailsSupportFragmentBackgroundController mDetailsBackground;
 
+    private static final String version = ml.bmlzootown.hydravion.BuildConfig.VERSION_NAME;
+    private static final String userAgent = String.format("Hydravion %s (AndroidTV), CFNetwork", version);
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        //Log.d(TAG, "onCreate DetailsFragment");
         super.onCreate(savedInstanceState);
 
         mDetailsBackground = new DetailsSupportFragmentBackgroundController(this);
@@ -109,7 +111,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
             Glide.with(requireActivity())
                     .asBitmap()
                     .load(new GlideUrl(creator.getCoverImage().getPath(), new LazyHeaders.Builder()
-                            .addHeader("User-Agent", "Hydravion (AndroidTV), CFNetwork")
+                            .addHeader("User-Agent", userAgent)
                             .build())
                         )
                     .override(1800, 519)
@@ -132,12 +134,12 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
     }
 
     private void setupDetailsOverviewRow() {
-        Log.d(TAG, "doInBackground: " + mSelectedMovie.toString());
+        MainFragment.dLog(TAG, "doInBackground: " + mSelectedMovie.toString());
         final DetailsOverviewRow row = new DetailsOverviewRow(mSelectedMovie);
         row.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.default_background));
         Glide.with(requireActivity())
                 .load(new GlideUrl(mSelectedMovie.getThumbnail().getPath(), new LazyHeaders.Builder()
-                        .addHeader("User-Agent", "Hydravion (AndroidTV), CFNetwork")
+                        .addHeader("User-Agent", userAgent)
                         .build())
                 )
                 .centerCrop()
@@ -252,7 +254,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                 Row row) {
 
             if (item instanceof Video) {
-                Log.d(TAG, "Item: " + item.toString());
+                MainFragment.dLog(TAG, "Item: " + item.toString());
                 Intent intent = new Intent(getActivity(), DetailsActivity.class);
                 intent.putExtra(getResources().getString(R.string.movie), (Serializable) mSelectedMovie);
 

@@ -2,26 +2,27 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 33
     buildToolsVersion "30.0.3"
 
     defaultConfig {
         applicationId "ml.bmlzootown.hydravion"
 
         minSdkVersion 26
-        targetSdkVersion 31
-        versionCode 1
-        versionName "1.4.8"
+        targetSdkVersion 33
+        versionCode 2
+        versionName "1.5.2"
 
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     buildTypes {
         release {
+            buildConfigField("String","VERSION_NAME","\"${defaultConfig.versionName}\"")
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -34,6 +35,7 @@ android {
                 }
         }
     }
+    namespace 'ml.bmlzootown.hydravion'
 }
 
 repositories {
@@ -73,4 +75,7 @@ dependencies {
     // ExoPlayer
     implementation 'com.google.android.exoplayer:exoplayer:2.17.1'
     implementation 'com.google.android.exoplayer:extension-mediasession:2.17.1'
+
+    // Version Compare
+    implementation("io.github.g00fy2:versioncompare:1.5.0")
 }

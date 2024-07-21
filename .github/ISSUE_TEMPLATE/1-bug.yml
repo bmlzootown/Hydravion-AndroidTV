@@ -35,7 +35,7 @@ body:
       id: version
       attributes:
           label: Hydravion Version
-          description: Highlight channel, access options (*) menu, see "version X.X build X"
+          description: You can find this somewhere in your Android app settings.
           placeholder: e.g. 1.4.8
       validations:
           required: true

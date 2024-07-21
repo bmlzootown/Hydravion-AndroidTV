@@ -17,7 +17,7 @@ body:
       id: devicemodel
       attributes:
           label: Device Manufacturer & Model
-          description: You can find this somewhere in your Android settings.
+          description: Settings --> System --> About
           placeholder: e.g. Nvida Shield TV (P2897)
       validations:
           required: true
@@ -26,7 +26,7 @@ body:
       id: osversion
       attributes:
           label: Android TV OS Version
-          description: You can find this somewhere in your Android settings.
+          description: Settings --> System --> About
           placeholder: e.g. Android 14
       validations:
           required: true
@@ -35,7 +35,7 @@ body:
       id: version
       attributes:
           label: Hydravion Version
-          description: You can find this somewhere in your Android app settings.
+          description: Settings --> Apps --> See All Apps --> Hydravion
           placeholder: e.g. 1.4.8
       validations:
           required: true

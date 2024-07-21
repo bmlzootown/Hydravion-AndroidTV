@@ -1,0 +1,67 @@
+name: 🐛 AndroidTV bug report
+description: Report a bug/issue affecting the Hydravion for AndroidTV
+labels: ["bug"]
+body:
+    - type: checkboxes
+      attributes:
+        label: Checklist before submitting a bug report
+        options:
+        - label: This bug/issue is affecting the Hydravion for AndroidTV
+          required: true
+        - label: I've searched for existing [issues](https://github.com/bmlzootown/Hydravion-AndroidTV/issues?q=is:issue) and found no duplicates
+          required: true
+        - label: I understand that this project is run by volunteer contributors therefore completion of this issue cannot be guaranteed
+          required: true
+
+    - type: input
+      id: devicemodel
+      attributes:
+          label: Device Manufacturer & Model
+          description: Settings --> System --> About
+          placeholder: e.g. Nvida Shield TV (P2897)
+      validations:
+          required: true
+
+    - type: input
+      id: osversion
+      attributes:
+          label: Android TV OS Version
+          description: Settings --> System --> About
+          placeholder: e.g. Android 14
+      validations:
+          required: true
+
+    - type: input
+      id: version
+      attributes:
+          label: Hydravion Version
+          description: Settings --> Apps --> See All Apps --> Hydravion
+          placeholder: e.g. 1.4.8
+      validations:
+          required: true
+
+    - type: input
+      id: subscriptions
+      attributes:
+          label: Whom you are subscribed to?
+          description: Sometimes issues are subscription specific
+          placeholder: e.g. LTT, Garbage Time, Bitwit, Lvl1
+      validations:
+          required: true
+
+    - type: markdown
+      attributes:
+        value: Please detail one bug per GitHub issue
+
+    - type: textarea
+      id: details
+      attributes:
+        label: Error/Issue Details
+        description: |
+          What is the issue you're experiencing? How can we re-produce it?
+          Please be as specific as possible
+          - Is the error/issue occurring on a specific channel only?
+          - Does it only affect specific videos?
+          - Does the issue still occur when trying to play the video at a different resolution? (Access the options menu when looking at the video description, "Select Resolution")
+          - Can you provide any screenshots?
+        placeholder: Detailed explanation of the issue along with replication steps

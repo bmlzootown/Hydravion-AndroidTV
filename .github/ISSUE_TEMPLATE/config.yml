@@ -1,0 +1,13 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Roku issues, feedback & feature requests
+    url: https://github.com/bmlzootown/Hydravion/issues
+    about: Please use the Hydravion Roku issues page
+
+  - name: Apple TV/tvOS issues, feedback & feature requests
+    url: https://github.com/Jman012/Wasserflug-tvOS/issues
+    about: Please use the Wasserflug-tvOS issues page
+
+  - name: Questions
+    url: https://discord.gg/4xKDGz5M5B
+    about: Join the Discord server for help with regular/general questions

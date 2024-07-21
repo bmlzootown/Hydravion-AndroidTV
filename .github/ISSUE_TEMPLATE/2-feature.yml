@@ -1,0 +1,29 @@
+name: 🚀 AndroidTV feature request
+description: Feature request for the Hydravion for AndroidTV
+labels: ["enhancement"]
+body:
+    - type: checkboxes
+      attributes:
+        label: Checklist before submitting a feature request
+        options:
+        - label: This feature request is for the Hydravion for AndroidTV
+          required: true
+        - label: I've searched for existing [requests](https://github.com/bmlzootown/Hydravion-AndroidTV/issues?q=is:issue) and found no duplicates
+          required: true
+        - label: I understand that this project is run by volunteer contributors therefore completion of this request cannot be guaranteed
+          required: true
+
+    - type: markdown
+      attributes:
+        value: Please detail one feature request per GitHub issue
+
+    - type: textarea
+      id: details
+      attributes:
+        label: New Feature Details
+        description: |
+          What would be the expected behavior of the new feature?
+          Are there any links/screenshots that can be provided relating to this?
+        placeholder: Detailed explanation of the new feature
+      validations:
+        required: true

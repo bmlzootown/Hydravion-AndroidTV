@@ -40,7 +40,7 @@ public class LoginRequestTask {
                 List<Header> headers = response.allHeaders;
                 ArrayList<String> cs = new ArrayList<>();
                 for (Header header : headers) {
-                    if (header.getName().equals("set-cookie")) {
+                    if (header.getName().equalsIgnoreCase("Set-Cookie")) {
                         cs.add(header.getValue().split(";")[0]);
                     }
                 }

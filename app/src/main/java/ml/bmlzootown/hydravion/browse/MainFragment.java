@@ -28,7 +28,7 @@ import androidx.leanback.widget.Presenter;
 import androidx.leanback.widget.PresenterSelector;
 
 import com.android.volley.VolleyError;
-import com.google.android.exoplayer2.util.Util;
+import androidx.media3.common.util.Util;
 import com.google.gson.Gson;
 
 import org.json.JSONException;

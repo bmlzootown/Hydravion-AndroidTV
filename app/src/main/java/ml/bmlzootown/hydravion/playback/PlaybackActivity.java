@@ -17,17 +17,18 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentActivity;
 
-import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.PlaybackException;
-import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector;
-import com.google.android.exoplayer2.extractor.ts.DefaultTsPayloadReaderFactory;
-import com.google.android.exoplayer2.source.hls.DefaultHlsExtractorFactory;
-import com.google.android.exoplayer2.source.hls.HlsMediaSource;
-import com.google.android.exoplayer2.ui.PlayerView;
-import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
-import com.google.android.exoplayer2.util.Util;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.PlaybackException;
+import androidx.media3.common.Player;
+import androidx.media3.session.MediaSession;
+import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory;
+import androidx.media3.exoplayer.hls.DefaultHlsExtractorFactory;
+import androidx.media3.exoplayer.hls.HlsMediaSource;
+import androidx.media3.ui.PlayerView;
+import androidx.media3.datasource.DefaultHttpDataSource;
+import androidx.media3.common.util.Util;
+import androidx.media3.exoplayer.DefaultRenderersFactory;
 
 import java.util.HashMap;
 
@@ -52,7 +53,7 @@ public class PlaybackActivity extends FragmentActivity {
     private LinearLayout exo_settings_menu;
     private ExoPlayer player;
     private MediaSessionCompat mediaSession;
-    private MediaSessionConnector mediaController;
+    private MediaSession mediaSession3;
 
     private boolean playWhenReady = true;
     private int currentWindow = 0;
@@ -60,6 +61,7 @@ public class PlaybackActivity extends FragmentActivity {
     private boolean resumed = false;
     private boolean playerInitialized = false;
     private boolean initializationInProgress = false;
+    private boolean isControllerVisible = false;
 
     private String url = "";
     private Video video;
@@ -87,16 +89,19 @@ public class PlaybackActivity extends FragmentActivity {
         setupLikeAndDislike();
         setupMenu();
 
-        playerView.setControllerVisibilityListener(visibility -> {
-            if (visibility != View.VISIBLE) {
-                exo_playback_menu.setVisibility(View.VISIBLE);
-                exo_settings_menu.setVisibility(View.GONE);
+        playerView.setControllerVisibilityListener(new PlayerView.ControllerVisibilityListener() {
+            @Override
+            public void onVisibilityChanged(int visibility) {
+                isControllerVisible = (visibility == View.VISIBLE);
+                if (visibility != View.VISIBLE) {
+                    exo_playback_menu.setVisibility(View.VISIBLE);
+                    exo_settings_menu.setVisibility(View.GONE);
+                }
             }
         });
 
-        // setup media session
+        // setup media session (legacy MediaSessionCompat for compatibility)
         mediaSession = new MediaSessionCompat(this, getPackageName());
-        mediaController = new MediaSessionConnector(mediaSession);
     }
 
     @Override
@@ -133,8 +138,9 @@ public class PlaybackActivity extends FragmentActivity {
                 initializationInProgress = false;
             }
             
-            if (playerInitialized) {
-                mediaController.setPlayer(null);
+            if (playerInitialized && mediaSession3 != null) {
+                mediaSession3.release();
+                mediaSession3 = null;
                 playerInitialized = false;
             }
             mediaSession.setActive(false);
@@ -153,8 +159,9 @@ public class PlaybackActivity extends FragmentActivity {
                 initializationInProgress = false;
             }
             
-            if (playerInitialized) {
-                mediaController.setPlayer(null);
+            if (playerInitialized && mediaSession3 != null) {
+                mediaSession3.release();
+                mediaSession3 = null;
                 playerInitialized = false;
             }
             mediaSession.setActive(false);
@@ -173,7 +180,7 @@ public class PlaybackActivity extends FragmentActivity {
     @Override
     public void onBackPressed() {
         // Hide the menu
-        if (playerView.isControllerVisible()) {
+        if (isControllerVisible) {
             if (exo_playback_menu.getVisibility() == View.VISIBLE) {
                 playerView.hideController();
             } else {
@@ -264,9 +271,16 @@ public class PlaybackActivity extends FragmentActivity {
                 return Unit.INSTANCE;
             }
             
-            player = new ExoPlayer.Builder(this).build();
+            // Configure renderers with decoder fallback enabled to handle hardware decoder issues
+            DefaultRenderersFactory renderersFactory = new DefaultRenderersFactory(this)
+                    .setEnableDecoderFallback(true);
+            
+            player = new ExoPlayer.Builder(this)
+                    .setRenderersFactory(renderersFactory)
+                    .build();
             player.setPlayWhenReady(playWhenReady);
             player.seekTo(currentWindow, playbackPosition);
+            // PlayerView uses TextureView (configured in XML) for better compatibility with Android TV devices, like Google TV Streamer, to prevent video freezing issues
             playerView.setPlayer(player);
 
             DefaultHttpDataSource.Factory dataSourceFactory = new DefaultHttpDataSource.Factory();
@@ -289,11 +303,55 @@ public class PlaybackActivity extends FragmentActivity {
 
                 @Override
                 public void onPlayerError(@NonNull PlaybackException error) {
+                    // Enhanced error logging to help diagnose issues
+                    String errorMsg = "Error: " + error.getLocalizedMessage();
+                    MainFragment.dError("EXOPLAYER", errorMsg);
+                    MainFragment.dError("EXOPLAYER", "Error code: " + error.errorCode);
+                    
+                    // Log specific error types that might indicate decoder issues
+                    // In Media3, check error code to determine if it's a renderer/decoder issue
+                    boolean isRendererError = error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
+                            error.errorCode == PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED;
+                    
+                    if (isRendererError) {
+                        MainFragment.dError("EXOPLAYER", "Renderer/Decoder error - may indicate video decoder issue");
+                    } else if (error.errorCode == PlaybackException.ERROR_CODE_UNSPECIFIED) {
+                        MainFragment.dError("EXOPLAYER", "Unspecified error - may indicate decoder crash");
+                    }
+                    
+                    if (error.getCause() != null) {
+                        MainFragment.dError("EXOPLAYER", "Cause: " + error.getCause().toString());
+                        if (error.getCause().getCause() != null) {
+                            MainFragment.dError("EXOPLAYER", "Root cause: " + error.getCause().getCause().toString());
+                        }
+                    }
+                    
+                    // Attempt error recovery for renderer errors (decoder failures)
+                    if (isRendererError && player != null && !isFinishing() && !isDestroyed()) {
+                        MainFragment.dLog("EXOPLAYER", "Attempting to recover from renderer error...");
+                        // Release current player and try to reinitialize
+                        try {
+                            player.release();
+                            player = null;
+                            playerInitialized = false;
+                            // Reinitialize player after a short delay
+                            playerView.postDelayed(() -> {
+                                if (!isFinishing() && !isDestroyed()) {
+                                    initializePlayer();
+                                }
+                            }, 500);
+                            Toast.makeText(PlaybackActivity.this, "Attempting to recover playback...", Toast.LENGTH_SHORT).show();
+                            return;
+                        } catch (Exception e) {
+                            MainFragment.dError("EXOPLAYER", "Recovery attempt failed: " + e.getMessage());
+                        }
+                    }
+                    
+                    // For non-recoverable errors or if recovery failed, show error and release
                     if (video != null) {
                         releasePlayer();
                         Toast.makeText(PlaybackActivity.this, "Video could not be played!", Toast.LENGTH_LONG).show();
                     }
-                    MainFragment.dError("EXOPLAYER", error.getLocalizedMessage());
                 }
 
                 @Override
@@ -318,7 +376,11 @@ public class PlaybackActivity extends FragmentActivity {
 
             // Only set up media session if activity is still in a valid state
             if (!isFinishing() && !isDestroyed()) {
-                mediaController.setPlayer(player);
+                // Set up Media3 MediaSession
+                if (mediaSession3 == null) {
+                    mediaSession3 = new MediaSession.Builder(this, player).build();
+                }
+                // Also keep legacy MediaSessionCompat active for compatibility
                 mediaSession.setActive(true);
                 playerInitialized = true;
             } else {
@@ -346,6 +408,10 @@ public class PlaybackActivity extends FragmentActivity {
     }
 
     private void releasePlayer() {
+        if (mediaSession3 != null) {
+            mediaSession3.release();
+            mediaSession3 = null;
+        }
         if (player != null) {
             playWhenReady = player.getPlayWhenReady();
             playbackPosition = player.getCurrentPosition();

@@ -7,11 +7,12 @@
     android:background="#000000"
     android:keepScreenOn="true">
 
-    <com.google.android.exoplayer2.ui.PlayerView
+    <androidx.media3.ui.PlayerView
         android:id="@+id/exoplayer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:controller_layout_id="@layout/view_exo_controller"
-        app:use_controller="true" />
+        app:use_controller="true"
+        app:surface_type="texture_view" />
 
 </FrameLayout>

@@ -94,3 +94,6 @@ lint/tmp/
 # Android Profiling
 *.hprof
 floatplane-openapi-specification-trimmed.json
+
+# Claude Code
+.claude/scheduled_tasks.lock

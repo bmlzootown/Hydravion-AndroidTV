@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Roku issues, feedback & feature requests
+  - name: Hydravion (upstream) Roku issues
     url: https://github.com/bmlzootown/Hydravion/issues
-    about: Please use the Hydravion Roku issues page
+    about: Original Hydravion Roku issues page (unrelated to SaucedplussyTV)
 
   - name: Apple TV/tvOS issues, feedback & feature requests
     url: https://github.com/Jman012/Wasserflug-tvOS/issues

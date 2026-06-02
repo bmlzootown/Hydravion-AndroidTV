@@ -1,14 +1,14 @@
 name: 🚀 AndroidTV feature request
-description: Feature request for the Hydravion for AndroidTV
+description: Feature request for SaucedplussyTV for AndroidTV
 labels: ["enhancement"]
 body:
     - type: checkboxes
       attributes:
         label: Checklist before submitting a feature request
         options:
-        - label: This feature request is for the Hydravion for AndroidTV
+        - label: This feature request is for SaucedplussyTV for AndroidTV
           required: true
-        - label: I've searched for existing [requests](https://github.com/bmlzootown/Hydravion-AndroidTV/issues?q=is:issue) and found no duplicates
+        - label: I've searched for existing [requests](https://github.com/kinggh0stee/Sauce-AndroidTV/issues?q=is:issue) and found no duplicates
           required: true
         - label: I understand that this project is run by volunteer contributors therefore completion of this request cannot be guaranteed
           required: true

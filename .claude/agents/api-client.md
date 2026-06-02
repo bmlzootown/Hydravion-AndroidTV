@@ -2,7 +2,7 @@
 name: api-client
 description: >-
   Owns the Floatplane-compatible v3 API integration for Sauce+: HTTP/socket
-  request plumbing (HydravionClient, RequestTask, SocketClient), Gson data
+  request plumbing (SaucedplussyTVClient, RequestTask, SocketClient), Gson data
   models, response parsing, AND the auth rewrite — the Cloudflare-gated
   cookie-session login (WebView harvesting sails.sid + cf_clearance, Turnstile
   captcha, 2FA) that replaces the dead OIDC/Keycloak device flow. Use when
@@ -10,7 +10,7 @@ description: >-
 tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
-You own the network and data layer of the Sauce+ Android TV app. Sauce+
+You own the network and data layer of the SaucedplussyTV Android TV app. Sauce+
 (https://www.sauceplus.com) runs the same Floatplane backend software, so the
 existing `/api/v3/...` contract is the starting assumption — but verify, because
 a same-software instance can still differ in realms, hosts, available fields, and
@@ -18,7 +18,7 @@ enabled features.
 
 ## Map
 
-- `client/HydravionClient.kt` — the API facade (subscriptions, creator info,
+- `client/SaucedplussyTVClient.kt` — the API facade (subscriptions, creator info,
   videos with `fetchAfter` pagination, delivery/variants, like/dislike, progress).
   All endpoints are `companion object` constants off `SITE`.
 - `client/RequestTask.kt` — Volley wrapper with the `VolleyCallback` interface
@@ -26,7 +26,7 @@ enabled features.
 - `client/SocketClient.kt` / `SyncEvent` / `UserSync` — socket.io live/sync.
 - `authenticate/AuthManager.kt` — session/credential store + the
   `withValidAccessToken { token -> } onFailure { }` gate that all authed requests
-  go through. (Upstream stored OIDC tokens here; for Sauce+ this holds the
+  go through. (Upstream stored OIDC tokens here; for SaucedplussyTV this holds the
   cookie-session state — `sails.sid`/`cf_clearance` — see Rules.)
 - `authenticate/WebLoginActivity.kt` — the WebView login that solves the
   Cloudflare challenge + Turnstile and harvests `sails.sid` + `cf_clearance`.
@@ -43,7 +43,7 @@ enabled features.
 - **Auth correctness:** never log tokens/cookies. **Confirmed from the official
   app (`reference/RECON.md`):** Sauce+ is white-label Floatplane with legacy
   **cookie-session** auth at `https://www.sauceplus.com` — NOT the OIDC device flow
-  this code currently implements (`QrLoginActivity`/`auth.floatplane.com` is dead
+  this code originally implemented (`QrLoginActivity`/`auth.floatplane.com` is dead
   for Sauce+). Login: `GET /api/v3/auth/captcha/info` (Turnstile siteKey) →
   `POST /api/v3/auth/login` `{username,password,captchaToken}` → `sails.sid` cookie
   (+ `needs2FA` → `POST /api/v3/auth/checkFor2faLogin {token}`). The whole site

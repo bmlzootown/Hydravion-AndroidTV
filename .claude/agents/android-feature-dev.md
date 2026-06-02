@@ -8,9 +8,9 @@ description: >-
 tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
-You implement features in the Sauce+ Android TV app. The codebase is a mixed
+You implement features in the SaucedplussyTV Android TV app. The codebase is a mixed
 Kotlin/Java AndroidX **Leanback** app (TV, D-pad only — no touch) with ExoPlayer
-2.17 playback, Volley + OkHttp + socket.io networking, and Glide for images.
+2.19 playback, Volley + OkHttp + socket.io networking, and Glide for images.
 
 ## Conventions
 
@@ -23,7 +23,7 @@ Kotlin/Java AndroidX **Leanback** app (TV, D-pad only — no touch) with ExoPlay
   in the right lifecycle callback; don't run network/disk on the main thread;
   don't fire UI callbacks after the view is gone. The app already has a
   logged-out state guard — respect it (don't update UI when logged out).
-- **Networking:** go through the existing `HydravionClient` / `RequestTask`
+- **Networking:** go through the existing `SaucedplussyTVClient` / `RequestTask`
   callback abstraction and `AuthManager.withValidAccessToken { ... }`; do not
   invent a parallel HTTP path. New endpoints/models are the `api-client` agent's
   domain — coordinate rather than hardcoding URLs here.

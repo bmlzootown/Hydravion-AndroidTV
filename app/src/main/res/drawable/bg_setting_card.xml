@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="10dp" />
+            <stroke
+                android:width="2.5dp"
+                android:color="?attr/hydravionSettingFocusRing" />
+            <solid android:color="?attr/hydravionSettingFocusFill" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="10dp" />
+            <solid android:color="?attr/hydravionCardBackground" />
+            <stroke
+                android:width="1dp"
+                android:color="?attr/hydravionSettingBorder" />
+        </shape>
+    </item>
+</selector>

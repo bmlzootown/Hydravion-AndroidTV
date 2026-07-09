@@ -14,6 +14,7 @@ import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream
 import ml.bmlzootown.hydravion.github.Release
 import ml.bmlzootown.hydravion.models.*
 import ml.bmlzootown.hydravion.models.Video
+import ml.bmlzootown.hydravion.models.Channel
 import ml.bmlzootown.hydravion.post.Post
 import ml.bmlzootown.hydravion.subscription.Subscription
 import org.json.JSONArray
@@ -24,9 +25,18 @@ class HydravionClient private constructor(private val context: Context, private 
     private val creatorIds: MutableMap<String, String> = hashMapOf()
     private val creatorCache: MutableMap<String, Creator> = hashMapOf()
     private val requestTask: RequestTask = RequestTask(context)
-    private val authManager: AuthManager = AuthManager.getInstance(context, mainPrefs)
+    private val authManager: AuthManager = AuthManager.getInstance(context)
 
     fun getSubs(callback: (Array<Subscription>?) -> Unit) {
+        getSubs(callback, null)
+    }
+
+    /**
+     * @param onAuthFailure invoked only when tokens are gone / permanently invalid
+     *                      (caller should prompt re-login). Network and API errors
+     *                      still return null via [callback] without clearing credentials.
+     */
+    fun getSubs(callback: (Array<Subscription>?) -> Unit, onAuthFailure: (() -> Unit)?) {
         authManager.withValidAccessToken({ token ->
             requestTask.sendRequest(URI_SUBSCRIPTIONS, token, object : RequestTask.VolleyCallback {
 
@@ -64,10 +74,61 @@ class HydravionClient private constructor(private val context: Context, private 
 
             override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
-            override fun onError(error: VolleyError) = callback(null)
+            override fun onError(error: VolleyError) {
+                val status = error.networkResponse?.statusCode
+                if (status == 401 || status == 403) {
+                    // Access token rejected by API — drop cache and try one refresh+retry.
+                    MainFragment.dLog(TAG, "getSubs got $status; invalidating cache and retrying once")
+                    authManager.invalidateCache()
+                    authManager.withValidAccessToken({ freshToken ->
+                        requestTask.sendRequest(URI_SUBSCRIPTIONS, freshToken, object : RequestTask.VolleyCallback {
+                            override fun onResponseCode(response: Int) = Unit
+                            override fun onSuccess(response: String) {
+                                if (response.contains("errors")) {
+                                    callback(null)
+                                    return
+                                }
+                                try {
+                                    callback(Gson().fromJson(response, Array<Subscription>::class.java))
+                                } catch (e: Exception) {
+                                    callback(null)
+                                }
+                            }
+                            override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+                            override fun onError(retryError: VolleyError) {
+                                val retryStatus = retryError.networkResponse?.statusCode
+                                if (retryStatus == 401 || retryStatus == 403) {
+                                    // Still unauthorized after refresh — only prompt re-login if
+                                    // credentials were actually cleared.
+                                    if (!authManager.hasRefreshToken()) {
+                                        onAuthFailure?.invoke() ?: callback(null)
+                                    } else {
+                                        callback(null)
+                                    }
+                                } else {
+                                    callback(null)
+                                }
+                            }
+                        })
+                    }, {
+                        if (!authManager.hasRefreshToken() && onAuthFailure != null) {
+                            onAuthFailure.invoke()
+                        } else {
+                            callback(null)
+                        }
+                    })
+                } else {
+                    callback(null)
+                }
+            }
         })
         }, {
-            callback(null)
+            // Refresh failed. Only treat as auth failure if credentials were wiped.
+            if (!authManager.hasRefreshToken() && onAuthFailure != null) {
+                onAuthFailure.invoke()
+            } else {
+                callback(null)
+            }
         })
     }
 
@@ -103,10 +164,16 @@ class HydravionClient private constructor(private val context: Context, private 
         })
     }
 
-    fun getVideos(creatorGUID: String, page: Int, callback: (Array<Video>) -> Unit) {
+    /**
+     * Fetch a page of a creator's videos, optionally filtered to a single channel.
+     * Invokes [callback] with null on failure (so callers can distinguish
+     * "request failed, retry later" from "no more videos").
+     */
+    fun getVideos(creatorGUID: String, channelId: String?, fetchAfter: Int, callback: (Array<Video>?) -> Unit) {
         authManager.withValidAccessToken({ token ->
+            val channelParam = if (channelId != null) "&channel=$channelId" else ""
             requestTask.sendRequest(
-                "$URI_VIDEOS?id=$creatorGUID&fetchAfter=${(page - 1) * 20}",
+                "$URI_VIDEOS?id=$creatorGUID$channelParam&fetchAfter=$fetchAfter",
                 token,
                 creatorGUID,
                 object : RequestTask.VolleyCallback {
@@ -120,21 +187,91 @@ class HydravionClient private constructor(private val context: Context, private 
                         MainFragment.dLog(TAG, "getVideos: $response")
                     }
 
-                    callback(Gson().fromJson(response, Array<Video>::class.java))
+                    try {
+                        callback(Gson().fromJson(response, Array<Video>::class.java))
+                    } catch (e: Exception) {
+                        MainFragment.dError(TAG, "Error parsing videos: ${e.message}")
+                        callback(null)
+                    }
                 }
 
-                override fun onError(error: VolleyError) = Unit
+                override fun onError(error: VolleyError) {
+                    MainFragment.dError(TAG, "Error fetching videos: ${error.message}")
+                    callback(null)
+                }
             })
         }, {
-            callback(emptyArray())
+            callback(null)
+        })
+    }
+
+    fun getChannels(creatorGUID: String, callback: (Array<Channel>) -> Unit) {
+        getChannelsForCreators(listOf(creatorGUID)) { grouped ->
+            callback(grouped[creatorGUID]?.toTypedArray() ?: emptyArray())
+        }
+    }
+
+    /**
+     * Batch channel lookup for all subscribed creators in a single request.
+     * See `/api/v3/creator/channels/list` (ids[] supports multiple creators).
+     */
+    fun getChannelsForCreators(
+        creatorIds: Collection<String>,
+        callback: (Map<String, List<Channel>>) -> Unit
+    ) {
+        val uniqueIds = creatorIds.filter { it.isNotEmpty() }.distinct()
+        if (uniqueIds.isEmpty()) {
+            callback(emptyMap())
+            return
+        }
+
+        val query = uniqueIds.joinToString("&") { "ids=$it" }
+        authManager.withValidAccessToken({ token ->
+            requestTask.sendRequest(
+                "$URI_CHANNELS?$query",
+                token,
+                object : RequestTask.VolleyCallback {
+
+                override fun onResponseCode(response: Int) = Unit
+
+                override fun onSuccess(response: String) {
+                    if (BuildConfig.DEBUG) {
+                        MainFragment.dLog(TAG, "getChannelsForCreators: $response")
+                    }
+
+                    try {
+                        val channels = Gson().fromJson(response, Array<Channel>::class.java)
+                        callback(channels.groupBy { it.creator })
+                    } catch (e: Exception) {
+                        MainFragment.dError(TAG, "Error parsing channels: ${e.message}")
+                        callback(emptyMap())
+                    }
+                }
+
+                override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
+
+                override fun onError(error: VolleyError) {
+                    MainFragment.dError(TAG, "Error fetching channels: ${error.message}")
+                    callback(emptyMap())
+                }
+            })
+        }, {
+            callback(emptyMap())
         })
     }
 
     fun getVideo(video: Video, res: String, callback: (Video) -> Unit) {
         //val y = Util.getCurrentDisplayModeSize(context).y;
         authManager.withValidAccessToken({ token ->
+            // Get output format preference
+            val outputFormat = mainPrefs.getString(Constants.PREF_OUTPUT_FORMAT, Constants.OUTPUT_FORMAT_DEFAULT)
+            val outputKindParam = "&outputKind=$outputFormat"
+            val deliveryUrl = "$URI_DELIVERY?scenario=onDemand&entityId=${video.getVideoId()}$outputKindParam"
+            
+            MainFragment.dLog(TAG, "Requesting delivery with format: $outputFormat, URL: $deliveryUrl")
+            
             requestTask.sendRequest(
-                "$URI_DELIVERY?scenario=onDemand&entityId=${video.getVideoId()}",
+                deliveryUrl,
                 token,
                 object : RequestTask.VolleyCallback {
 
@@ -464,11 +601,36 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getVideoProgress(blogPostIds: List<String>, callback: (List<VideoProgress>) -> Unit) {
+        val ids = blogPostIds
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
 
-        val body = JSONObject().let { json ->
-            json.put("ids", JSONArray(blogPostIds))
-            json.put("contentType", "blogPost")
-            json
+        if (ids.isEmpty()) {
+            callback(emptyList())
+            return
+        }
+
+        val results = mutableListOf<VideoProgress>()
+        fetchProgressBatch(ids, 0, PROGRESS_BATCH_SIZE, results, callback)
+    }
+
+    private fun fetchProgressBatch(
+        allIds: List<String>,
+        offset: Int,
+        batchSize: Int,
+        accumulated: MutableList<VideoProgress>,
+        callback: (List<VideoProgress>) -> Unit
+    ) {
+        if (offset >= allIds.size) {
+            callback(accumulated)
+            return
+        }
+
+        val chunk = allIds.subList(offset, minOf(offset + batchSize, allIds.size))
+        val body = JSONObject().apply {
+            put("ids", JSONArray(chunk))
+            put("contentType", "blogPost")
         }.toString()
         authManager.withValidAccessToken({ token ->
             requestTask.sendDataWithBody(
@@ -479,12 +641,13 @@ class HydravionClient private constructor(private val context: Context, private 
 
                 override fun onSuccess(response: String) {
                     try {
-                        val type = (object : TypeToken<List<VideoProgress>>() {}).getType()
-                        callback(Gson().fromJson(response, type))
+                        val type = (object : TypeToken<List<VideoProgress>>() {}).type
+                        val batch = Gson().fromJson<List<VideoProgress>>(response, type) ?: emptyList()
+                        accumulated.addAll(batch)
                     } catch (e: Exception) {
-                        e.printStackTrace()
-                        callback(ArrayList())
+                        MainFragment.dError(TAG, "Error parsing progress batch: ${e.message}")
                     }
+                    fetchProgressBatch(allIds, offset + batchSize, batchSize, accumulated, callback)
                 }
 
                 override fun onResponseCode(response: Int) = Unit
@@ -492,20 +655,29 @@ class HydravionClient private constructor(private val context: Context, private 
                 override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
                 override fun onError(error: VolleyError) {
-                    callback(ArrayList())
+                    MainFragment.dError(TAG, "Progress batch failed (${chunk.size} ids): ${error.message}")
+                    fetchProgressBatch(allIds, offset + batchSize, batchSize, accumulated, callback)
                 }
             })
         }, {
-            callback(ArrayList())
+            callback(accumulated)
         })
     }
 
-    fun setVideoProgress(videoId: String, progressInPercent: Int) {
+    fun setVideoProgress(videoId: String, progressSeconds: Int) {
+        if (videoId.isBlank() || progressSeconds < 0) {
+            return
+        }
+        val body = JSONObject().apply {
+            put("id", videoId)
+            put("contentType", "video")
+            put("progress", progressSeconds)
+        }.toString()
         authManager.withValidAccessToken({ token ->
-            requestTask.sendData(
+            requestTask.sendDataWithBody(
                 URI_UPDATE_PROGRESS,
                 token,
-                mapOf("id" to videoId, "contentType" to "video", "progress" to progressInPercent.toString()),
+                body,
                 object : RequestTask.VolleyCallback {
 
                 override fun onSuccess(response: String) = Unit
@@ -514,7 +686,9 @@ class HydravionClient private constructor(private val context: Context, private 
 
                 override fun onSuccessCreator(response: String, creatorGUID: String) = Unit
 
-                override fun onError(error: VolleyError) = Unit
+                override fun onError(error: VolleyError) {
+                    MainFragment.dError(TAG, "Failed to save progress: ${error.message}")
+                }
             })
         }, {
             // ignore
@@ -541,19 +715,28 @@ class HydravionClient private constructor(private val context: Context, private 
         private const val URI_DISLIKE = "$SITE/api/v3/content/dislike"
         private const val URI_GET_PROGRESS = "$SITE/api/v3/content/get/progress"
         private const val URI_UPDATE_PROGRESS = "$SITE/api/v3/content/progress"
+        private const val URI_CHANNELS = "$SITE/api/v3/creator/channels/list"
+        private const val PROGRESS_BATCH_SIZE = 25
 
         private const val LATEST = "https://api.github.com/repos/bmlzootown/Hydravion-AndroidTV/releases/latest"
         private var INSTANCE: HydravionClient? = null
 
+        // Always resolve the shared prefs file internally so the singleton can never be
+        // bound to a per-activity prefs file by its first caller (caused login loops
+        // when the task was restored into DetailsActivity after process death).
+        @JvmStatic
         @Synchronized
-        fun getInstance(context: Context, mainPrefs: SharedPreferences): HydravionClient {
+        fun getInstance(context: Context): HydravionClient {
             if (INSTANCE == null) {
-                synchronized(this) {
-                    INSTANCE = HydravionClient(context.applicationContext, mainPrefs)
-                }
+                val appContext = context.applicationContext
+                INSTANCE = HydravionClient(
+                    appContext,
+                    appContext.getSharedPreferences(Constants.PREF_FILE_NAME, Context.MODE_PRIVATE)
+                )
             }
 
             return INSTANCE!!
         }
+
     }
 }

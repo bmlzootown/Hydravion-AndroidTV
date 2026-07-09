@@ -8,6 +8,10 @@ import java.io.Serializable
 @Keep
 class VideoMetaData : Serializable {
 
+    @SerializedName("hasVideo")
+    @Expose
+    var hasVideo: Boolean? = null
+
     @SerializedName("videoDuration")
     @Expose
     var videoDurationInSecs: Int = 0

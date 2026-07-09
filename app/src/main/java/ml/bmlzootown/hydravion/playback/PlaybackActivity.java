@@ -2,6 +2,7 @@ package ml.bmlzootown.hydravion.playback;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.util.Log;
@@ -17,22 +18,27 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentActivity;
 
-import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.PlaybackException;
-import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector;
-import com.google.android.exoplayer2.extractor.ts.DefaultTsPayloadReaderFactory;
-import com.google.android.exoplayer2.source.hls.DefaultHlsExtractorFactory;
-import com.google.android.exoplayer2.source.hls.HlsMediaSource;
-import com.google.android.exoplayer2.ui.PlayerView;
-import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
-import com.google.android.exoplayer2.util.Util;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.PlaybackException;
+import androidx.media3.common.Player;
+import androidx.media3.session.MediaSession;
+import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory;
+import androidx.media3.exoplayer.hls.DefaultHlsExtractorFactory;
+import androidx.media3.exoplayer.hls.HlsMediaSource;
+import androidx.media3.exoplayer.dash.DashMediaSource;
+import androidx.media3.exoplayer.source.ProgressiveMediaSource;
+import androidx.media3.exoplayer.source.MediaSource;
+import androidx.media3.ui.PlayerView;
+import androidx.media3.datasource.DefaultHttpDataSource;
+import androidx.media3.common.util.Util;
+import android.content.SharedPreferences;
 
 import java.util.HashMap;
 
 import kotlin.Unit;
 import ml.bmlzootown.hydravion.R;
+import ml.bmlzootown.hydravion.ThemeManager;
 import ml.bmlzootown.hydravion.authenticate.AuthManager;
 import ml.bmlzootown.hydravion.browse.MainFragment;
 import ml.bmlzootown.hydravion.client.HydravionClient;
@@ -52,7 +58,7 @@ public class PlaybackActivity extends FragmentActivity {
     private LinearLayout exo_settings_menu;
     private ExoPlayer player;
     private MediaSessionCompat mediaSession;
-    private MediaSessionConnector mediaController;
+    private MediaSession mediaSession3;
 
     private boolean playWhenReady = true;
     private int currentWindow = 0;
@@ -60,6 +66,7 @@ public class PlaybackActivity extends FragmentActivity {
     private boolean resumed = false;
     private boolean playerInitialized = false;
     private boolean initializationInProgress = false;
+    private boolean isControllerVisible = false;
 
     private String url = "";
     private Video video;
@@ -67,14 +74,23 @@ public class PlaybackActivity extends FragmentActivity {
     @SuppressLint("MissingInflatedId")
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        ThemeManager.applyTheme(this);
         super.onCreate(savedInstanceState);
-        client = HydravionClient.Companion.getInstance(this, getPreferences(Context.MODE_PRIVATE));
-        setContentView(R.layout.activity_player);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        client = HydravionClient.getInstance(this);
+        // SurfaceView + hardware decoder often stalls on emulators after ~1s of playback.
+        // TextureView is more compatible; real devices still use SurfaceView from XML.
+        if (isEmulator()) {
+            MainFragment.dLog("PLAYBACK", "Emulator detected — inflating TextureView player");
+            setContentView(R.layout.activity_player_emulator);
+        } else {
+            setContentView(R.layout.activity_player);
+        }
 
         final Video video = (Video) getIntent().getSerializableExtra(DetailsActivity.Video);
         this.video = video;
         url = video.getVidUrl();
+
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         playerView = findViewById(R.id.exoplayer);
         ((TextView) findViewById(R.id.exo_title)).setText(video.getTitle());
@@ -87,16 +103,19 @@ public class PlaybackActivity extends FragmentActivity {
         setupLikeAndDislike();
         setupMenu();
 
-        playerView.setControllerVisibilityListener(visibility -> {
-            if (visibility != View.VISIBLE) {
-                exo_playback_menu.setVisibility(View.VISIBLE);
-                exo_settings_menu.setVisibility(View.GONE);
+        playerView.setControllerVisibilityListener(new PlayerView.ControllerVisibilityListener() {
+            @Override
+            public void onVisibilityChanged(int visibility) {
+                isControllerVisible = (visibility == View.VISIBLE);
+                if (visibility != View.VISIBLE) {
+                    exo_playback_menu.setVisibility(View.VISIBLE);
+                    exo_settings_menu.setVisibility(View.GONE);
+                }
             }
         });
 
-        // setup media session
+        // setup media session (legacy MediaSessionCompat for compatibility)
         mediaSession = new MediaSessionCompat(this, getPackageName());
-        mediaController = new MediaSessionConnector(mediaSession);
     }
 
     @Override
@@ -133,8 +152,9 @@ public class PlaybackActivity extends FragmentActivity {
                 initializationInProgress = false;
             }
             
-            if (playerInitialized) {
-                mediaController.setPlayer(null);
+            if (playerInitialized && mediaSession3 != null) {
+                mediaSession3.release();
+                mediaSession3 = null;
                 playerInitialized = false;
             }
             mediaSession.setActive(false);
@@ -153,8 +173,9 @@ public class PlaybackActivity extends FragmentActivity {
                 initializationInProgress = false;
             }
             
-            if (playerInitialized) {
-                mediaController.setPlayer(null);
+            if (playerInitialized && mediaSession3 != null) {
+                mediaSession3.release();
+                mediaSession3 = null;
                 playerInitialized = false;
             }
             mediaSession.setActive(false);
@@ -173,7 +194,7 @@ public class PlaybackActivity extends FragmentActivity {
     @Override
     public void onBackPressed() {
         // Hide the menu
-        if (playerView.isControllerVisible()) {
+        if (isControllerVisible) {
             if (exo_playback_menu.getVisibility() == View.VISIBLE) {
                 playerView.hideController();
             } else {
@@ -256,7 +277,7 @@ public class PlaybackActivity extends FragmentActivity {
         // Mark initialization as in progress
         initializationInProgress = true;
         
-        AuthManager authManager = AuthManager.Companion.getInstance(this, getPreferences(Context.MODE_PRIVATE));
+        AuthManager authManager = AuthManager.getInstance(this);
         authManager.withValidAccessToken(accessToken -> {
             // Check if initialization was cancelled or activity is no longer valid
             if (!initializationInProgress || isFinishing() || isDestroyed()) {
@@ -265,9 +286,14 @@ public class PlaybackActivity extends FragmentActivity {
             }
             
             player = new ExoPlayer.Builder(this).build();
+            
+            // Set player on PlayerView BEFORE setting media source to ensure surface is ready
+            // PlayerView uses SurfaceView (configured in XML) for better hardware decoder performance
+            // SurfaceView provides lower power consumption, smoother playback, and better HDR/DRM support
+            playerView.setPlayer(player);
+            
             player.setPlayWhenReady(playWhenReady);
             player.seekTo(currentWindow, playbackPosition);
-            playerView.setPlayer(player);
 
             DefaultHttpDataSource.Factory dataSourceFactory = new DefaultHttpDataSource.Factory();
             String version = ml.bmlzootown.hydravion.BuildConfig.VERSION_NAME;
@@ -276,11 +302,59 @@ public class PlaybackActivity extends FragmentActivity {
             headers.put("User-Agent", "Hydravion (AndroidTV " + version + ")");
             dataSourceFactory.setDefaultRequestProperties(headers);
 
-            int flags = DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES | DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS;
-            DefaultHlsExtractorFactory extractorFactory = new DefaultHlsExtractorFactory(flags, true);
             MediaItem mi = MediaItem.fromUri(url);
-            HlsMediaSource hlsMediaSource = new HlsMediaSource.Factory(dataSourceFactory).setExtractorFactory(extractorFactory).createMediaSource(mi);
-            player.setMediaSource(hlsMediaSource);
+            
+            // Get output format preference to determine which MediaSource to use
+            android.content.SharedPreferences prefs = getSharedPreferences(ml.bmlzootown.hydravion.Constants.PREF_FILE_NAME, Context.MODE_PRIVATE);
+            String outputFormat = prefs.getString(ml.bmlzootown.hydravion.Constants.PREF_OUTPUT_FORMAT, ml.bmlzootown.hydravion.Constants.OUTPUT_FORMAT_DEFAULT);
+            
+            MainFragment.dLog("MEDIA", "Format preference: " + outputFormat + ", URL: " + url);
+            
+            // Prioritize user preference over URL detection
+            // The API might return HLS URLs even when flat is requested if flat isn't available
+            boolean isHls = outputFormat.startsWith("hls.");
+            boolean isDash = outputFormat.startsWith("dash.");
+            boolean isFlat = outputFormat.equals(ml.bmlzootown.hydravion.Constants.OUTPUT_FORMAT_FLAT);
+            
+            // If preference doesn't match, fall back to URL detection
+            if (!isHls && !isDash && !isFlat) {
+                MainFragment.dLog("MEDIA", "Format preference not recognized, detecting from URL");
+                isHls = url.contains(".m3u8");
+                isDash = url.contains(".mpd");
+                isFlat = url.endsWith(".mp4") && !isHls && !isDash;
+            }
+            
+            MediaSource mediaSource;
+            
+            if (isHls) {
+                // HLS format (hls.mpegts or hls.fmp4)
+                MainFragment.dLog("MEDIA", "Using HLS MediaSource for format: " + outputFormat);
+                int flags = DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES | DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS;
+                DefaultHlsExtractorFactory extractorFactory = new DefaultHlsExtractorFactory(flags, true);
+                HlsMediaSource.Factory hlsFactory = new HlsMediaSource.Factory(dataSourceFactory)
+                        .setExtractorFactory(extractorFactory);
+                mediaSource = hlsFactory.createMediaSource(mi);
+            } else if (isDash) {
+                // DASH format (dash.mpegts or dash.m4s)
+                MainFragment.dLog("MEDIA", "Using DASH MediaSource for format: " + outputFormat);
+                DashMediaSource.Factory dashFactory = new DashMediaSource.Factory(dataSourceFactory);
+                mediaSource = dashFactory.createMediaSource(mi);
+            } else if (isFlat) {
+                // Flat MP4 format
+                MainFragment.dLog("MEDIA", "Using Progressive MediaSource for flat MP4 format");
+                ProgressiveMediaSource.Factory progressiveFactory = new ProgressiveMediaSource.Factory(dataSourceFactory);
+                mediaSource = progressiveFactory.createMediaSource(mi);
+            } else {
+                // Fallback: default to HLS if we can't determine
+                MainFragment.dLog("MEDIA", "Unknown format, defaulting to HLS MediaSource");
+                int flags = DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES | DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS;
+                DefaultHlsExtractorFactory extractorFactory = new DefaultHlsExtractorFactory(flags, true);
+                HlsMediaSource.Factory hlsFactory = new HlsMediaSource.Factory(dataSourceFactory)
+                        .setExtractorFactory(extractorFactory);
+                mediaSource = hlsFactory.createMediaSource(mi);
+            }
+            
+            player.setMediaSource(mediaSource);
 
             player.prepare();
 
@@ -300,6 +374,9 @@ public class PlaybackActivity extends FragmentActivity {
                 public void onPlaybackStateChanged(int state) {
                     MainFragment.dLog("STATE", state + "");
                     switch (state) {
+                        case Player.STATE_BUFFERING:
+                            MainFragment.dLog("PLAYBACK", "Buffering…");
+                            break;
                         case Player.STATE_READY:
                             if (getIntent().getBooleanExtra(DetailsActivity.Resume, false) && !resumed) {
                                 player.seekTo(video.getVideoInfo().getProgress() * 1000);
@@ -318,7 +395,11 @@ public class PlaybackActivity extends FragmentActivity {
 
             // Only set up media session if activity is still in a valid state
             if (!isFinishing() && !isDestroyed()) {
-                mediaController.setPlayer(player);
+                // Set up Media3 MediaSession
+                if (mediaSession3 == null) {
+                    mediaSession3 = new MediaSession.Builder(this, player).build();
+                }
+                // Also keep legacy MediaSessionCompat active for compatibility
                 mediaSession.setActive(true);
                 playerInitialized = true;
             } else {
@@ -333,14 +414,22 @@ public class PlaybackActivity extends FragmentActivity {
             return Unit.INSTANCE;
         }, () -> {
             initializationInProgress = false;
-            Toast.makeText(this, "Session expired. Please relink your account.", Toast.LENGTH_LONG).show();
-            finish();
+            // Only treat as session expiry when credentials were actually cleared.
+            // Transient network failures after TV wake must not force a re-login.
+            if (!authManager.hasRefreshToken()) {
+                Toast.makeText(this, "Session expired. Please relink your account.", Toast.LENGTH_LONG).show();
+                finish();
+            } else {
+                Toast.makeText(this, "Could not refresh session. Check your network and try again.", Toast.LENGTH_LONG).show();
+                // Leave the activity open so the user can retry (e.g. press play / resume again).
+            }
             return Unit.INSTANCE;
         });
     }
 
     private void saveVideoPosition() {
-        if (player != null) {
+        // Livestreams have no videoId; don't post progress for them
+        if (player != null && video != null && video.getVideoId() != null) {
             client.setVideoProgress(video.getVideoId(), (int) (player.getCurrentPosition() / 1000));
         }
     }
@@ -355,7 +444,26 @@ public class PlaybackActivity extends FragmentActivity {
             player = null;
             playerInitialized = false;
             initializationInProgress = false;
-            this.finish();
         }
+        
+        if (mediaSession3 != null) {
+            mediaSession3.release();
+            mediaSession3 = null;
+        }
+        
+        this.finish();
+    }
+
+    private static boolean isEmulator() {
+        return Build.FINGERPRINT.contains("generic")
+                || Build.FINGERPRINT.contains("unknown")
+                || Build.MODEL.contains("google_sdk")
+                || Build.MODEL.contains("Emulator")
+                || Build.MODEL.contains("Android SDK built for x86")
+                || Build.MANUFACTURER.contains("Genymotion")
+                || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
+                || "google_sdk".equals(Build.PRODUCT)
+                || Build.HARDWARE.contains("ranchu")
+                || Build.HARDWARE.contains("goldfish");
     }
 }

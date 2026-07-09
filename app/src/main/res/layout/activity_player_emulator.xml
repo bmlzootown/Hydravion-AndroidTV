@@ -13,6 +13,6 @@
         android:layout_height="match_parent"
         app:controller_layout_id="@layout/view_exo_controller"
         app:use_controller="true"
-        app:surface_type="surface_view" />
+        app:surface_type="texture_view" />
 
 </FrameLayout>

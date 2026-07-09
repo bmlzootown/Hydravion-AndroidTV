@@ -4,5 +4,7 @@ enum class SettingsAction {
     REFRESH,
     LOGOUT,
     APP_INFO,
-    LIVESTREAM
+    LIVESTREAM,
+    FORMAT_SETTINGS,
+    APPEARANCE
 }

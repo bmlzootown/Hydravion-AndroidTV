@@ -1,7 +1,5 @@
 package ml.bmlzootown.hydravion.subscription
 
-import android.app.Activity
-import android.content.Context
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -23,7 +21,7 @@ class SubscriptionHeaderPresenter : RowHeaderPresenter() {
 
     override fun onCreateViewHolder(parent: ViewGroup): ViewHolder {
         if (client == null) {
-            client = HydravionClient.getInstance(parent.context, (parent.context as Activity).getPreferences(Context.MODE_PRIVATE))
+            client = HydravionClient.getInstance(parent.context)
         }
 
         return ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.header_subscription, parent, false))

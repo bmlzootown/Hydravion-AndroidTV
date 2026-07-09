@@ -21,6 +21,8 @@ private class BrowseViewClickListener(
             context.getString(R.string.logout) -> onSettingsSelected(SettingsAction.LOGOUT)
             context.getString(R.string.app_info) -> onSettingsSelected(SettingsAction.APP_INFO)
             context.getString(R.string.live_stream) -> onSettingsSelected(SettingsAction.LIVESTREAM)
+            context.getString(R.string.format_settings) -> onSettingsSelected(SettingsAction.FORMAT_SETTINGS)
+            context.getString(R.string.appearance_settings) -> onSettingsSelected(SettingsAction.APPEARANCE)
         }
     }
 }

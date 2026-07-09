@@ -1,12 +1,20 @@
 package ml.bmlzootown.hydravion.browse
 
-import androidx.leanback.widget.*
+import androidx.leanback.widget.ArrayObjectAdapter
+import androidx.leanback.widget.ListRow
+import androidx.leanback.widget.OnItemViewSelectedListener
+import androidx.leanback.widget.Presenter
+import androidx.leanback.widget.Row
+import androidx.leanback.widget.RowPresenter
+import ml.bmlzootown.hydravion.card.CardPlaceholder
 import ml.bmlzootown.hydravion.models.Video
 
 class ItemViewSelectedListener(
-    private val onCheckIndices: (String, Int) -> Unit,
-    private val onVideoSelected: () -> Unit
+    private val onRowEndReached: (Long) -> Unit,
+    private val onRowDisplayed: (Long) -> Unit
 ) : OnItemViewSelectedListener {
+
+    private var lastRowId: Long = -1
 
     override fun onItemSelected(
         itemViewHolder: Presenter.ViewHolder?,
@@ -14,16 +22,42 @@ class ItemViewSelectedListener(
         rowViewHolder: RowPresenter.ViewHolder?,
         row: Row
     ) {
-        if (item is Video && row is ListRow) {
-            (row.adapter as ArrayObjectAdapter).let { current ->
-                current.indexOf(item).let { selected ->
-                    onCheckIndices(item.creator?.id ?: "", selected)
+        if (row !is ListRow) {
+            return
+        }
 
-                    if (selected != -1 && current.size() - 1 == selected) {
-                        onVideoSelected()
-                    }
-                }
+        val rowId = row.headerItem?.id ?: return
+        if (rowId != lastRowId) {
+            lastRowId = rowId
+            onRowDisplayed(rowId)
+        }
+
+        val adapter = row.adapter as? ArrayObjectAdapter ?: return
+        if (item is CardPlaceholder || adapterOnlyPlaceholders(adapter)) {
+            onRowDisplayed(rowId)
+        }
+
+        if (item is Video) {
+            val selected = adapter.indexOf(item)
+            if (selected != -1 && selected >= adapter.size() - PREFETCH_THRESHOLD) {
+                onRowEndReached(rowId)
             }
         }
+    }
+
+    private fun adapterOnlyPlaceholders(adapter: ArrayObjectAdapter): Boolean {
+        if (adapter.size() == 0) {
+            return true
+        }
+        for (i in 0 until adapter.size()) {
+            if (adapter.get(i) != CardPlaceholder) {
+                return false
+            }
+        }
+        return true
+    }
+
+    companion object {
+        private const val PREFETCH_THRESHOLD = 5
     }
 }

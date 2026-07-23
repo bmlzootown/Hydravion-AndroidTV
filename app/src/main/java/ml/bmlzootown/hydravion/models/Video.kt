@@ -22,6 +22,11 @@ class Video : Serializable {
     @Expose
     var vidUrl: String = ""
 
+    /** Floatplane livestream entity id used for chat (`/live/{id}`). Empty for VOD. */
+    @SerializedName("liveStreamId")
+    @Expose
+    var liveStreamId: String = ""
+
     //---
     //---
     @SerializedName("title")

@@ -12,6 +12,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -22,8 +24,10 @@ import androidx.fragment.app.Fragment;
 import androidx.leanback.app.BackgroundManager;
 import androidx.leanback.app.BrowseSupportFragment;
 import androidx.leanback.app.HeadersSupportFragment;
+import androidx.leanback.app.RowsSupportFragment;
 import androidx.leanback.widget.ArrayObjectAdapter;
 import androidx.leanback.widget.HeaderItem;
+import androidx.leanback.widget.HorizontalGridView;
 import androidx.leanback.widget.ListRow;
 import androidx.leanback.widget.ListRowPresenter;
 import androidx.leanback.widget.Presenter;
@@ -111,6 +115,11 @@ public class MainFragment extends BrowseSupportFragment {
         int fetched = 0;
         boolean loading = false;
         boolean exhausted = false;
+        boolean userNavigatedHorizontal = false;
+        int lastSelectedIndex = -1;
+        boolean suppressNavigationTracking = false;
+        /** Live card was prepended; keep trying to select index 0 until the row grid is ready. */
+        boolean pendingSelectLiveCard = false;
 
         RowInfo(String creatorGUID, @Nullable String channelId, ArrayObjectAdapter adapter) {
             this.creatorGUID = creatorGUID;
@@ -414,6 +423,7 @@ public class MainFragment extends BrowseSupportFragment {
         // Clear tokens and in-memory data
         // Use AuthManager to clear both SharedPreferences and in-memory cache
         AuthManager.getInstance(requireActivity()).clearTokens();
+        ml.bmlzootown.hydravion.chat.SailsSessionHelper.INSTANCE.clearChatCookie(requireContext());
 
         // Clear all in-memory data structures
         subscriptions.clear();
@@ -588,7 +598,15 @@ public class MainFragment extends BrowseSupportFragment {
                 selectedPosition = 0;
             }
             loadRowAtBrowsePosition(selectedPosition);
+            // Check every subscription for an active livestream, not only the focused row.
+            checkAllLives();
         });
+    }
+
+    private void checkAllLives() {
+        for (Subscription sub : subscriptions) {
+            maybeFetchLive(sub.getCreator());
+        }
     }
 
     @Nullable
@@ -830,6 +848,8 @@ public class MainFragment extends BrowseSupportFragment {
         ArrayObjectAdapter gridRowAdapter = new ArrayObjectAdapter(mGridPresenter);
         gridRowAdapter.add(getResources().getString(R.string.refresh));
         gridRowAdapter.add(getResources().getString(R.string.live_stream));
+        gridRowAdapter.add(getResources().getString(R.string.live_chat));
+        gridRowAdapter.add(getResources().getString(R.string.chat_cookie));
         gridRowAdapter.add(getResources().getString(R.string.format_settings));
         gridRowAdapter.add(getResources().getString(R.string.appearance_settings));
         gridRowAdapter.add(getResources().getString(R.string.app_info));
@@ -970,6 +990,9 @@ public class MainFragment extends BrowseSupportFragment {
         if (info.channelId == null) {
             maybeFetchLive(info.creatorGUID);
         }
+        if (info.pendingSelectLiveCard) {
+            applyPendingLiveCardFocus(rowId, info);
+        }
         return Unit.INSTANCE;
     }
 
@@ -1011,6 +1034,13 @@ public class MainFragment extends BrowseSupportFragment {
         }
         // Default Leanback behaviour: hide the sidebar and focus the content row
         if (!isInHeadersTransition()) {
+            if (row != null && row.getHeaderItem() != null) {
+                long rowId = row.getHeaderItem().getId();
+                RowInfo info = rowsById.get(rowId);
+                if (info != null && info.pendingSelectLiveCard) {
+                    applyPendingLiveCardFocus(rowId, info);
+                }
+            }
             startHeadersTransition(false);
             if (getRowsSupportFragment() != null && getRowsSupportFragment().getView() != null) {
                 getRowsSupportFragment().getView().requestFocus();
@@ -1269,6 +1299,7 @@ public class MainFragment extends BrowseSupportFragment {
 
         Video stream = new Video();
         stream.setType("live");
+        stream.setLiveStreamId(liveInfo.getId());
 
         Creator creator = new Creator();
         creator.setId((sub.getCreator() == null) ? "" : sub.getCreator());
@@ -1291,7 +1322,134 @@ public class MainFragment extends BrowseSupportFragment {
             stream.setThumbnail(thumbnail);
         }
 
+        info.suppressNavigationTracking = true;
         info.adapter.add(0, stream);
+        info.lastSelectedIndex = 0;
+
+        Long rowId = findRowIdForInfo(info);
+        if (rowId != null) {
+            focusLiveCardIfNeeded(rowId, info);
+        } else {
+            info.suppressNavigationTracking = false;
+        }
+    }
+
+    @Nullable
+    private Long findRowIdForInfo(RowInfo target) {
+        for (Map.Entry<Long, RowInfo> entry : rowsById.entrySet()) {
+            if (entry.getValue() == target) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * When a live card is prepended asynchronously, Leanback keeps selection on the
+     * previously-first VOD (now index 1). Reset to index 0 unless the user already
+     * moved within the row — including for rows that aren't currently focused.
+     */
+    private void focusLiveCardIfNeeded(long rowId, RowInfo info) {
+        if (info.userNavigatedHorizontal) {
+            info.pendingSelectLiveCard = false;
+            info.suppressNavigationTracking = false;
+            return;
+        }
+        info.pendingSelectLiveCard = true;
+        info.suppressNavigationTracking = true;
+        new Handler(Looper.getMainLooper()).post(() -> {
+            if (!isAdded()) {
+                return;
+            }
+            applyPendingLiveCardFocus(rowId, info);
+            // Keep suppress while still waiting for a bound row grid; otherwise
+            // Leanback's shift to the old first VOD (index 1) looks like user navigation.
+            if (!info.pendingSelectLiveCard) {
+                info.suppressNavigationTracking = false;
+            }
+        });
+    }
+
+    private boolean applyPendingLiveCardFocus(long rowId, RowInfo info) {
+        if (!info.pendingSelectLiveCard || info.userNavigatedHorizontal) {
+            return false;
+        }
+        if (!isLiveCardAt(info, 0)) {
+            info.pendingSelectLiveCard = false;
+            info.suppressNavigationTracking = false;
+            return false;
+        }
+        int rowIndex = findRowIndex(rowId);
+        if (rowIndex < 0) {
+            return false;
+        }
+        HorizontalGridView grid = findHorizontalGridForRow(rowIndex);
+        if (grid == null || grid.getAdapter() == null || grid.getAdapter().getItemCount() <= 0) {
+            // Row view not bound yet; keep pending until onRowDisplayed / header click.
+            return false;
+        }
+        info.suppressNavigationTracking = true;
+        grid.setSelectedPosition(0);
+        info.lastSelectedIndex = 0;
+        info.pendingSelectLiveCard = false;
+        new Handler(Looper.getMainLooper()).post(() -> info.suppressNavigationTracking = false);
+        return true;
+    }
+
+    private static boolean isLiveCardAt(RowInfo info, int index) {
+        if (info.adapter.size() <= index) {
+            return false;
+        }
+        Object item = info.adapter.get(index);
+        return item instanceof Video && "live".equalsIgnoreCase(((Video) item).getType());
+    }
+
+    private void focusHorizontalGridAt(int rowIndex, int itemIndex) {
+        HorizontalGridView grid = findHorizontalGridForRow(rowIndex);
+        if (grid != null && itemIndex >= 0 && itemIndex < grid.getAdapter().getItemCount()) {
+            grid.setSelectedPosition(itemIndex);
+        }
+    }
+
+    @Nullable
+    private HorizontalGridView findHorizontalGridForRow(int rowIndex) {
+        RowsSupportFragment rows = getRowsSupportFragment();
+        if (rows == null) {
+            return null;
+        }
+        View rowsView = rows.getView();
+        if (rowsView == null) {
+            return null;
+        }
+        VerticalGridView verticalGrid = rowsView.findViewById(androidx.leanback.R.id.browse_grid);
+        if (verticalGrid == null) {
+            return null;
+        }
+        RecyclerView.ViewHolder rowHolder = verticalGrid.findViewHolderForAdapterPosition(rowIndex);
+        if (rowHolder == null) {
+            return null;
+        }
+        return findHorizontalGridView((ViewGroup) rowHolder.itemView);
+    }
+
+    @Nullable
+    private HorizontalGridView findHorizontalGridView(@Nullable ViewGroup parent) {
+        if (parent == null) {
+            return null;
+        }
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            View child = parent.getChildAt(i);
+            if (child instanceof HorizontalGridView) {
+                return (HorizontalGridView) child;
+            }
+            if (child instanceof ViewGroup) {
+                HorizontalGridView nested = findHorizontalGridView((ViewGroup) child);
+                if (nested != null) {
+                    return nested;
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -1362,7 +1520,7 @@ public class MainFragment extends BrowseSupportFragment {
 
     private void setupEventListeners() {
         setOnItemViewClickedListener(new BrowseViewClickListener(requireContext(), this::onVideoSelected, this::onSettingsSelected));
-        setOnItemViewSelectedListener(new ItemViewSelectedListener(this::onRowEndReached, this::onRowDisplayed));
+        setOnItemViewSelectedListener(new ItemViewSelectedListener(this::onRowEndReached, this::onRowDisplayed, this::onRowItemSelected));
     }
 
     private Unit onVideoSelected(@Nullable Presenter.ViewHolder itemViewHolder, @NonNull Video video) {
@@ -1401,6 +1559,21 @@ public class MainFragment extends BrowseSupportFragment {
         return Unit.INSTANCE;
     }
 
+    private Unit onRowItemSelected(long rowId, int index) {
+        RowInfo info = rowsById.get(rowId);
+        if (info == null) {
+            return Unit.INSTANCE;
+        }
+        if (info.lastSelectedIndex >= 0 && index != info.lastSelectedIndex) {
+            if (!info.suppressNavigationTracking) {
+                info.userNavigatedHorizontal = true;
+                info.pendingSelectLiveCard = false;
+            }
+        }
+        info.lastSelectedIndex = index;
+        return Unit.INSTANCE;
+    }
+
     private Unit onSettingsSelected(@NonNull SettingsAction action) {
         switch (action) {
             case REFRESH:
@@ -1414,6 +1587,12 @@ public class MainFragment extends BrowseSupportFragment {
                 break;
             case LIVESTREAM:
                 selectLivestream();
+                break;
+            case LIVE_CHAT:
+                selectLiveChat();
+                break;
+            case CHAT_COOKIE:
+                showChatCookieDialog();
                 break;
             case FORMAT_SETTINGS:
                 showFormatSettings();
@@ -1533,7 +1712,24 @@ public class MainFragment extends BrowseSupportFragment {
                 .show();
     }
 
+    private boolean ensureChatCookie() {
+        if (ml.bmlzootown.hydravion.chat.SailsSessionHelper.INSTANCE.hasChatCookie(requireContext())) {
+            return true;
+        }
+        new AlertDialog.Builder(getContext())
+                .setTitle(R.string.chat_cookie_required_title)
+                .setMessage(R.string.chat_cookie_required)
+                .setPositiveButton(R.string.chat_cookie, (dialog, which) -> showChatCookieDialog())
+                .setNegativeButton(android.R.string.cancel, null)
+                .create()
+                .show();
+        return false;
+    }
+
     private void selectLivestream() {
+        if (!ensureChatCookie()) {
+            return;
+        }
         List<String> subs = new ArrayList<>();
         for (Subscription s : subscriptions) {
             if (s.getPlan() != null) {
@@ -1544,11 +1740,17 @@ public class MainFragment extends BrowseSupportFragment {
         new AlertDialog.Builder(getContext())
                 .setTitle("Play livestream?")
                 .setItems(s, (dialog, which) -> {
-                    String stream = subscriptions.get(which).getStreamUrl();
+                    Subscription sub = subscriptions.get(which);
+                    String stream = sub.getStreamUrl();
                     if (stream != null) {
                         dLog("LIVE", stream);
                         Video live = new Video();
+                        live.setType("live");
                         live.setVidUrl(stream);
+                        if (sub.getStreamInfo() != null) {
+                            live.setLiveStreamId(sub.getStreamInfo().getId());
+                            live.setTitle(sub.getStreamInfo().getTitle());
+                        }
                         Intent intent = new Intent(getActivity(), PlaybackActivity.class);
                         intent.putExtra(DetailsActivity.Video, live);
                         startActivity(intent);
@@ -1558,6 +1760,106 @@ public class MainFragment extends BrowseSupportFragment {
                 })
                 .create()
                 .show();
+    }
+
+    private void selectLiveChat() {
+        if (!ensureChatCookie()) {
+            return;
+        }
+        List<String> labels = new ArrayList<>();
+        List<Subscription> chatSubs = new ArrayList<>();
+        for (Subscription sub : subscriptions) {
+            if (sub.getPlan() == null) {
+                continue;
+            }
+            labels.add(sub.getPlan().getTitle());
+            chatSubs.add(sub);
+        }
+        if (chatSubs.isEmpty()) {
+            Toast.makeText(getActivity(), R.string.live_chat_no_id, Toast.LENGTH_LONG).show();
+            return;
+        }
+        CharSequence[] items = labels.toArray(new CharSequence[0]);
+        new AlertDialog.Builder(getContext())
+                .setTitle(R.string.live_chat_pick_title)
+                .setItems(items, (dialog, which) -> {
+                    Subscription sub = chatSubs.get(which);
+                    FloatplaneLiveStream info = sub.getStreamInfo();
+                    if (info == null || info.getId() == null || info.getId().isEmpty()) {
+                        // streamInfo is filled async; try a fresh creator lookup
+                        String creatorId = sub.getCreator();
+                        if (creatorId == null || creatorId.isEmpty()) {
+                            Toast.makeText(getActivity(), R.string.live_chat_no_id, Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        client.getCreatorInfo(creatorId, liveInfo -> {
+                            if (getActivity() == null) {
+                                return Unit.INSTANCE;
+                            }
+                            getActivity().runOnUiThread(() ->
+                                    openLiveChat(liveInfo, sub.getPlan().getTitle(), creatorId));
+                            return Unit.INSTANCE;
+                        });
+                    } else {
+                        openLiveChat(info, sub.getPlan().getTitle(), sub.getCreator());
+                    }
+                })
+                .create()
+                .show();
+    }
+
+    private void showChatCookieDialog() {
+        final android.widget.EditText input = new android.widget.EditText(requireContext());
+        input.setHint(R.string.chat_cookie_hint);
+        input.setSingleLine(false);
+        input.setMinLines(2);
+        input.setMaxLines(4);
+        String existing = ml.bmlzootown.hydravion.chat.SailsSessionHelper.INSTANCE.getChatCookie(requireContext());
+        if (!existing.isEmpty()) {
+            input.setText(existing);
+        }
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        input.setPadding(pad, pad, pad, pad);
+
+        new AlertDialog.Builder(getContext())
+                .setTitle(R.string.chat_cookie_title)
+                .setMessage(R.string.chat_cookie_message)
+                .setView(input)
+                .setPositiveButton(R.string.chat_cookie_save, (dialog, which) -> {
+                    String value = input.getText() != null ? input.getText().toString() : "";
+                    ml.bmlzootown.hydravion.chat.SailsSessionHelper.INSTANCE.setChatCookie(requireContext(), value);
+                    boolean saved = ml.bmlzootown.hydravion.chat.SailsSessionHelper.INSTANCE
+                            .hasChatCookie(requireContext());
+                    Toast.makeText(
+                            getActivity(),
+                            saved ? R.string.chat_cookie_saved : R.string.chat_cookie_cleared,
+                            Toast.LENGTH_SHORT
+                    ).show();
+                })
+                .setNeutralButton(R.string.chat_cookie_clear, (dialog, which) -> {
+                    ml.bmlzootown.hydravion.chat.SailsSessionHelper.INSTANCE.clearChatCookie(requireContext());
+                    Toast.makeText(getActivity(), R.string.chat_cookie_cleared, Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .create()
+                .show();
+    }
+
+    private void openLiveChat(FloatplaneLiveStream info, String fallbackTitle, String creatorId) {
+        if (info == null || info.getId() == null || info.getId().isEmpty()) {
+            Toast.makeText(getActivity(), R.string.live_chat_no_id, Toast.LENGTH_LONG).show();
+            return;
+        }
+        String title = (info.getTitle() != null && !info.getTitle().isEmpty())
+                ? info.getTitle()
+                : fallbackTitle;
+        Intent intent = new Intent(getActivity(), ml.bmlzootown.hydravion.chat.LiveChatActivity.class);
+        intent.putExtra(ml.bmlzootown.hydravion.chat.LiveChatActivity.EXTRA_LIVESTREAM_ID, info.getId());
+        intent.putExtra(ml.bmlzootown.hydravion.chat.LiveChatActivity.EXTRA_TITLE, title);
+        if (creatorId != null && !creatorId.isEmpty()) {
+            intent.putExtra(ml.bmlzootown.hydravion.chat.LiveChatActivity.EXTRA_CREATOR_ID, creatorId);
+        }
+        startActivity(intent);
     }
 
     private String getHighestSupportedRes(VideoInfo info) {

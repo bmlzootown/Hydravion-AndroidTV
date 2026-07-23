@@ -1,18 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/framelayout_exoplayer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:animateLayoutChanges="true"
     android:background="#000000"
-    android:keepScreenOn="true">
+    android:keepScreenOn="true"
+    android:orientation="horizontal">
 
     <androidx.media3.ui.PlayerView
         android:id="@+id/exoplayer"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="match_parent"
+        android:layout_weight="1"
         app:controller_layout_id="@layout/view_exo_controller"
         app:use_controller="true"
         app:surface_type="surface_view" />
 
-</FrameLayout>
+    <LinearLayout
+        android:id="@+id/player_side_panel"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <include layout="@layout/view_live_poll" />
+
+        <include
+            layout="@layout/view_live_chat"
+            android:layout_width="@dimen/live_chat_panel_width"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+    </LinearLayout>
+
+</LinearLayout>

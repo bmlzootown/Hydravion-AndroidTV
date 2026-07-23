@@ -11,7 +11,8 @@ import ml.bmlzootown.hydravion.models.Video
 
 class ItemViewSelectedListener(
     private val onRowEndReached: (Long) -> Unit,
-    private val onRowDisplayed: (Long) -> Unit
+    private val onRowDisplayed: (Long) -> Unit,
+    private val onRowItemSelected: (Long, Int) -> Unit
 ) : OnItemViewSelectedListener {
 
     private var lastRowId: Long = -1
@@ -35,6 +36,13 @@ class ItemViewSelectedListener(
         val adapter = row.adapter as? ArrayObjectAdapter ?: return
         if (item is CardPlaceholder || adapterOnlyPlaceholders(adapter)) {
             onRowDisplayed(rowId)
+        }
+
+        if (item != null) {
+            val selected = adapter.indexOf(item)
+            if (selected != -1) {
+                onRowItemSelected(rowId, selected)
+            }
         }
 
         if (item is Video) {

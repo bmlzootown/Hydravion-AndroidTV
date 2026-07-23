@@ -16,6 +16,7 @@ import ml.bmlzootown.hydravion.models.*
 import ml.bmlzootown.hydravion.models.Video
 import ml.bmlzootown.hydravion.models.Channel
 import ml.bmlzootown.hydravion.post.Post
+import ml.bmlzootown.hydravion.playback.DevicePlaybackCompat
 import ml.bmlzootown.hydravion.subscription.Subscription
 import org.json.JSONArray
 import org.json.JSONObject
@@ -385,12 +386,14 @@ class HydravionClient private constructor(private val context: Context, private 
 
                 override fun onSuccess(response: String) {
                     val c: Creator = Gson().fromJson(response, Creator::class.java)
-                    c.lastLiveStream?.let {
-                        getLive(it.id) {
+                    c.lastLiveStream?.let { liveStream ->
+                        // Ensure stream metadata is available before addLiveCard runs
+                        // (getSubs fills this async and can race with live checks).
+                        sub.streamInfo = liveStream
+                        getLive(liveStream.id) {
                             callback(it)
                         }
                     }
-                    //callback(Gson().fromJson(response, Creator::class.java))
                 }
 
                 override fun onResponseCode(response: Int) = Unit
@@ -405,14 +408,34 @@ class HydravionClient private constructor(private val context: Context, private 
     }
 
     fun getLive(livestreamID: String, callback: (Delivery) -> Unit) {
+        requestLiveDelivery(livestreamID, DevicePlaybackCompat.preferredLiveOutputKind(), callback)
+    }
+
+    private fun requestLiveDelivery(
+        livestreamID: String,
+        outputKind: String,
+        callback: (Delivery) -> Unit,
+    ) {
         authManager.withValidAccessToken({ token ->
             requestTask.sendRequest(
-                "$URI_DELIVERY?scenario=live&entityId=$livestreamID",
+                "$URI_DELIVERY?scenario=live&entityId=$livestreamID&outputKind=$outputKind",
                 token,
                 object : RequestTask.VolleyCallback {
 
                 override fun onSuccess(response: String) {
-                    callback(Gson().fromJson(response, Delivery::class.java))
+                    MainFragment.dLog(TAG, "getLive delivery (outputKind=$outputKind): $response")
+                    val delivery = Gson().fromJson(response, Delivery::class.java)
+                    if (delivery.groups.isNullOrEmpty()
+                        && outputKind != Constants.OUTPUT_FORMAT_HLS_MPEGTS
+                    ) {
+                        MainFragment.dLog(
+                            TAG,
+                            "Live delivery empty for $outputKind; falling back to ${Constants.OUTPUT_FORMAT_HLS_MPEGTS}"
+                        )
+                        requestLiveDelivery(livestreamID, Constants.OUTPUT_FORMAT_HLS_MPEGTS, callback)
+                        return
+                    }
+                    callback(delivery)
                 }
 
                 override fun onResponseCode(response: Int) = Unit

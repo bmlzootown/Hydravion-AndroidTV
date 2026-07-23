@@ -11,6 +11,11 @@ object Constants {
     const val PREF_REFRESH_TOKEN = "refresh_token"
     const val PREF_TOKEN_EXPIRES_AT = "token_expires_at"
 
+    /** Browser sails.sid cookie value for livestream chat auth. */
+    const val PREF_CHAT_COOKIE = "chat_cookie"
+    /** Legacy key; migrated to [PREF_CHAT_COOKIE] on read. */
+    const val PREF_CHAT_COOKIE_LEGACY = "test_sails_sid"
+
     const val REQ_CODE_DETAIL = 1
     
     // Output format preference

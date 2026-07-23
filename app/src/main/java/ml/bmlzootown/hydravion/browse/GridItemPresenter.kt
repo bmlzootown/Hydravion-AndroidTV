@@ -38,6 +38,8 @@ class GridItemPresenter : Presenter() {
         return when (title) {
             context.getString(R.string.refresh) -> R.drawable.ic_setting_refresh
             context.getString(R.string.live_stream) -> R.drawable.ic_setting_live
+            context.getString(R.string.live_chat) -> R.drawable.ic_setting_chat
+            context.getString(R.string.chat_cookie) -> R.drawable.ic_setting_cookie
             context.getString(R.string.format_settings) -> R.drawable.ic_setting_format
             context.getString(R.string.appearance_settings) -> R.drawable.ic_setting_theme
             context.getString(R.string.app_info) -> R.drawable.ic_setting_about

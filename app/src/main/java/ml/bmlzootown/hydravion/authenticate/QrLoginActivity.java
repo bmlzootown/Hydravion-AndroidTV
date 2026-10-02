@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import ml.bmlzootown.hydravion.R;
+import ml.bmlzootown.hydravion.ThemeManager;
 import ml.bmlzootown.hydravion.browse.MainFragment;
 
 public class QrLoginActivity extends Activity {
@@ -69,6 +70,7 @@ public class QrLoginActivity extends Activity {
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        ThemeManager.applyTheme(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_qr_login);
         
@@ -344,7 +346,10 @@ public class QrLoginActivity extends Activity {
                     handler.postDelayed(pollRunnable, pollIntervalMs);
                     return;
                 } else if ("expired_token".equals(error)) {
-                    statusTextView.setText("Login code expired. Please try again.");
+                    statusTextView.setText("Login code expired. Refreshing...");
+                    handler.removeCallbacks(pollRunnable);
+                    handler.removeCallbacks(timerRunnable);
+                    startDeviceAuthorization();
                     return;
                 } else {
                     statusTextView.setText("Login failed: " + error);

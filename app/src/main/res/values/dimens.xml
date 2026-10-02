@@ -1,5 +1,17 @@
 <resources>
     <!-- Default screen margins, per the Android Design guidelines. -->
- <dimen name="activity_horizontal_margin">16dp</dimen>
- <dimen name="activity_vertical_margin">16dp</dimen>
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+
+    <!-- Keep player chrome inside TV overscan / safe area. -->
+    <dimen name="player_overscan_margin">48dp</dimen>
+    <!-- Bottom bar (60dp) + overscan (48dp) - small overlap so the scrubber sits above the bar. -->
+    <dimen name="player_progress_margin_bottom">100dp</dimen>
+    <!-- Side chat column when live chat is open (player shrinks to make room). -->
+    <dimen name="live_chat_panel_width">300dp</dimen>
+    <!-- Inset chat text from the TV bezel without leaving a black gap beside the panel. -->
+    <dimen name="live_chat_edge_padding">24dp</dimen>
+    <dimen name="live_chat_emote_size">20dp</dimen>
+    <!-- Cap poll options height so long polls scroll instead of eating the chat area. -->
+    <dimen name="live_poll_options_max_height">260dp</dimen>
 </resources>

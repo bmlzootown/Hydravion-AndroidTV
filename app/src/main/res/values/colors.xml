@@ -1,11 +1,39 @@
 <resources>
-    <color name="background_gradient_start">#000000</color>
-    <color name="background_gradient_end">#DDDDDD</color>
-    <color name="fastlane_background">#3E3E3E</color>
-    <color name="search_opaque">#ffaa3f</color>
-    <color name="selected_background">#6A6A6A</color>
-    <color name="default_background">#3d3d3d</color>
-    <color name="colorAccent">#3E3E3E</color>
+    <!-- Dark theme (default) -->
+    <color name="background_gradient_start">#0a0a0a</color>
+    <color name="background_gradient_end">#121212</color>
+    <color name="fastlane_background">#161616</color>
+    <color name="search_opaque">#3d8bfd</color>
+    <color name="selected_background">#2a2a2a</color>
+    <color name="default_background">#121212</color>
+    <color name="card_background">#1e1e1e</color>
+    <color name="colorAccent">#3d8bfd</color>
+    <color name="progress_blue">#3d8bfd</color>
     <color name="chipTextColor">#FFFFFF</color>
     <color name="chipColor">#000000</color>
+    <color name="text_secondary">#9ca3af</color>
+    <color name="header_chevron">#6b7280</color>
+    <color name="focus_ring">#5a5a5a</color>
+    <color name="focus_fill">#242424</color>
+    <color name="detail_button">#3a3a3a</color>
+    <color name="detail_button_focused">#4a4a4a</color>
+    <color name="setting_border">#33ffffff</color>
+    <color name="setting_focus_ring">#3d8bfd</color>
+    <color name="setting_focus_fill">#3d3d3d</color>
+    <color name="progress_track_overlay">#B3000000</color>
+
+    <!-- Soft light theme — slightly brighter charcoal, not pure white -->
+    <color name="light_background">#2a2a2a</color>
+    <color name="light_card_background">#333333</color>
+    <color name="light_sidebar_background">#303030</color>
+    <color name="light_text_primary">#f0f0f0</color>
+    <color name="light_text_secondary">#b0b0b0</color>
+    <color name="light_focus_ring">#6a6a6a</color>
+    <color name="light_focus_fill">#3a3a3a</color>
+    <color name="light_detail_button">#404040</color>
+    <color name="light_detail_button_focused">#505050</color>
+    <color name="light_setting_border">#33ffffff</color>
+    <color name="light_setting_focus_ring">#5a9cff</color>
+    <color name="light_setting_focus_fill">#484848</color>
+    <color name="light_progress_track_overlay">#99000000</color>
 </resources>

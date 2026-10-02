@@ -1,27 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:focusable="true"
-    android:orientation="horizontal">
+    android:orientation="horizontal"
+    android:paddingVertical="4dp">
 
     <ImageView
         android:id="@+id/header_icon"
         android:layout_width="28dp"
         android:layout_height="28dp"
         android:layout_gravity="center_vertical"
+        android:scaleType="centerCrop"
         tools:src="@drawable/exo_ic_settings" />
 
     <TextView
         android:id="@+id/header_sub"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
         android:layout_marginStart="8dp"
-        android:maxWidth="120dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
         android:maxLines="3"
         android:textColor="@android:color/white"
         tools:text="@tools:sample/lorem" />
+
+    <TextView
+        android:id="@+id/header_chevron"
+        android:layout_width="16dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:gravity="center"
+        android:textColor="@color/header_chevron"
+        android:textSize="14sp"
+        android:visibility="gone"
+        tools:text="›"
+        tools:visibility="visible" />
 
 </LinearLayout>

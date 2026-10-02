@@ -1,9 +1,13 @@
 package ml.bmlzootown.hydravion.detail
 
+import android.os.Build
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import ml.bmlzootown.hydravion.R
+import ml.bmlzootown.hydravion.ThemeManager
+import ml.bmlzootown.hydravion.models.Video
+import ml.bmlzootown.hydravion.models.VideoTypeUtil
 
 /*
  * Details activity class that loads LeanbackDetailsFragment class
@@ -13,10 +17,20 @@ class DetailsActivity : AppCompatActivity() {
      * Called when the activity is first created.
      */
     public override fun onCreate(savedInstanceState: Bundle?) {
-        setTheme(R.style.AppTheme_Video)
+        ThemeManager.applyTheme(this)
         super.onCreate(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            val video = intent.getSerializableExtra(Video) as? Video
+            if (video == null || !VideoTypeUtil.isTextPost(video)) {
+                postponeEnterTransition()
+            }
+        }
         setContentView(R.layout.activity_details)
-        supportFragmentManager.beginTransaction().add(R.id.details_fragment, VideoDetailsFragment()).commit()
+        if (savedInstanceState == null) {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.details_fragment, VideoDetailsFragment())
+                .commit()
+        }
     }
 
     override fun onBackPressed() {

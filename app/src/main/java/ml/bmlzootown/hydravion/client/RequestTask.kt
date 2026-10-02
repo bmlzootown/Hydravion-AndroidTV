@@ -17,13 +17,9 @@ class RequestTask(context: Context) {
             Response.Listener { _: String? ->
                 callback.onResponseCode(responseCode);
             }, Response.ErrorListener { error: VolleyError ->
-                //error.printStackTrace()
-                @Suppress("SENSELESS_COMPARISON")
-                if (error.networkResponse.statusCode == null) {
-                    callback.onResponseCode(404)
-                } else {
-                    callback.onResponseCode(error.networkResponse.statusCode)
-                }
+                // networkResponse is null on timeouts / no connectivity — don't NPE
+                val statusCode = error.networkResponse?.statusCode ?: 404
+                callback.onResponseCode(statusCode)
             }) {
             override fun parseNetworkResponse(response: NetworkResponse?): Response<String>? {
                 responseCode = response?.statusCode ?: 0;

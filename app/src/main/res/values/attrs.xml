@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="hydravionWindowBackground" format="color" />
+    <attr name="hydravionCardBackground" format="color" />
+    <attr name="hydravionFocusRing" format="color" />
+    <attr name="hydravionFocusFill" format="color" />
+    <attr name="hydravionTextPrimary" format="color" />
+    <attr name="hydravionTextSecondary" format="color" />
+    <attr name="hydravionSidebarBackground" format="color" />
+    <attr name="hydravionDetailButton" format="color" />
+    <attr name="hydravionDetailButtonFocused" format="color" />
+    <attr name="hydravionSettingBorder" format="color" />
+    <attr name="hydravionSettingFocusRing" format="color" />
+    <attr name="hydravionSettingFocusFill" format="color" />
+</resources>

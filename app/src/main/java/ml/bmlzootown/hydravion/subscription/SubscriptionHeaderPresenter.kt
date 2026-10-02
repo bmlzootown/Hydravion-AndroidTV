@@ -1,7 +1,5 @@
 package ml.bmlzootown.hydravion.subscription
 
-import android.app.Activity
-import android.content.Context
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -23,7 +21,7 @@ class SubscriptionHeaderPresenter : RowHeaderPresenter() {
 
     override fun onCreateViewHolder(parent: ViewGroup): ViewHolder {
         if (client == null) {
-            client = HydravionClient.getInstance(parent.context, (parent.context as Activity).getPreferences(Context.MODE_PRIVATE))
+            client = HydravionClient.getInstance(parent.context)
         }
 
         return ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.header_subscription, parent, false))
@@ -38,10 +36,14 @@ class SubscriptionHeaderPresenter : RowHeaderPresenter() {
                 } else {
                     subView.findViewById<TextView>(R.id.header_sub).text = name
                     client?.getCreatorByName(name) { creator ->
+                        val iconPath = creator.icon?.getBestPath()
+                        if (iconPath.isNullOrBlank()) {
+                            return@getCreatorByName
+                        }
                         Glide.with(subView)
                             .load(
                                 GlideUrl(
-                                    creator.icon?.path, LazyHeaders.Builder()
+                                    iconPath, LazyHeaders.Builder()
                                         .addHeader("User-Agent", "Hydravion (AndroidTV $version)")
                                         .build()
                                 )

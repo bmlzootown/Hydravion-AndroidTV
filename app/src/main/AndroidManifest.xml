@@ -60,6 +60,9 @@
             android:name=".playback.PlaybackActivity"
             android:exported="false" />
         <activity
+            android:name=".chat.LiveChatActivity"
+            android:exported="false" />
+        <activity
             android:name=".authenticate.QrLoginActivity"
             android:exported="false"
             android:noHistory="true" />

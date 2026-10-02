@@ -3,6 +3,7 @@ package ml.bmlzootown.hydravion.browse
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import ml.bmlzootown.hydravion.R
+import ml.bmlzootown.hydravion.ThemeManager
 import ml.bmlzootown.hydravion.browse.MainFragment
 
 /*
@@ -10,9 +11,13 @@ import ml.bmlzootown.hydravion.browse.MainFragment
  */
 class MainActivity : AppCompatActivity() {
     public override fun onCreate(savedInstanceState: Bundle?) {
-        setTheme(R.style.AppTheme_Browse)
+        ThemeManager.applyTheme(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        supportFragmentManager.beginTransaction().add(R.id.main_browse_fragment, MainFragment()).commit()
+        if (savedInstanceState == null) {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.main_browse_fragment, MainFragment())
+                .commit()
+        }
     }
 }

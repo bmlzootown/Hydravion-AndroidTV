@@ -6,9 +6,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.preference.PreferenceManager;
-import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.Toast;
 
@@ -24,11 +27,10 @@ import androidx.leanback.widget.ClassPresenterSelector;
 import androidx.leanback.widget.DetailsOverviewRow;
 import androidx.leanback.widget.FullWidthDetailsOverviewRowPresenter;
 import androidx.leanback.widget.FullWidthDetailsOverviewSharedElementHelper;
-import androidx.leanback.widget.ImageCardView;
-import androidx.leanback.widget.OnItemViewClickedListener;
 import androidx.leanback.widget.Presenter;
 import androidx.leanback.widget.Row;
 import androidx.leanback.widget.RowPresenter;
+import androidx.leanback.widget.OnItemViewClickedListener;
 
 import com.android.volley.VolleyError;
 import com.bumptech.glide.Glide;
@@ -52,6 +54,7 @@ import ml.bmlzootown.hydravion.client.RequestTask;
 import ml.bmlzootown.hydravion.models.Level;
 import ml.bmlzootown.hydravion.models.Video;
 import ml.bmlzootown.hydravion.models.VideoInfo;
+import ml.bmlzootown.hydravion.models.VideoTypeUtil;
 import ml.bmlzootown.hydravion.playback.PlaybackActivity;
 
 public class VideoDetailsFragment extends DetailsSupportFragment {
@@ -62,17 +65,21 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
     private static final int ACTION_RESUME = 3;
     private static final int ACTION_RES = 2;
 
-    private static final int DETAIL_THUMB_WIDTH = 274;
-    private static final int DETAIL_THUMB_HEIGHT = 274;
+    private static final int DETAIL_THUMB_WIDTH = 320;
+    private static final int DETAIL_THUMB_HEIGHT = 180;
 
     private HydravionClient client;
 
     private Video mSelectedMovie;
 
+    private DetailsOverviewRow mOverviewRow;
+    private boolean isTextPost;
+
     private ArrayObjectAdapter mAdapter;
     private ClassPresenterSelector mPresenterSelector;
 
     private DetailsSupportFragmentBackgroundController mDetailsBackground;
+    private boolean enterTransitionStarted = false;
 
     private static final String version = ml.bmlzootown.hydravion.BuildConfig.VERSION_NAME;
     private static final String userAgent = String.format("Hydravion %s (AndroidTV)", version);
@@ -85,7 +92,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
         mSelectedMovie = (Video) getActivity().getIntent().getSerializableExtra(DetailsActivity.Video);
 
         if (mSelectedMovie != null) {
-            //String mSelectedUrl = getActivity().getIntent().getStringExtra("vidURL");
+            isTextPost = VideoTypeUtil.isTextPost(mSelectedMovie);
             mPresenterSelector = new ClassPresenterSelector();
             mAdapter = new ArrayObjectAdapter(mPresenterSelector);
             setupDetailsOverviewRow();
@@ -101,16 +108,46 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        client = HydravionClient.Companion.getInstance(requireContext(), requireActivity().getPreferences(Context.MODE_PRIVATE));
-        initializeBackground();
+        // Must NOT use getPreferences() here — this fragment can be the first code to run
+        // after process death, and binding the client singletons to a per-activity prefs
+        // file (with no tokens) caused the login-loop bug.
+        client = HydravionClient.getInstance(requireContext());
+        if (isTextPost) {
+            loadTextPostOverviewImage();
+        }
+        // Defer parallax cover load until the shared-element transition finishes
+        new Handler(Looper.getMainLooper()).postDelayed(this::initializeBackground, isTextPost ? 0 : 400);
+        if (!isTextPost) {
+            new Handler(Looper.getMainLooper()).postDelayed(this::startEnterTransitionIfReady, 500);
+        }
+    }
+
+    private void startEnterTransitionIfReady() {
+        if (enterTransitionStarted || getActivity() == null) {
+            return;
+        }
+        enterTransitionStarted = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getActivity().supportStartPostponedEnterTransition();
+        }
     }
 
     private void initializeBackground() {
+        if (mSelectedMovie.getCreator() == null) {
+            return;
+        }
         mDetailsBackground.enableParallax();
         client.getCreatorById(mSelectedMovie.getCreator().getId(), creator -> {
+            String coverPath = creator.getCoverImage() != null ? creator.getCoverImage().getBestPath() : null;
+            if (coverPath == null || coverPath.isEmpty()) {
+                coverPath = creator.getIcon() != null ? creator.getIcon().getBestPath() : null;
+            }
+            if (coverPath == null || coverPath.isEmpty() || getActivity() == null) {
+                return Unit.INSTANCE;
+            }
             Glide.with(requireActivity())
                     .asBitmap()
-                    .load(new GlideUrl(creator.getCoverImage().getPath(), new LazyHeaders.Builder()
+                    .load(new GlideUrl(coverPath, new LazyHeaders.Builder()
                             .addHeader("User-Agent", userAgent)
                             .build())
                         )
@@ -121,7 +158,6 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                         @Override
                         public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
                             mDetailsBackground.setCoverBitmap(resource);
-                            mAdapter.notifyArrayItemRangeChanged(0, mAdapter.size());
                         }
 
                         @Override
@@ -135,22 +171,36 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
 
     private void setupDetailsOverviewRow() {
         MainFragment.dLog(TAG, "doInBackground: " + mSelectedMovie.toString());
-        final DetailsOverviewRow row = new DetailsOverviewRow(mSelectedMovie);
+        mOverviewRow = new DetailsOverviewRow(mSelectedMovie);
+        final DetailsOverviewRow row = mOverviewRow;
         row.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.default_background));
-        Glide.with(requireActivity())
-                .load(new GlideUrl(mSelectedMovie.getThumbnail().getPath(), new LazyHeaders.Builder()
+
+        if (!isTextPost && mSelectedMovie.getThumbnail() != null && mSelectedMovie.getThumbnail().getBestPath() != null) {
+            Glide.with(requireActivity())
+                .load(new GlideUrl(mSelectedMovie.getThumbnail().getBestPath(), new LazyHeaders.Builder()
                         .addHeader("User-Agent", userAgent)
                         .build())
                 )
+                .override(DETAIL_THUMB_WIDTH, DETAIL_THUMB_HEIGHT)
                 .centerCrop()
-                .transform(new RoundedCorners(48))
+                .transform(new RoundedCorners(24))
                 .error(R.drawable.default_background)
                 .into(new CustomTarget<Drawable>() {
 
                     @Override
                     public void onResourceReady(@NonNull Drawable resource, @Nullable Transition<? super Drawable> transition) {
                         row.setImageDrawable(resource);
-                        mAdapter.notifyArrayItemRangeChanged(0, mAdapter.size());
+                        mAdapter.notifyArrayItemRangeChanged(0, 1);
+                        startEnterTransitionIfReady();
+                    }
+
+                    @Override
+                    public void onLoadFailed(@Nullable Drawable errorDrawable) {
+                        if (errorDrawable != null) {
+                            row.setImageDrawable(errorDrawable);
+                            mAdapter.notifyArrayItemRangeChanged(0, 1);
+                        }
+                        startEnterTransitionIfReady();
                     }
 
                     @Override
@@ -158,43 +208,85 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
 
                     }
                 });
+        } else if (!isTextPost) {
+            startEnterTransitionIfReady();
+        }
 
         ArrayObjectAdapter actionAdapter = new ArrayObjectAdapter();
-        boolean isLive =  mSelectedMovie.getType().equalsIgnoreCase("live");
+        boolean isLive = mSelectedMovie.getType().equalsIgnoreCase("live");
 
-        // add RESUME first so it is the default
-        if (!isLive) {
-
-            if (mSelectedMovie.getVideoInfo().getProgress() > 0) {
-                actionAdapter.add(new Action(ACTION_RESUME, getString(R.string.action_resume)));
+        if (VideoTypeUtil.isPlayable(mSelectedMovie)) {
+            // add RESUME first so it is the default
+            if (!isLive) {
+                VideoInfo videoInfo = mSelectedMovie.getVideoInfo();
+                if (videoInfo != null && videoInfo.getProgress() > 0) {
+                    actionAdapter.add(new Action(ACTION_RESUME, getString(R.string.action_resume)));
+                }
             }
+
+            actionAdapter.add(new Action(ACTION_PLAY, getString(R.string.play)));
+
+            if (!isLive) {
+                actionAdapter.add(new Action(ACTION_RES, getString(R.string.resolutions)));
+            }
+
+            row.setActionsAdapter(actionAdapter);
         }
-
-        actionAdapter.add(new Action(ACTION_PLAY, getString(R.string.play)));
-
-        if (!isLive) {
-            actionAdapter.add(new Action(ACTION_RES, getString(R.string.resolutions)));
-        }
-
-        row.setActionsAdapter(actionAdapter);
 
         mAdapter.add(row);
+    }
+
+    private void loadTextPostOverviewImage() {
+        if (mOverviewRow == null || mSelectedMovie.getCreator() == null) {
+            return;
+        }
+        client.getCreatorById(mSelectedMovie.getCreator().getId(), creator -> {
+            String iconPath = creator.getIcon() != null ? creator.getIcon().getBestPath() : null;
+            if (iconPath == null || iconPath.isEmpty()) {
+                return Unit.INSTANCE;
+            }
+            if (!isAdded() || getActivity() == null) {
+                return Unit.INSTANCE;
+            }
+            Glide.with(requireActivity())
+                    .load(new GlideUrl(iconPath, new LazyHeaders.Builder()
+                            .addHeader("User-Agent", userAgent)
+                            .build()))
+                    .override(DETAIL_THUMB_WIDTH, DETAIL_THUMB_HEIGHT)
+                    .fitCenter()
+                    .error(R.drawable.default_background)
+                    .into(new CustomTarget<Drawable>() {
+                        @Override
+                        public void onResourceReady(@NonNull Drawable resource,
+                                                    @Nullable Transition<? super Drawable> transition) {
+                            mOverviewRow.setImageDrawable(resource);
+                            mAdapter.notifyArrayItemRangeChanged(0, 1);
+                        }
+
+                        @Override
+                        public void onLoadCleared(@Nullable Drawable placeholder) {
+                        }
+                    });
+            return Unit.INSTANCE;
+        });
     }
 
     private void setupDetailsOverviewRowPresenter() {
         // Set detail background.
         FullWidthDetailsOverviewRowPresenter detailsPresenter =
                 new FullWidthDetailsOverviewRowPresenter(new DetailsDescriptionPresenter());
-        detailsPresenter.setBackgroundColor(
-                ContextCompat.getColor(getContext(), R.color.default_background));
+        detailsPresenter.setBackgroundColor(resolveThemeColor(R.attr.hydravionWindowBackground));
 
-        // Hook up transition element.
-        FullWidthDetailsOverviewSharedElementHelper sharedElementHelper =
-                new FullWidthDetailsOverviewSharedElementHelper();
-        sharedElementHelper.setSharedElementEnterTransition(
-                getActivity(), DetailsActivity.SHARED_ELEMENT_NAME);
-        detailsPresenter.setListener(sharedElementHelper);
-        detailsPresenter.setParticipatingEntranceTransition(true);
+        if (!isTextPost) {
+            // Hook up transition element for video posts only.
+            FullWidthDetailsOverviewSharedElementHelper sharedElementHelper =
+                    new FullWidthDetailsOverviewSharedElementHelper();
+            sharedElementHelper.setSharedElementEnterTransition(
+                    getActivity(), DetailsActivity.SHARED_ELEMENT_NAME);
+            detailsPresenter.setListener(sharedElementHelper);
+            // Avoid the secondary grow/shrink after the shared element lands
+            detailsPresenter.setParticipatingEntranceTransition(false);
+        }
 
         detailsPresenter.setOnActionClickedListener(action -> {
             if (action.getId() == ACTION_PLAY) {
@@ -208,33 +300,22 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                 intent.putExtra(DetailsActivity.Resume, true);
                 startActivity(intent);
             } else if (action.getId() == ACTION_RES) {
-                client.getPost(mSelectedMovie.getGuid(), post -> {
+                String knownId = mSelectedMovie.getAttachmentIds() != null
+                        && mSelectedMovie.getAttachmentIds().length > 0
+                        ? mSelectedMovie.getVideoId() : "";
+                if (!knownId.isEmpty()) {
+                    showResolutionPicker(knownId);
+                    return;
+                }
+                client.getPost(mSelectedMovie.getId(), post -> {
+                    if (post.getVideoAttachments() == null || post.getVideoAttachments().isEmpty()) {
+                        return Unit.INSTANCE;
+                    }
                     String guid = post.getVideoAttachments().get(0).getGuid();
                     if (!guid.isEmpty()) {
-                        client.getVideoInfo(guid, videoInfo -> {
-                            List<Level> levels = videoInfo.getLevels();
-                            List<String> resolutions = new ArrayList<>();
-                            for (Level l : levels) {
-                                resolutions.add(l.getName());
-                            }
-                            CharSequence[] res = resolutions.toArray(new CharSequence[resolutions.size()]);
-
-                            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                            builder.setTitle("Resolutions");
-                            builder.setItems(res, (dialog, which) -> {
-                                        String res1 = resolutions.get(which);
-
-                                        client.getVideo(mSelectedMovie, res1, newVideo -> {
-                                            mSelectedMovie.setVidUrl(newVideo.getVidUrl());
-                                            Intent intent = new Intent(getActivity(), PlaybackActivity.class);
-                                            intent.putExtra(DetailsActivity.Video, (Serializable) mSelectedMovie);
-                                            startActivity(intent);
-                                            return Unit.INSTANCE;
-                                        });
-                                    });
-                            builder.create().show();
-                            return Unit.INSTANCE;
-                        });
+                        mSelectedMovie.setAttachmentIds(new String[]{guid});
+                        mSelectedMovie.setPlaybackContentType("video");
+                        showResolutionPicker(guid);
                     }
                     return Unit.INSTANCE;
                 });
@@ -243,6 +324,41 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
             }
         });
         mPresenterSelector.addClassPresenter(DetailsOverviewRow.class, detailsPresenter);
+    }
+
+    private void showResolutionPicker(String attachmentId) {
+        client.getVideoInfo(attachmentId, videoInfo -> {
+            List<Level> levels = videoInfo.getLevels();
+            if (levels == null || levels.isEmpty() || getContext() == null) {
+                return Unit.INSTANCE;
+            }
+            List<String> resolutions = new ArrayList<>();
+            for (Level l : levels) {
+                resolutions.add(l.getName());
+            }
+            CharSequence[] res = resolutions.toArray(new CharSequence[resolutions.size()]);
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+            builder.setTitle("Resolutions");
+            builder.setItems(res, (dialog, which) -> {
+                String res1 = resolutions.get(which);
+                client.getVideo(mSelectedMovie, res1, newVideo -> {
+                    mSelectedMovie.setVidUrl(newVideo.getVidUrl());
+                    Intent intent = new Intent(getActivity(), PlaybackActivity.class);
+                    intent.putExtra(DetailsActivity.Video, (Serializable) mSelectedMovie);
+                    startActivity(intent);
+                    return Unit.INSTANCE;
+                });
+            });
+            builder.create().show();
+            return Unit.INSTANCE;
+        });
+    }
+
+    private int resolveThemeColor(int attr) {
+        TypedValue typedValue = new TypedValue();
+        requireContext().getTheme().resolveAttribute(attr, typedValue, true);
+        return ContextCompat.getColor(requireContext(), typedValue.resourceId);
     }
 
     private final class ItemViewClickedListener implements OnItemViewClickedListener {

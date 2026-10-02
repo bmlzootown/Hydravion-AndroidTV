@@ -47,6 +47,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -76,6 +77,7 @@ import ml.bmlzootown.hydravion.client.SyncEvent;
 import ml.bmlzootown.hydravion.client.UserSync;
 import ml.bmlzootown.hydravion.creator.FloatplaneLiveStream;
 import ml.bmlzootown.hydravion.detail.DetailsActivity;
+import ml.bmlzootown.hydravion.models.ContentShape;
 import ml.bmlzootown.hydravion.models.Channel;
 import ml.bmlzootown.hydravion.models.ChildImage;
 import ml.bmlzootown.hydravion.models.Creator;
@@ -615,7 +617,7 @@ public class MainFragment extends BrowseSupportFragment {
             return null;
         }
         Channel first = channels.get(0);
-        return (first.getIcon() != null) ? first.getIcon().getPath() : null;
+        return (first.getIcon() != null) ? first.getIcon().getBestPath() : null;
     }
 
     @Nullable
@@ -723,7 +725,7 @@ public class MainFragment extends BrowseSupportFragment {
         long nextId = maxRowId() + 1;
         for (Channel channel : channels) {
             long channelRowId = nextId++;
-            String iconUrl = (channel.getIcon() != null) ? channel.getIcon().getPath() : null;
+            String iconUrl = (channel.getIcon() != null) ? channel.getIcon().getBestPath() : null;
             ArrayObjectAdapter channelAdapter = new ArrayObjectAdapter(cardPresenter);
             ensurePlaceholders(channelAdapter);
             rowsById.put(channelRowId, new RowInfo(group.creatorGUID, channel.getId(), channelAdapter));
@@ -826,7 +828,7 @@ public class MainFragment extends BrowseSupportFragment {
 
                 for (Channel channel : creatorChannels) {
                     long channelRowId = id++;
-                    String iconUrl = (channel.getIcon() != null) ? channel.getIcon().getPath() : null;
+                    String iconUrl = (channel.getIcon() != null) ? channel.getIcon().getBestPath() : null;
                     ArrayObjectAdapter channelAdapter = new ArrayObjectAdapter(cardPresenter);
                     ensurePlaceholders(channelAdapter);
                     rowsById.put(channelRowId, new RowInfo(creatorGUID, channel.getId(), channelAdapter));
@@ -1535,28 +1537,83 @@ public class MainFragment extends BrowseSupportFragment {
                             DetailsActivity.SHARED_ELEMENT_NAME)
                     .toBundle();
 
-            if (video.getType().equalsIgnoreCase("live") || VideoTypeUtil.isTextPost(video)) {
+            if (video.getType().equalsIgnoreCase("live") || !VideoTypeUtil.isPlayable(video)) {
                 intent.putExtra(DetailsActivity.Video, video);
-                if (VideoTypeUtil.isTextPost(video)) {
-                    startActivityForResult(intent, Constants.REQ_CODE_DETAIL, bundle);
-                } else {
+                if (video.getType().equalsIgnoreCase("live")) {
                     requireActivity().startActivity(intent, bundle);
+                } else {
+                    startActivityForResult(intent, Constants.REQ_CODE_DETAIL, bundle);
                 }
             } else {
-                client.getVideoInfo(video.getVideoId(), videoInfo -> {
-                    String res = getHighestSupportedRes(videoInfo);
-                    client.getVideo(video, res, newVideo -> {
-                        newVideo.setVideoInfo(videoInfo);
-                        intent.putExtra(DetailsActivity.Video, newVideo);
+                // List items omit attachment ids. Playback needs the id from the post detail.
+                client.getPost(video.getId(), post -> {
+                    video.applyPostDetail(post);
+                    if (video.getAttachmentIds() == null || video.getAttachmentIds().length == 0) {
+                        intent.putExtra(DetailsActivity.Video, video);
                         startActivityForResult(intent, Constants.REQ_CODE_DETAIL, bundle);
                         return Unit.INSTANCE;
-                    });
+                    }
+                    openPlayableVideo(video, intent, bundle);
                     return Unit.INSTANCE;
                 });
             }
         }
 
         return Unit.INSTANCE;
+    }
+
+    private void openPlayableVideo(Video video, Intent intent, Bundle bundle) {
+        client.getVideoInfo(video.getVideoId(), videoInfo -> {
+            resolveProgressSeconds(video, videoInfo, seconds -> {
+                videoInfo.setProgress(seconds);
+                String res = getHighestSupportedRes(videoInfo);
+                client.getVideo(video, res, newVideo -> {
+                    newVideo.setVideoInfo(videoInfo);
+                    intent.putExtra(DetailsActivity.Video, newVideo);
+                    startActivityForResult(intent, Constants.REQ_CODE_DETAIL, bundle);
+                    return Unit.INSTANCE;
+                });
+            });
+            return Unit.INSTANCE;
+        });
+    }
+
+    private void resolveProgressSeconds(Video video, VideoInfo videoInfo, ProgressCallback callback) {
+        int duration = durationSeconds(video, videoInfo);
+        int cached = progressPercentFor(video.getId());
+        if (cached >= 0) {
+            callback.onProgress(ContentShape.progressToSeconds(cached, duration));
+            return;
+        }
+        client.getVideoProgress(Collections.singletonList(video.getId()), progress -> {
+            int percent = progress.isEmpty() ? 0 : progress.get(0).getProgress();
+            callback.onProgress(ContentShape.progressToSeconds(percent, duration));
+            return Unit.INSTANCE;
+        });
+    }
+
+    private int durationSeconds(Video video, VideoInfo videoInfo) {
+        if (video.getMetadata() != null && video.getMetadata().durationSeconds() > 0) {
+            return video.getMetadata().durationSeconds();
+        }
+        if (videoInfo.getDuration() != null && videoInfo.getDuration() > 0) {
+            return videoInfo.getDuration();
+        }
+        return 0;
+    }
+
+    /** Cached watch percent, or -1 when this post has not been loaded yet. */
+    private int progressPercentFor(String blogPostId) {
+        for (VideoProgress progress : videoProgress) {
+            if (blogPostId.equals(progress.getId())) {
+                return progress.getProgress();
+            }
+        }
+        return -1;
+    }
+
+    private interface ProgressCallback {
+        void onProgress(int seconds);
     }
 
     private Unit onRowItemSelected(long rowId, int index) {
@@ -1866,6 +1923,9 @@ public class MainFragment extends BrowseSupportFragment {
         int y = Util.getCurrentDisplayModeSize(requireContext()).y;
         AtomicBoolean found = new AtomicBoolean(false);
         String res = "";
+        if (info.getLevels() == null) {
+            return "1080";
+        }
         info.getLevels().forEach(level -> {
             if (level.getName().equalsIgnoreCase(Integer.toString(y))) {
                 found.set(true);

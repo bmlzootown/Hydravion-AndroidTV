@@ -94,3 +94,4 @@ lint/tmp/
 # Android Profiling
 *.hprof
 floatplane-openapi-specification-trimmed.json
+floatplaneapi-openapi.json

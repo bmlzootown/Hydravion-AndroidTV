@@ -108,7 +108,7 @@ class CardPresenter(private val videoProgress: List<VideoProgress>) : Presenter(
 
             title.text = video.title
 
-            val videoDesc = video.description.parseAsHtml()
+            val videoDesc = video.displayText().parseAsHtml()
             desc.text = videoDesc
             if (videoDesc.isBlank()) {
                 desc.isInvisible = true
@@ -149,7 +149,7 @@ class CardPresenter(private val videoProgress: List<VideoProgress>) : Presenter(
                 }
                 video.type.equals("live", ignoreCase = true) -> duration.isGone = true
                 else -> {
-                    val totalDurationSecs = video.metadata?.videoDurationInSecs ?: 0
+                    val totalDurationSecs = video.metadata?.durationSeconds() ?: 0
                     if (totalDurationSecs > 0) {
                         duration.isVisible = true
                         duration.text = formatDuration(totalDurationSecs)
@@ -218,7 +218,7 @@ class CardPresenter(private val videoProgress: List<VideoProgress>) : Presenter(
                 if (image.tag != video.id || !canUseGlide()) {
                     return@getCreatorById
                 }
-                val iconPath = creator.icon?.path
+                val iconPath = creator.icon?.getBestPath()
                 if (iconPath.isNullOrBlank()) {
                     return@getCreatorById
                 }
@@ -237,14 +237,7 @@ class CardPresenter(private val videoProgress: List<VideoProgress>) : Presenter(
             }
         }
 
-        private fun resolveThumbnailUrl(video: Video): String? {
-            val thumb = video.thumbnail ?: return null
-            val childImages = thumb.childImages
-            if (!childImages.isNullOrEmpty()) {
-                return childImages[0].path
-            }
-            return thumb.path?.takeIf { it.isNotBlank() }
-        }
+        private fun resolveThumbnailUrl(video: Video): String? = video.thumbnail?.bestPath
 
         private fun canUseGlide(): Boolean {
             val context = rootView.context

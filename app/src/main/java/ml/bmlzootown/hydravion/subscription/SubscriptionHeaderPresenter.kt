@@ -36,10 +36,14 @@ class SubscriptionHeaderPresenter : RowHeaderPresenter() {
                 } else {
                     subView.findViewById<TextView>(R.id.header_sub).text = name
                     client?.getCreatorByName(name) { creator ->
+                        val iconPath = creator.icon?.getBestPath()
+                        if (iconPath.isNullOrBlank()) {
+                            return@getCreatorByName
+                        }
                         Glide.with(subView)
                             .load(
                                 GlideUrl(
-                                    creator.icon?.path, LazyHeaders.Builder()
+                                    iconPath, LazyHeaders.Builder()
                                         .addHeader("User-Agent", "Hydravion (AndroidTV $version)")
                                         .build()
                                 )

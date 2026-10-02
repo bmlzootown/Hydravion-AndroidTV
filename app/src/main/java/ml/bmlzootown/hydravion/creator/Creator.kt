@@ -2,6 +2,7 @@ package ml.bmlzootown.hydravion.creator
 
 import androidx.annotation.Keep
 import com.google.gson.annotations.SerializedName
+import ml.bmlzootown.hydravion.models.ChildImage
 
 @Keep
 class Creator {
@@ -36,6 +37,18 @@ class FloatplaneIcon {
 
     @SerializedName("path")
     var path: String = ""
+
+    @SerializedName("childImages")
+    var childImages: List<ChildImage>? = null
+
+    /** Smaller rendition when present, otherwise the original image. */
+    fun getBestPath(): String {
+        val child = childImages?.firstOrNull()?.path
+        if (!child.isNullOrBlank()) {
+            return child
+        }
+        return path
+    }
 }
 
 @Keep

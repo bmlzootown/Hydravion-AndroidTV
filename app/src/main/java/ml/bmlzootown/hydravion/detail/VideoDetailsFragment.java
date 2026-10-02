@@ -138,9 +138,16 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
         }
         mDetailsBackground.enableParallax();
         client.getCreatorById(mSelectedMovie.getCreator().getId(), creator -> {
+            String coverPath = creator.getCoverImage() != null ? creator.getCoverImage().getBestPath() : null;
+            if (coverPath == null || coverPath.isEmpty()) {
+                coverPath = creator.getIcon() != null ? creator.getIcon().getBestPath() : null;
+            }
+            if (coverPath == null || coverPath.isEmpty() || getActivity() == null) {
+                return Unit.INSTANCE;
+            }
             Glide.with(requireActivity())
                     .asBitmap()
-                    .load(new GlideUrl(creator.getCoverImage().getPath(), new LazyHeaders.Builder()
+                    .load(new GlideUrl(coverPath, new LazyHeaders.Builder()
                             .addHeader("User-Agent", userAgent)
                             .build())
                         )
@@ -168,9 +175,9 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
         final DetailsOverviewRow row = mOverviewRow;
         row.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.default_background));
 
-        if (!isTextPost && mSelectedMovie.getThumbnail() != null && mSelectedMovie.getThumbnail().getPath() != null) {
+        if (!isTextPost && mSelectedMovie.getThumbnail() != null && mSelectedMovie.getThumbnail().getBestPath() != null) {
             Glide.with(requireActivity())
-                .load(new GlideUrl(mSelectedMovie.getThumbnail().getPath(), new LazyHeaders.Builder()
+                .load(new GlideUrl(mSelectedMovie.getThumbnail().getBestPath(), new LazyHeaders.Builder()
                         .addHeader("User-Agent", userAgent)
                         .build())
                 )
@@ -208,7 +215,7 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
         ArrayObjectAdapter actionAdapter = new ArrayObjectAdapter();
         boolean isLive = mSelectedMovie.getType().equalsIgnoreCase("live");
 
-        if (!isTextPost) {
+        if (VideoTypeUtil.isPlayable(mSelectedMovie)) {
             // add RESUME first so it is the default
             if (!isLive) {
                 VideoInfo videoInfo = mSelectedMovie.getVideoInfo();
@@ -234,14 +241,15 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
             return;
         }
         client.getCreatorById(mSelectedMovie.getCreator().getId(), creator -> {
-            if (creator.getIcon() == null || creator.getIcon().getPath() == null) {
+            String iconPath = creator.getIcon() != null ? creator.getIcon().getBestPath() : null;
+            if (iconPath == null || iconPath.isEmpty()) {
                 return Unit.INSTANCE;
             }
             if (!isAdded() || getActivity() == null) {
                 return Unit.INSTANCE;
             }
             Glide.with(requireActivity())
-                    .load(new GlideUrl(creator.getIcon().getPath(), new LazyHeaders.Builder()
+                    .load(new GlideUrl(iconPath, new LazyHeaders.Builder()
                             .addHeader("User-Agent", userAgent)
                             .build()))
                     .override(DETAIL_THUMB_WIDTH, DETAIL_THUMB_HEIGHT)
@@ -292,33 +300,22 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
                 intent.putExtra(DetailsActivity.Resume, true);
                 startActivity(intent);
             } else if (action.getId() == ACTION_RES) {
-                client.getPost(mSelectedMovie.getGuid(), post -> {
+                String knownId = mSelectedMovie.getAttachmentIds() != null
+                        && mSelectedMovie.getAttachmentIds().length > 0
+                        ? mSelectedMovie.getVideoId() : "";
+                if (!knownId.isEmpty()) {
+                    showResolutionPicker(knownId);
+                    return;
+                }
+                client.getPost(mSelectedMovie.getId(), post -> {
+                    if (post.getVideoAttachments() == null || post.getVideoAttachments().isEmpty()) {
+                        return Unit.INSTANCE;
+                    }
                     String guid = post.getVideoAttachments().get(0).getGuid();
                     if (!guid.isEmpty()) {
-                        client.getVideoInfo(guid, videoInfo -> {
-                            List<Level> levels = videoInfo.getLevels();
-                            List<String> resolutions = new ArrayList<>();
-                            for (Level l : levels) {
-                                resolutions.add(l.getName());
-                            }
-                            CharSequence[] res = resolutions.toArray(new CharSequence[resolutions.size()]);
-
-                            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-                            builder.setTitle("Resolutions");
-                            builder.setItems(res, (dialog, which) -> {
-                                        String res1 = resolutions.get(which);
-
-                                        client.getVideo(mSelectedMovie, res1, newVideo -> {
-                                            mSelectedMovie.setVidUrl(newVideo.getVidUrl());
-                                            Intent intent = new Intent(getActivity(), PlaybackActivity.class);
-                                            intent.putExtra(DetailsActivity.Video, (Serializable) mSelectedMovie);
-                                            startActivity(intent);
-                                            return Unit.INSTANCE;
-                                        });
-                                    });
-                            builder.create().show();
-                            return Unit.INSTANCE;
-                        });
+                        mSelectedMovie.setAttachmentIds(new String[]{guid});
+                        mSelectedMovie.setPlaybackContentType("video");
+                        showResolutionPicker(guid);
                     }
                     return Unit.INSTANCE;
                 });
@@ -327,6 +324,35 @@ public class VideoDetailsFragment extends DetailsSupportFragment {
             }
         });
         mPresenterSelector.addClassPresenter(DetailsOverviewRow.class, detailsPresenter);
+    }
+
+    private void showResolutionPicker(String attachmentId) {
+        client.getVideoInfo(attachmentId, videoInfo -> {
+            List<Level> levels = videoInfo.getLevels();
+            if (levels == null || levels.isEmpty() || getContext() == null) {
+                return Unit.INSTANCE;
+            }
+            List<String> resolutions = new ArrayList<>();
+            for (Level l : levels) {
+                resolutions.add(l.getName());
+            }
+            CharSequence[] res = resolutions.toArray(new CharSequence[resolutions.size()]);
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+            builder.setTitle("Resolutions");
+            builder.setItems(res, (dialog, which) -> {
+                String res1 = resolutions.get(which);
+                client.getVideo(mSelectedMovie, res1, newVideo -> {
+                    mSelectedMovie.setVidUrl(newVideo.getVidUrl());
+                    Intent intent = new Intent(getActivity(), PlaybackActivity.class);
+                    intent.putExtra(DetailsActivity.Video, (Serializable) mSelectedMovie);
+                    startActivity(intent);
+                    return Unit.INSTANCE;
+                });
+            });
+            builder.create().show();
+            return Unit.INSTANCE;
+        });
     }
 
     private int resolveThemeColor(int attr) {

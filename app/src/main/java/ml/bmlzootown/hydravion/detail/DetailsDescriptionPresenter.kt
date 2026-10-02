@@ -30,7 +30,7 @@ class DetailsDescriptionPresenter : AbstractDetailsDescriptionPresenter() {
         viewHolder.title.text = vid.title
         viewHolder.subtitle.text = elapsed
         viewHolder.body.visibility = android.view.View.VISIBLE
-        viewHolder.body.text = vid.description.parseAsHtml()
+        viewHolder.body.text = vid.displayText().parseAsHtml()
 
         if (textPost) {
             viewHolder.body.maxLines = Int.MAX_VALUE

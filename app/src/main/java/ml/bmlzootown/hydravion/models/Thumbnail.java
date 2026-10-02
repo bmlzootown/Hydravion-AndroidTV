@@ -42,6 +42,21 @@ public class Thumbnail implements Serializable
         return path;
     }
 
+    /** Child rendition when the API sent one, otherwise the original path. */
+    public String getBestPath() {
+        if (childImages != null) {
+            for (ChildImage child : childImages) {
+                if (child != null && child.getPath() != null && !child.getPath().isEmpty()) {
+                    return child.getPath();
+                }
+            }
+        }
+        if (path != null && !path.isEmpty()) {
+            return path;
+        }
+        return null;
+    }
+
     public void setPath(String path) {
         this.path = path;
     }

@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import com.android.volley.VolleyError
 import com.google.common.reflect.TypeToken
 import com.google.gson.Gson
+import com.google.gson.JsonParser
 import ml.bmlzootown.hydravion.BuildConfig
 import ml.bmlzootown.hydravion.Constants
 import ml.bmlzootown.hydravion.browse.MainFragment
@@ -145,10 +146,7 @@ class HydravionClient private constructor(private val context: Context, private 
                     }
 
                     try {
-                        // v3 API returns a single object, not an array
-                        Gson().fromJson(response, Creator::class.java).let { creator ->
-                            creator.lastLiveStream?.let { it1 -> callback.invoke(it1) }
-                        }
+                        parseCreator(response)?.lastLiveStream?.let { callback.invoke(it) }
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
@@ -509,11 +507,9 @@ class HydravionClient private constructor(private val context: Context, private 
 
                 override fun onSuccess(response: String) {
                     try {
-                        // v3 API returns a single object, not an array
-                        Gson().fromJson(response, Creator::class.java).let { creator ->
-                            creatorCache[creatorGUID] = creator
-                            callback?.invoke(creator)
-                        }
+                        val creator = parseCreator(response) ?: return
+                        creatorCache[creatorGUID] = creator
+                        callback?.invoke(creator)
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
@@ -687,13 +683,14 @@ class HydravionClient private constructor(private val context: Context, private 
         })
     }
 
-    fun setVideoProgress(videoId: String, progressSeconds: Int) {
+    @JvmOverloads
+    fun setVideoProgress(videoId: String, progressSeconds: Int, contentType: String = "video") {
         if (videoId.isBlank() || progressSeconds < 0) {
             return
         }
         val body = JSONObject().apply {
             put("id", videoId)
-            put("contentType", "video")
+            put("contentType", contentType)
             put("progress", progressSeconds)
         }.toString()
         authManager.withValidAccessToken({ token ->
@@ -716,6 +713,19 @@ class HydravionClient private constructor(private val context: Context, private 
         }, {
             // ignore
         })
+    }
+
+    /**
+     * Creator info is documented as one object. Some responses are a one-element array.
+     */
+    private fun parseCreator(response: String): Creator? {
+        val element = JsonParser.parseString(response)
+        val payload = when {
+            element.isJsonArray -> element.asJsonArray.firstOrNull { it.isJsonObject }
+            element.isJsonObject -> element
+            else -> null
+        } ?: return null
+        return Gson().fromJson(payload, Creator::class.java)
     }
 
     companion object {

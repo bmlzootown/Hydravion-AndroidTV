@@ -412,7 +412,7 @@ public class PlaybackActivity extends FragmentActivity {
         }
 
         client.getPost(video.getId(), post -> {
-            if (!post.getUserInteractions().isEmpty()) {
+            if (!post.getInteractions().isEmpty()) {
                 if (post.isLiked()) {
                     like.setImageResource(R.drawable.ic_like);
                 } else if (post.isDisliked()) {
@@ -638,8 +638,17 @@ public class PlaybackActivity extends FragmentActivity {
 
     private void saveVideoPosition() {
         // Livestreams have no videoId; don't post progress for them
-        if (player != null && video != null && video.getVideoId() != null) {
-            client.setVideoProgress(video.getVideoId(), (int) (player.getCurrentPosition() / 1000));
+        if (player != null && video != null
+                && video.getAttachmentIds() != null
+                && video.getAttachmentIds().length > 0) {
+            String contentType = video.getPlaybackContentType();
+            if (contentType == null || contentType.isEmpty()) {
+                contentType = "video";
+            }
+            client.setVideoProgress(
+                    video.getVideoId(),
+                    (int) (player.getCurrentPosition() / 1000),
+                    contentType);
         }
     }
 

@@ -87,7 +87,7 @@ class FilteredHeaderPresenter : RowHeaderPresenter() {
                 } else {
                     setFallbackIcon(icon)
                     client?.getCreatorByName(name) { creator ->
-                        loadIcon(icon, creator.icon?.path)
+                        loadIcon(icon, creator.icon?.getBestPath())
                     }
                 }
             }
@@ -112,7 +112,7 @@ class FilteredHeaderPresenter : RowHeaderPresenter() {
         icon.setTag(iconRequestTag, cacheKey)
         client?.getCreatorById(creatorGUID) { creator ->
             if (icon.getTag(iconRequestTag) == cacheKey) {
-                loadIcon(icon, creator.icon?.path)
+                loadIcon(icon, creator.icon?.getBestPath())
             }
         }
     }

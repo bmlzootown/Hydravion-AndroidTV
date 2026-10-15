@@ -36,7 +36,6 @@ import ml.bmlzootown.hydravion.browse.MainFragment;
 public class QrLoginActivity extends Activity {
     private static final String TAG = "QrLoginActivity";
     private static final String CLIENT_ID = "hydravion";
-    private static final String SCOPE = "openid videos:watch account:read";
     private static final String DEVICE_AUTH_ENDPOINT = "https://auth.floatplane.com/realms/floatplane/protocol/openid-connect/auth/device";
     private static final String TOKEN_ENDPOINT = "https://auth.floatplane.com/realms/floatplane/protocol/openid-connect/token";
 
@@ -103,7 +102,8 @@ public class QrLoginActivity extends Activity {
             protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<>();
                 params.put("client_id", CLIENT_ID);
-                params.put("scope", SCOPE);
+                // videos:watch and account:read are rejected for this client (invalid_scope).
+                // Omit scope so the server applies the client's defaults, matching Roku.
                 return params;
             }
         };
